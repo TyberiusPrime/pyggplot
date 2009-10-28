@@ -34,7 +34,15 @@ class Plot:
     def add_aesthetic(self, name, column_name):
         self._aesthetics[name] = column_name
 
-    def add_scatter(self, x_column, y_column):
+    def add_scatter(self, x_column, y_column, color=None, group=None):
+        aes_params = {'x': x_column, 'y': y_column}
+        if color:
+            aes_params['colour'] = color
+        if group:
+            aes_params['group'] = group
+        print self._build_aesthetic(aes_params)
+        self._other_adds.append(robjects.r('geom_point')(self._build_aesthetic(aes_params)))
+        return
         self._other_adds.append(self.r['layer'](geom="point"))
         self.add_aesthetic('x',x_column)
         self.add_aesthetic('y',y_column)
@@ -47,12 +55,22 @@ class Plot:
         return robjects.r('aes(%s)' % aes_params)
 
 
-    def add_line(self, x_column, y_column, color=None):
+    def add_line(self, x_column, y_column, color=None, group=None, shape=None, alpha=1.0):
         aes_params = {'x': x_column, 'y': y_column}
+        other_params = {}
         if color:
             aes_params['colour'] = color
+        if group:
+            aes_params['group'] = group
+        if shape:
+            aes_params['shape'] = shape
+        if type(alpha) == int or type(alpha) == float:
+            other_params['alpha'] = alpha
+        else:
+            aes_params['alpha'] = str(alpha)
         print self._build_aesthetic(aes_params)
-        self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params)))
+        print other_params
+        self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params), **other_params))
         #self.add_aesthetic('x',x_column)
         ###self.add_aesthetic('y',y_column)
 
@@ -75,6 +93,22 @@ class Plot:
 
             )
         )
+
+    def facet(self, column_one, column_two = None, fixed_x = True, fixed_y = True):
+        facet_wrap = robjects.r['facet_wrap']
+        if fixed_x and not fixed_y:
+            scale = 'free_y'
+        elif not fixed_x and fixed_y:
+            scale = 'free_x'
+        elif not fixed_x and fixed_y:
+            scale = 'free'
+        else:
+            scale = 'fixed'
+        if column_two:
+            facet_specification = '%s ~ %s' % (column_one, column_two)
+        else:
+            facet_specification = '~ %s' % (column_one,)
+        self._other_adds.append(facet_wrap(robjects.r(facet_specification), scale=scale))
 
 
     def greyscale(self):
