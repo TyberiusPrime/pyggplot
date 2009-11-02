@@ -131,6 +131,10 @@ class Plot:
             )
         )
 
+    def scale_x_log_10(self):
+        self._other_adds.append(
+            robjects.r('scale_x_continuous(trans="log10")')
+        )
 
 
         
