@@ -47,6 +47,11 @@ class Plot:
         self.add_aesthetic('x',x_column)
         self.add_aesthetic('y',y_column)
 
+
+    def add_stacked_bar_plot(self, x_column, y_column, fill):
+        aes_params  = {'x': x_column, 'y': y_column, 'fill': fill}
+        self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position='stack'))
+
     def _build_aesthetic(self, params):
         aes_params = []
         for aes_name, aes_column in params.items():
