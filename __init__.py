@@ -4,7 +4,7 @@ robjects.r('library(ggplot2)')
 
 class Plot:
 
-    def __init__(self, dataframe, xaxis='X', yaxis='Y'):
+    def __init__(self, dataframe, xaxis='X', yaxis=None):
         self.r = {}
         self.r['ggplot'] = robjects.r['ggplot']
         self.r['aes'] = robjects.r['aes']
@@ -16,7 +16,8 @@ class Plot:
         self.dataframe = dataframe
         self._aesthetics = {} 
         self._aesthetics['x'] = xaxis
-        self._aesthetics['y'] = yaxis
+        if yaxis:
+            self._aesthetics['y'] = yaxis
         self._other_adds = []
 
     def render(self, output_filename, width=8, height=6):
@@ -47,10 +48,22 @@ class Plot:
         self.add_aesthetic('x',x_column)
         self.add_aesthetic('y',y_column)
 
-
     def add_stacked_bar_plot(self, x_column, y_column, fill):
         aes_params  = {'x': x_column, 'y': y_column, 'fill': fill}
         self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position='stack'))
+
+    def add_histogram(self, x_column, color=None, group = None, fill=None, position="dodge"):
+        aes_params = {'x': x_column}
+        if fill:
+            aes_params['fill'] = fill
+        if color:
+            aes_params['colour'] = color
+        if group:
+            aes_params['group'] = group
+        self._other_adds.append(
+            robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat="bin", position=position)
+        )
+
 
     def _build_aesthetic(self, params):
         aes_params = []
@@ -140,6 +153,12 @@ class Plot:
         self._other_adds.append(
             robjects.r('scale_x_continuous(trans="log10")')
         )
+
+    def turn_x_axis_labels(self,  angle=75):
+        kargs = {
+            'axis.text.x': robjects.r('theme_text')(angle = angle)
+        }
+        self._other_adds.append( robjects.r('opts')(**kargs))
 
 
         
