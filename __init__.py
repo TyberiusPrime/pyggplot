@@ -64,6 +64,17 @@ class Plot:
             robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat="bin", position=position)
         )
 
+    def add_bar_plot(self, x_column, y_column, color=None, group = None, fill=None, position="dodge"):
+        aes_params = {'x': x_column, 'y': y_column}
+        if fill:
+            aes_params['fill'] = fill
+        if color:
+            aes_params['colour'] = color
+        if group:
+            aes_params['group'] = group
+        self._other_adds.append(
+            robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat="identity", position=position)
+        )
 
     def _build_aesthetic(self, params):
         aes_params = []
@@ -154,9 +165,9 @@ class Plot:
             robjects.r('scale_x_continuous(trans="log10")')
         )
 
-    def turn_x_axis_labels(self,  angle=75):
+    def turn_x_axis_labels(self,  angle=75, hjust=0):
         kargs = {
-            'axis.text.x': robjects.r('theme_text')(angle = angle)
+            'axis.text.x': robjects.r('theme_text')(angle = angle, hjust=hjust)
         }
         self._other_adds.append( robjects.r('opts')(**kargs))
 
