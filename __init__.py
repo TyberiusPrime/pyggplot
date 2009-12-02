@@ -1,9 +1,6 @@
 import exptools
-import math
-import numpy
 import rpy2.robjects as robjects
 robjects.r('library(ggplot2)')
-robjects.r('library(Vennerable)')
 
 class Plot:
 
@@ -33,17 +30,19 @@ class Plot:
             plot = self.r['add'](plot, obj)
         #plot = self.r['add'](plot, self.r['layer'](geom="point"))
         #robjects.r('options( error=recover )')
-        self.r['ggsave'](filename=output_filename,plot=plot, width=width, height=height)
+        self.r['ggsave'](filename=output_filename,plot=plot, width=width, height=height, dpi=300)
 
     def add_aesthetic(self, name, column_name):
         self._aesthetics[name] = column_name
 
-    def add_scatter(self, x_column, y_column, color=None, group=None):
+    def add_scatter(self, x_column, y_column, color=None, group=None, shape=None):
         aes_params = {'x': x_column, 'y': y_column}
         if color:
             aes_params['colour'] = color
         if group:
             aes_params['group'] = group
+        if shape:
+            aes_params['shape'] = shape
         print self._build_aesthetic(aes_params)
         self._other_adds.append(robjects.r('geom_point')(self._build_aesthetic(aes_params)))
         return
@@ -61,6 +60,11 @@ class Plot:
     def add_stacked_bar_plot(self, x_column, y_column, fill):
         aes_params  = {'x': x_column, 'y': y_column, 'fill': fill}
         self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position='stack'))
+
+    def add_bar_plot(self, x_column, y_column, fill, position = 'dodge'):
+        aes_params  = {'x': x_column, 'y': y_column, 'fill': fill}
+        self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position=position,
+                                                      stat='identity'))
 
     def add_histogram(self, x_column, color=None, group = None, fill=None, position="dodge"):
         aes_params = {'x': x_column}
@@ -85,6 +89,17 @@ class Plot:
         self._other_adds.append(
             robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat="identity", position=position)
         )
+    def add_heatmap(self, fill):
+        aes_params = {}
+        aes_params['fill'] = fill
+        self._other_adds.append(
+            robjects.r('geom_tile')(self._build_aesthetic(aes_params), stat="identity")
+        )
+        self._other_adds.append(
+            robjects.r('scale_fill_gradient2(low="red", mid="white", high="blue", midpoint=0)')
+        )
+
+
 
     def _build_aesthetic(self, params):
         aes_params = []
@@ -116,24 +131,30 @@ class Plot:
     def set_title(self, title):
         self._other_adds.append(robjects.r('opts(title = "%s")' %  title))
 
-    def add_vertical_bar(self, xpos, alpha=0.5):
+    def add_vertical_bar(self, xpos, alpha=0.5, color='black'):
         self._other_adds.append(
-            robjects.r('geom_vline(aes(xintercept = %i),  alpha=%f)' % (xpos, alpha))
+            robjects.r('geom_vline(aes(xintercept = %s),  alpha=%f, color="%s")' % (xpos, alpha, color))
         )
 
-    def add_segment(self, xstart, xend, ystart, yend, color, alpha = 1):
+    def add_horizontal_bar(self, ypos, alpha=0.5, color='black'):
+        self._other_adds.append(
+            robjects.r('geom_hline(aes(yintercept = %f),  alpha=%f, color="%s")' % (ypos, alpha,color))
+        )
+
+    def add_segment(self, xstart, xend, ystart, yend, color, alpha = 1.0, size=0.5):
         self._other_adds.append(
             robjects.r('geom_segment')
             (
                 robjects.r('aes(x=x, y=y, xend=xend, yend=yend)'),
                 exptools.DataFrame.DataFrame({"x": [xstart], 'xend': [xend], 'y': [ystart], 'yend': [yend]}),
                 colour=color,
-                alpha = alpha
+                alpha = alpha,
+                size = 0.5
 
             )
         )
 
-    def facet(self, column_one, column_two = None, fixed_x = True, fixed_y = True):
+    def facet(self, column_one, column_two = None, fixed_x = True, fixed_y = True, ncol=None):
         facet_wrap = robjects.r['facet_wrap']
         if fixed_x and not fixed_y:
             scale = 'free_y'
@@ -147,15 +168,22 @@ class Plot:
             facet_specification = '%s ~ %s' % (column_one, column_two)
         else:
             facet_specification = '~ %s' % (column_one,)
-        self._other_adds.append(facet_wrap(robjects.r(facet_specification), scale=scale))
+        params = {
+            'scale': scale}
+        if ncol:
+            params['ncol'] = ncol
+        self._other_adds.append(facet_wrap(robjects.r(facet_specification), **params))
 
 
     def greyscale(self):
         self._other_adds.append( robjects.r('scale_colour_grey()'))
         self._other_adds.append( robjects.r('scale_fill_grey()'))
 
-    def theme_bw(self):
-        self._other_adds.append(robjects.r('theme_bw()'))
+    def theme_bw(self, base_size = None):
+        kwargs = {}
+        if base_size:
+            kwargs['base_size'] = float(base_size)
+        self._other_adds.append(robjects.r('theme_bw')(**kwargs))
         
     def add_text(self, text, xpos, ypos):
         import exptools
@@ -175,52 +203,34 @@ class Plot:
             robjects.r('scale_x_continuous(trans="log10")')
         )
 
-    def turn_x_axis_labels(self,  angle=75, hjust=0):
+    def turn_x_axis_labels(self,  angle=75, hjust=1, size=8):
         kargs = {
-            'axis.text.x': robjects.r('theme_text')(angle = angle, hjust=hjust)
+            'axis.text.x': robjects.r('theme_text')(angle = angle, hjust=hjust, size=size)
         }
         self._other_adds.append( robjects.r('opts')(**kargs))
 
     def set_fill(self, list_of_colors):
         self._other_adds.append(robjects.r('scale_fill_manual')(values = numpy.array(list_of_colors)))
 
+    def coord_flip(self):
+        self._other_adds.append(robjects.r('coord_flip()'))
 
-def plot_venn(sets, output_filename, width=8, height=8):
-    _venn_plot_weights(sets ,output_filename, width, height)
+    def legend_position(self, value):
+        if type(value) is tuple:
+            self._other_adds.append(robjects.r('opts(legend.position = c(%i,%i))' % value))
+        else:
+            self._other_adds.append(robjects.r('opts(legend.position = "%s")' % value))
+
+    def smaller_margins(self):
+        self._other_adds.append(robjects.r('opts(panel.margin = unit(0.0, "lines"))'))
+        self._other_adds.append(robjects.r('opts(plot.margin = unit(c(0,0,0,0), "lines"))'))
+        self._other_adds.append(robjects.r('opts(axis.ticks.margin = unit(0.0, "cm"))'))
+
+    def scale_shape_manual(self, values):
+        self._other_adds.append(robjects.r('scale_shape_manual')(values=values))
+
+
         
-def _venn_plot_sets(sets, output_filename, width=8, height=8):
-    """Plot a venn diagram into the pdf file output_filename.
-    Takes a dictionary of sets and passes them straight on to R"""
-    robjects.r('pdf')(output_filename, width=width, height=height)
-    x = robjects.r('Venn')(Sets = [numpy.array(list(x)) for x in sets.values()], SetNames=sets.keys())
-    robjects.r('plot')(x, **{'type': 'squares', 'doWeights': False})
-    robjects.r('dev.off()')
-
-def _venn_plot_weights(sets, output_filename, width=8, height=8):
-    """Plot a venn diagram into the pdf file output_filename.
-    Takes a dictionary of sets and does the intersection calculation in python
-    (which hopefully is a lot faster than passing 10k set elements to R)
-    (and anyhow, we have the smarter code)"""
-    weights = [0]
-    sets_by_power_of_two = {}
-    for ii, iset in enumerate(sets.values()):
-        sets_by_power_of_two[2**ii] = set(iset)
-    for i in xrange(1, 2**len(sets)):
-        sets_to_intersect = []
-        to_exclude = set()
-        for ii in xrange(0, len(sets)):
-            if (i & (2**ii)):
-                sets_to_intersect.append(sets_by_power_of_two[i & (2**ii)])
-            else:
-                to_exclude = to_exclude.union(sets_by_power_of_two[(2**ii)])
-        final = set.intersection(*sets_to_intersect) - to_exclude
-        weights.append( len(final))
-    robjects.r('pdf')(output_filename, width=width, height=height)
-    x = robjects.r('Venn')(Weight = numpy.array(weights), SetNames=sets.keys())
-    robjects.r('plot')(x, **{'type': 'squares', 'doWeights': False})
-    robjects.r('dev.off()')
-
-
 
 
 def doGGBarPlot(dataframe,title, xaxis, yaxis, color, facet, output_filename):
@@ -372,13 +382,4 @@ def doJitterPlot(dataframe, title, xaxis, yaxis, group=None, color=None, size=No
     #plot = add(plot, robjects.r('opts(title = "%s")' %  title))
     print dataframe
     ggsave(filename=output_filename,plot=plot, width=8, height=6)
-
-if __name__ == '__main__':
-    sets = {
-        "A":set([1,2,3,4]),
-        'B': set(range(0,100)),
-        'C':set(range(50,110) + [1])
-    }
-    venn_plot_sets(sets, 'test.pdf')
-    venn_plot_weights(sets, 'test2.pdf')
 
