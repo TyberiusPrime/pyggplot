@@ -1,6 +1,9 @@
 import exptools
+import math
+import numpy
 import rpy2.robjects as robjects
 robjects.r('library(ggplot2)')
+robjects.r('library(Vennerable)')
 
 class Plot:
 
@@ -47,6 +50,13 @@ class Plot:
         self._other_adds.append(self.r['layer'](geom="point"))
         self.add_aesthetic('x',x_column)
         self.add_aesthetic('y',y_column)
+
+    def add_jitter(self, x_column, y_column, color=None):
+        aes_params = {'x': x_column, 'y': y_column}
+        if color:
+            aes_params['colour'] = color
+        print self._build_aesthetic(aes_params)
+        self._other_adds.append(robjects.r('geom_jitter')(self._build_aesthetic(aes_params)))
 
     def add_stacked_bar_plot(self, x_column, y_column, fill):
         aes_params  = {'x': x_column, 'y': y_column, 'fill': fill}
@@ -171,8 +181,46 @@ class Plot:
         }
         self._other_adds.append( robjects.r('opts')(**kargs))
 
+    def set_fill(self, list_of_colors):
+        self._other_adds.append(robjects.r('scale_fill_manual')(values = numpy.array(list_of_colors)))
 
+
+def plot_venn(sets, output_filename, width=8, height=8):
+    _venn_plot_weights(sets ,output_filename, width, height)
         
+def _venn_plot_sets(sets, output_filename, width=8, height=8):
+    """Plot a venn diagram into the pdf file output_filename.
+    Takes a dictionary of sets and passes them straight on to R"""
+    robjects.r('pdf')(output_filename, width=width, height=height)
+    x = robjects.r('Venn')(Sets = [numpy.array(list(x)) for x in sets.values()], SetNames=sets.keys())
+    robjects.r('plot')(x, **{'type': 'squares', 'doWeights': False})
+    robjects.r('dev.off()')
+
+def _venn_plot_weights(sets, output_filename, width=8, height=8):
+    """Plot a venn diagram into the pdf file output_filename.
+    Takes a dictionary of sets and does the intersection calculation in python
+    (which hopefully is a lot faster than passing 10k set elements to R)
+    (and anyhow, we have the smarter code)"""
+    weights = [0]
+    sets_by_power_of_two = {}
+    for ii, iset in enumerate(sets.values()):
+        sets_by_power_of_two[2**ii] = set(iset)
+    for i in xrange(1, 2**len(sets)):
+        sets_to_intersect = []
+        to_exclude = set()
+        for ii in xrange(0, len(sets)):
+            if (i & (2**ii)):
+                sets_to_intersect.append(sets_by_power_of_two[i & (2**ii)])
+            else:
+                to_exclude = to_exclude.union(sets_by_power_of_two[(2**ii)])
+        final = set.intersection(*sets_to_intersect) - to_exclude
+        weights.append( len(final))
+    robjects.r('pdf')(output_filename, width=width, height=height)
+    x = robjects.r('Venn')(Weight = numpy.array(weights), SetNames=sets.keys())
+    robjects.r('plot')(x, **{'type': 'squares', 'doWeights': False})
+    robjects.r('dev.off()')
+
+
 
 
 def doGGBarPlot(dataframe,title, xaxis, yaxis, color, facet, output_filename):
@@ -324,4 +372,13 @@ def doJitterPlot(dataframe, title, xaxis, yaxis, group=None, color=None, size=No
     #plot = add(plot, robjects.r('opts(title = "%s")' %  title))
     print dataframe
     ggsave(filename=output_filename,plot=plot, width=8, height=6)
+
+if __name__ == '__main__':
+    sets = {
+        "A":set([1,2,3,4]),
+        'B': set(range(0,100)),
+        'C':set(range(50,110) + [1])
+    }
+    venn_plot_sets(sets, 'test.pdf')
+    venn_plot_weights(sets, 'test2.pdf')
 
