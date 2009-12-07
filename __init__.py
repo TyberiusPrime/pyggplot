@@ -1,6 +1,8 @@
 import exptools
 import rpy2.robjects as robjects
+import numpy
 robjects.r('library(ggplot2)')
+robjects.r('library(Vennerable)')
 
 class Plot:
 
@@ -230,8 +232,43 @@ class Plot:
         self._other_adds.append(robjects.r('scale_shape_manual')(values=values))
 
 
-        
+def plot_venn(sets, output_filename, width=8, height=8):
+    _venn_plot_weights(sets ,output_filename, width, height)
+ 
+def _venn_plot_sets(sets, output_filename, width=8, height=8):
+    """Plot a venn diagram into the pdf file output_filename.
+    Takes a dictionary of sets and passes them straight on to R"""
+    robjects.r('pdf')(output_filename, width=width, height=height)
+    x = robjects.r('Venn')(Sets = [numpy.array(list(x)) for x in sets.values()], SetNames=sets.keys())
+    robjects.r('plot')(x, **{'type': 'squares', 'doWeights': False})
+    robjects.r('dev.off()')
 
+def _venn_plot_weights(sets, output_filename, width=8, height=8):
+    """Plot a venn diagram into the pdf file output_filename.
+    Takes a dictionary of sets and does the intersection calculation in python
+    (which hopefully is a lot faster than passing 10k set elements to R)
+    (and anyhow, we have the smarter code)"""
+    weights = [0]
+    sets_by_power_of_two = {}
+    for ii, iset in enumerate(sets.values()):
+        sets_by_power_of_two[2**ii] = set(iset)
+    for i in xrange(1, 2**len(sets)):
+        sets_to_intersect = []
+        to_exclude = set()
+        for ii in xrange(0, len(sets)):
+            if (i & (2**ii)):
+                sets_to_intersect.append(sets_by_power_of_two[i & (2**ii)])
+            else:
+                to_exclude = to_exclude.union(sets_by_power_of_two[(2**ii)])
+        final = set.intersection(*sets_to_intersect) - to_exclude
+        weights.append( len(final))
+    robjects.r('pdf')(output_filename, width=width, height=height)
+    x = robjects.r('Venn')(Weight = numpy.array(weights), SetNames=sets.keys())
+    robjects.r('plot')(x, **{'type': 'squares', 'doWeights': False})
+    robjects.r('dev.off()')
+
+
+ 
 
 def doGGBarPlot(dataframe,title, xaxis, yaxis, color, facet, output_filename):
     robjects.r('library(ggplot2)')
