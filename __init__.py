@@ -250,7 +250,8 @@ def _venn_plot_weights(sets, output_filename, width=8, height=8):
     (and anyhow, we have the smarter code)"""
     weights = [0]
     sets_by_power_of_two = {}
-    for ii, iset in enumerate(sets.values()):
+    for ii, kset in enumerate(sorted(sets.keys())):
+        iset = sets[kset]
         sets_by_power_of_two[2**ii] = set(iset)
     for i in xrange(1, 2**len(sets)):
         sets_to_intersect = []
@@ -263,8 +264,13 @@ def _venn_plot_weights(sets, output_filename, width=8, height=8):
         final = set.intersection(*sets_to_intersect) - to_exclude
         weights.append( len(final))
     robjects.r('pdf')(output_filename, width=width, height=height)
-    x = robjects.r('Venn')(Weight = numpy.array(weights), SetNames=sets.keys())
-    robjects.r('plot')(x, **{'type': 'squares', 'doWeights': False})
+    x = robjects.r('Venn')(Weight = numpy.array(weights), SetNames=sorted(sets.keys()))
+    if len(sets) <= 3:
+        venn_type = 'circles'
+    else:
+        venn_type = 'squares'
+
+    robjects.r('plot')(x, **{'type': venn_type, 'doWeights': False})
     robjects.r('dev.off()')
 
 
