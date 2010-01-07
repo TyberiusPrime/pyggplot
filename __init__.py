@@ -63,10 +63,10 @@ class Plot:
         aes_params  = {'x': x_column, 'y': y_column, 'fill': fill}
         self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position='stack'))
 
-    def add_bar_plot(self, x_column, y_column, fill, position = 'dodge'):
-        aes_params  = {'x': x_column, 'y': y_column, 'fill': fill}
-        self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position=position,
-                                                      stat='identity'))
+    #def add_bar_plot(self, x_column, y_column, fill, position = 'dodge'):
+        #aes_params  = {'x': x_column, 'y': y_column, 'fill': fill}
+        #self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position=position,
+                                                      #stat='identity'))
 
     def add_histogram(self, x_column, color=None, group = None, fill=None, position="dodge"):
         aes_params = {'x': x_column}
@@ -91,6 +91,13 @@ class Plot:
         self._other_adds.append(
             robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat="identity", position=position)
         )
+
+    def add_box_plot(self, x_column, y_column):
+        aes_params = {'x': x_column, 'y': y_column}
+        self._other_adds.append(
+            robjects.r('geom_boxplot')(self._build_aesthetic(aes_params))
+        )
+
     def add_heatmap(self, fill):
         aes_params = {}
         aes_params['fill'] = fill
