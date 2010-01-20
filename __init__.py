@@ -71,7 +71,7 @@ class Plot:
         #self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position=position,
                                                       #stat='identity'))
 
-    def add_histogram(self, x_column, color=None, group = None, fill=None, position="dodge"):
+    def add_histogram(self, x_column, y_column = "..count..", color=None, group = None, fill=None, position="dodge"):
         aes_params = {'x': x_column}
         if fill:
             aes_params['fill'] = fill
@@ -79,8 +79,10 @@ class Plot:
             aes_params['colour'] = color
         if group:
             aes_params['group'] = group
+        stat = robjects.r['stat_bin']()
+            #x = x_column, y = y_column)
         self._other_adds.append(
-            robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat="bin", position=position)
+            robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat=stat, position=position)
         )
 
     def add_bar_plot(self, x_column, y_column, color=None, group = None, fill=None, position="dodge"):
@@ -135,9 +137,9 @@ class Plot:
             if aes_column in self.old_names:
                 new_name = 'dat_%s'  % self.old_names.index(aes_column)
                 aes_params.append('%s=%s' % (aes_name, new_name))
+                self._fix_axis_label(aes_name, new_name, aes_column)
             else: #a fixeud value
                 aes_params.append("%s=%s" % (aes_name, aes_column))
-            self._fix_axis_label(aes_name, new_name, aes_column)
         aes_params = ", ".join(aes_params)
         return robjects.r('aes(%s)' % aes_params)
 
@@ -161,6 +163,11 @@ class Plot:
 
     def add_ab_line(self, intercept, slope):
         self._other_adds.append(robjects.r('geom_abline(intercept=%f, slope=%f)' % (intercept, slope)))
+
+    def add_density(self, x_column):
+        aes_params = {'x': x_column}
+        self._other_adds.append(robjects.r('geom_density')(self._build_aesthetic(aes_params)))
+
 
     def add_stat_smooth(self):
         self._other_adds.append(robjects.r('stat_smooth(method="lm", se=FALSE)'))
