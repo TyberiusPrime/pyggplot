@@ -15,7 +15,11 @@ class Plot:
         self.r['facet_wrap'] = robjects.r['facet_wrap']
         self.r['geom_text'] = robjects.r['geom_text']
         self.r['ggsave'] = robjects.r['ggsave']
-        self.dataframe = dataframe
+        self.dataframe = dataframe.copy()
+        self.old_names = self.dataframe.columns_ordered[:]
+        self.lab_rename = {}
+        for ii in xrange(0, len(self.old_names)):
+            self.dataframe.rename_column(self.old_names[ii], 'dat_%s' % ii)
         self._aesthetics = {} 
         self._aesthetics['x'] = xaxis
         if yaxis:
@@ -23,13 +27,12 @@ class Plot:
         self._other_adds = []
 
     def render(self, output_filename, width=8, height=6):
-        aes_params = []
-        for aes_name, aes_column in self._aesthetics.items():
-            aes_params.append('%s=%s' % (aes_name, aes_column))
-        aes_params = ", ".join(aes_params)
-        plot = self.r['ggplot'](self.dataframe, robjects.r('aes(%s)' % (aes_params,)))
+        aes = self._build_aesthetic(self._aesthetics)
+        plot = self.r['ggplot'](self.dataframe, aes)
         for obj in self._other_adds:
             plot = self.r['add'](plot, obj)
+        for name, value in self.lab_rename.items():
+            plot = self.r['add'](plot, robjects.r('labs(%s = "%s")' % (name, value)))
         #plot = self.r['add'](plot, self.r['layer'](geom="point"))
         #robjects.r('options( error=recover )')
         self.r['ggsave'](filename=output_filename,plot=plot, width=width, height=height, dpi=300)
@@ -107,13 +110,32 @@ class Plot:
         self._other_adds.append(
             robjects.r('scale_fill_gradient2(low="red", mid="white", high="blue", midpoint=0)')
         )
-
+    
+    def _fix_axis_label(self, aes_name, new_name, real_name):
+        which_legend = False
+        if aes_name == 'x':
+            which_legend = 'x'
+        elif aes_name == 'y':
+            which_legend = 'y'
+        elif aes_name == 'color' or aes_name == 'colour':
+            which_legend = 'colour'
+        elif aes_name == 'fill':
+            which_legend = 'fill'
+        elif aes_name == 'shape':
+            which_legend = 'shape'
+        elif aes_name == 'size':
+            which_legend = 'size'
+        if which_legend:
+            print 'settting', which_legend, real_name
+            self.lab_rename[which_legend] = real_name
 
 
     def _build_aesthetic(self, params):
         aes_params = []
         for aes_name, aes_column in params.items():
-            aes_params.append('%s=%s' % (aes_name, aes_column))
+            new_name = 'dat_%s'  % self.old_names.index(aes_column)
+            aes_params.append('%s=%s' % (aes_name, new_name))
+            self._fix_axis_label(aes_name, new_name, aes_column)
         aes_params = ", ".join(aes_params)
         return robjects.r('aes(%s)' % aes_params)
 
