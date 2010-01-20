@@ -164,8 +164,10 @@ class Plot:
     def add_ab_line(self, intercept, slope):
         self._other_adds.append(robjects.r('geom_abline(intercept=%f, slope=%f)' % (intercept, slope)))
 
-    def add_density(self, x_column):
+    def add_density(self, x_column, color = None):
         aes_params = {'x': x_column}
+        if color:
+            aes_params['colour'] = color
         self._other_adds.append(robjects.r('geom_density')(self._build_aesthetic(aes_params)))
 
 
