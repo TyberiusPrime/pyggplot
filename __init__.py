@@ -40,7 +40,7 @@ class Plot:
     def add_aesthetic(self, name, column_name):
         self._aesthetics[name] = column_name
 
-    def add_scatter(self, x_column, y_column, color=None, group=None, shape=None):
+    def add_scatter(self, x_column, y_column, color=None, group=None, shape=None, size=None):
         aes_params = {'x': x_column, 'y': y_column}
         if color:
             aes_params['colour'] = color
@@ -48,6 +48,8 @@ class Plot:
             aes_params['group'] = group
         if shape:
             aes_params['shape'] = shape
+        if size:
+            aes_params['size'] = size
         self._other_adds.append(robjects.r('geom_point')(self._build_aesthetic(aes_params)))
         return
         self._other_adds.append(self.r['layer'](geom="point"))
@@ -130,8 +132,11 @@ class Plot:
     def _build_aesthetic(self, params):
         aes_params = []
         for aes_name, aes_column in params.items():
-            new_name = 'dat_%s'  % self.old_names.index(aes_column)
-            aes_params.append('%s=%s' % (aes_name, new_name))
+            if aes_column in self.old_names:
+                new_name = 'dat_%s'  % self.old_names.index(aes_column)
+                aes_params.append('%s=%s' % (aes_name, new_name))
+            else: #a fixeud value
+                aes_params.append("%s=%s" % (aes_name, aes_column))
             self._fix_axis_label(aes_name, new_name, aes_column)
         aes_params = ", ".join(aes_params)
         return robjects.r('aes(%s)' % aes_params)
