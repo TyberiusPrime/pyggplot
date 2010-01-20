@@ -48,7 +48,6 @@ class Plot:
             aes_params['group'] = group
         if shape:
             aes_params['shape'] = shape
-        print self._build_aesthetic(aes_params)
         self._other_adds.append(robjects.r('geom_point')(self._build_aesthetic(aes_params)))
         return
         self._other_adds.append(self.r['layer'](geom="point"))
@@ -59,7 +58,6 @@ class Plot:
         aes_params = {'x': x_column, 'y': y_column}
         if color:
             aes_params['colour'] = color
-        print self._build_aesthetic(aes_params)
         self._other_adds.append(robjects.r('geom_jitter')(self._build_aesthetic(aes_params)))
 
     def add_stacked_bar_plot(self, x_column, y_column, fill):
@@ -126,7 +124,6 @@ class Plot:
         elif aes_name == 'size':
             which_legend = 'size'
         if which_legend:
-            print 'settting', which_legend, real_name
             self.lab_rename[which_legend] = real_name
 
 
@@ -153,8 +150,6 @@ class Plot:
             other_params['alpha'] = alpha
         else:
             aes_params['alpha'] = str(alpha)
-        print self._build_aesthetic(aes_params)
-        print other_params
         self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params), **other_params))
         #self.add_aesthetic('x',x_column)
         ###self.add_aesthetic('y',y_column)
@@ -348,7 +343,6 @@ def doHistogramPlot(dataframe,title, xaxis, color= None,group=None,  facet = Non
     if group:
         aes_params.append('group=%s' % group)
     aes_params = ", ".join(aes_params)
-    print aes_params
     plot = ggplot(dataframe, robjects.r('aes(%s)' % (aes_params, )))
     #plot = add(plot, robjects.r('theme_bw()'))
     #plot = add(plot, robjects.r('scale_x_discrete()'))
@@ -452,6 +446,5 @@ def doJitterPlot(dataframe, title, xaxis, yaxis, group=None, color=None, size=No
   #      plot = add(plot, robjects.r('scale_colour_gradient()'))
     #plot = add(plot, robjects.r('scale_fill_brewer("Set1")'))
     #plot = add(plot, robjects.r('opts(title = "%s")' %  title))
-    print dataframe
     ggsave(filename=output_filename,plot=plot, width=8, height=6)
 
