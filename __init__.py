@@ -159,6 +159,12 @@ class Plot:
         #self.add_aesthetic('x',x_column)
         ###self.add_aesthetic('y',y_column)
 
+    def add_ab_line(self, intercept, slope):
+        self._other_adds.append(robjects.r('geom_abline(intercept=%f, slope=%f)' % (intercept, slope)))
+
+    def add_stat_smooth(self):
+        self._other_adds.append(robjects.r('stat_smooth(method="lm", se=FALSE)'))
+
     def set_title(self, title):
         self._other_adds.append(robjects.r('opts(title = "%s")' %  title))
 
