@@ -165,10 +165,15 @@ class Plot:
         self._other_adds.append(robjects.r('geom_abline(intercept=%f, slope=%f)' % (intercept, slope)))
 
     def add_density(self, x_column, color = None):
+        """add a kernel estimated density plot - gauss kernel and bw.SJ estimation of bandwith"""
         aes_params = {'x': x_column}
         if color:
             aes_params['colour'] = color
-        self._other_adds.append(robjects.r('geom_density')(self._build_aesthetic(aes_params)))
+        self._other_adds.append(robjects.r('geom_density')(
+            self._build_aesthetic(aes_params),
+            bw = robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(x_column)))
+            )
+        )
 
 
     def add_stat_smooth(self):
