@@ -4,22 +4,33 @@ import numpy
 import scipy.weave
 import unittest
 
-
-def hilbert_plot(vector, bitmap_width):
+coordinate_cache = {}
+def hilbert_plot(vector, bitmap_width, interpolate = True):
     """Take a numpy 1d array and plot it into a 2d array of bitmap_width * bitmap_width,
     for example for plotting"""
+    if math.log(bitmap_width, 4) % 1.0 != 0:
+        raise ValueError("Bitmap width must be a power of 4")
     bitmap = numpy.zeros((bitmap_width, bitmap_width,), dtype=vector.dtype)
     #reps = int(math.ceil(math.log(vector.shape[0], 4)))
     reps = int(math.ceil(math.log(bitmap_width * bitmap_width, 4)))
-    hilbert_coordinates = hilbert_weave(reps)
-    draw_coordinates = numpy.array(hilbert_coordinates * bitmap_width, dtype=numpy.uint32)
-
-    draw_data = numpy.interp(numpy.array(range(0, bitmap_width * bitmap_width)) * 
-                             vector.shape[0] / float(bitmap_width * bitmap_width),
-                             range(0, vector.shape[0]),
-                             vector)
-    for value, (x,y) in zip(draw_data, draw_coordinates):
-        bitmap[x,y] = value
+    if not bitmap_width in coordinate_cache:
+        coordinate_cache[bitmap_width] = hilbert_weave(reps)
+    hilbert_coordinates = coordinate_cache[bitmap_width]
+    #draw_coordinates = numpy.array(hilbert_coordinates * bitmap_width, dtype=numpy.uint32)
+    if interpolate:
+        draw_data = numpy.interp(numpy.array(range(0, bitmap_width * bitmap_width)) * 
+                                 vector.shape[0] / float(bitmap_width * bitmap_width),
+                                 range(0, vector.shape[0]),
+                                 vector)
+    else:
+        draw_data = vector
+        if len(vector) > len(hilbert_coordinates):
+            raise ValueError("too many points for this hilbert plot, try to use interplotate=True")
+    for value, (x,y) in zip(draw_data, hilbert_coordinates):
+        x_draw = (x - 1.0 / bitmap_width / 2) * bitmap_width
+        y_draw = (y - 1.0 / bitmap_width / 2) * bitmap_width
+        if value:
+            bitmap[x_draw,y_draw] = value
     return bitmap
 
 

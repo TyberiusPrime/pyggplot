@@ -1,12 +1,19 @@
 import exptools
+from hilbert import hilbert_plot
 import rpy2.robjects as robjects
+
+_r_loaded = False
+def load_r():
+    global _r_loaded
+    if not _r_loaded:
+        robjects.r('library(ggplot2)')
+        robjects.r('library(Vennerable)')
 import numpy
-robjects.r('library(ggplot2)')
-robjects.r('library(Vennerable)')
 
 class Plot:
 
     def __init__(self, dataframe, xaxis='X', yaxis=None):
+        load_r()
         self.r = {}
         self.r['ggplot'] = robjects.r['ggplot']
         self.r['aes'] = robjects.r['aes']
@@ -287,6 +294,7 @@ def plot_venn(sets, output_filename, width=8, height=8):
 def _venn_plot_sets(sets, output_filename, width=8, height=8):
     """Plot a venn diagram into the pdf file output_filename.
     Takes a dictionary of sets and passes them straight on to R"""
+    load_r()
     robjects.r('pdf')(output_filename, width=width, height=height)
     x = robjects.r('Venn')(Sets = [numpy.array(list(x)) for x in sets.values()], SetNames=sets.keys())
     robjects.r('plot')(x, **{'type': 'squares', 'doWeights': False})
@@ -297,6 +305,7 @@ def _venn_plot_weights(sets, output_filename, width=8, height=8):
     Takes a dictionary of sets and does the intersection calculation in python
     (which hopefully is a lot faster than passing 10k set elements to R)
     (and anyhow, we have the smarter code)"""
+    load_r()
     weights = [0]
     sets_by_power_of_two = {}
     for ii, kset in enumerate(sorted(sets.keys())):
@@ -326,6 +335,7 @@ def _venn_plot_weights(sets, output_filename, width=8, height=8):
  
 
 def doGGBarPlot(dataframe,title, xaxis, yaxis, color, facet, output_filename):
+    load_r()
     robjects.r('library(ggplot2)')
     ggplot = robjects.r['ggplot']
     aes = robjects.r['aes']
@@ -349,6 +359,7 @@ def doGGBarPlot(dataframe,title, xaxis, yaxis, color, facet, output_filename):
 
 
 def doHistogramPlot(dataframe,title, xaxis, color= None,group=None,  facet = None,position='dodge',  output_filename = False):
+    load_r()
     if not output_filename:
         raise ValueError("You have to specify an output_filename")
     robjects.r('library(ggplot2)')
@@ -384,6 +395,7 @@ def doHistogramPlot(dataframe,title, xaxis, color= None,group=None,  facet = Non
     ggsave(filename=output_filename,plot=plot, width=8, height=6)
 
 def doScatterPlot(dataframe, title, xaxis, yaxis, color=None, output_filename = False):
+    load_r()
     if not output_filename:
         raise ValueError("You have to specify an output_filename")
     robjects.r('library(ggplot2)')
@@ -410,6 +422,7 @@ def doScatterPlot(dataframe, title, xaxis, yaxis, color=None, output_filename = 
     ggsave(filename=output_filename,plot=plot, width=8, height=6)
 
 def plotArray(numpy_array, title, xaxis_name = 'x', yaxis_name = 'y', xaxis_offset = 0, color=None,  output_filename = False):
+    load_r()
     if not output_filename:
         raise ValueError("You have to specify an output_filename")
     xs = []
@@ -440,6 +453,7 @@ def plotArray(numpy_array, title, xaxis_name = 'x', yaxis_name = 'y', xaxis_offs
     ggsave(filename=output_filename)
 
 def doJitterPlot(dataframe, title, xaxis, yaxis, group=None, color=None, size=None,shape=None, output_filename = False):
+    load_r()
     if not output_filename:
         raise ValueError("You have to specify an output_filename")
     robjects.r('library(ggplot2)')
