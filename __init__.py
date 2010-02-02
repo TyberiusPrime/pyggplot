@@ -150,7 +150,7 @@ class Plot:
         return robjects.r('aes(%s)' % aes_params)
 
 
-    def add_line(self, x_column, y_column, color=None, group=None, shape=None, alpha=1.0):
+    def add_line(self, x_column, y_column, color=None, group=None, shape=None, alpha=1.0, size=None):
         aes_params = {'x': x_column, 'y': y_column}
         other_params = {}
         if color:
@@ -163,6 +163,11 @@ class Plot:
             other_params['alpha'] = alpha
         else:
             aes_params['alpha'] = str(alpha)
+        if not size is None:
+            if type(size) is int or type(size) is float:
+                other_params['size'] = size
+            else:
+                aes_params['size'] = str(size)
         self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params), **other_params))
         #self.add_aesthetic('x',x_column)
         ###self.add_aesthetic('y',y_column)
@@ -170,9 +175,12 @@ class Plot:
     def add_ab_line(self, intercept, slope):
         self._other_adds.append(robjects.r('geom_abline(intercept=%f, slope=%f)' % (intercept, slope)))
 
-    def add_density(self, x_column, color = None):
+    def add_density(self, x_column, y_column = None, color = None):
         """add a kernel estimated density plot - gauss kernel and bw.SJ estimation of bandwith"""
         aes_params = {'x': x_column}
+        if y_column:
+            aes_params['y'] =  y_column
+
         if color:
             aes_params['colour'] = color
         self._other_adds.append(robjects.r('geom_density')(
@@ -256,8 +264,18 @@ class Plot:
         )
 
     def scale_x_log_10(self):
+        self.scale_x_continuous(trans = 'log10')
+
+    def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None):
+        other_params = {}
+        if breaks:
+            other_params['breaks'] = numpy.array(breaks)
+        if minor_breaks:
+            other_params['minor_breaks'] = numpy.array(minor_breaks)
+        if trans:
+            other_params['trans'] = str(trans)
         self._other_adds.append(
-            robjects.r('scale_x_continuous(trans="log10")')
+            robjects.r('scale_x_continuous')(**other_params)
         )
 
     def turn_x_axis_labels(self,  angle=75, hjust=1, size=8):
