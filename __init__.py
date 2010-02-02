@@ -86,10 +86,9 @@ class Plot:
             aes_params['colour'] = color
         if group:
             aes_params['group'] = group
-        stat = robjects.r['stat_bin']()
             #x = x_column, y = y_column)
         self._other_adds.append(
-            robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat=stat, position=position)
+            robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat='bin', position=position)
         )
 
     def add_bar_plot(self, x_column, y_column, color=None, group = None, fill=None, position="dodge"):
