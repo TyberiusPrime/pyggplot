@@ -278,6 +278,18 @@ class Plot:
             robjects.r('scale_x_continuous')(**other_params)
         )
 
+    def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None):
+        other_params = {}
+        if breaks:
+            other_params['breaks'] = numpy.array(breaks)
+        if minor_breaks:
+            other_params['minor_breaks'] = numpy.array(minor_breaks)
+        if trans:
+            other_params['trans'] = str(trans)
+        self._other_adds.append(
+            robjects.r('scale_y_continuous')(**other_params)
+        )
+
     def turn_x_axis_labels(self,  angle=75, hjust=1, size=8):
         kargs = {
             'axis.text.x': robjects.r('theme_text')(angle = angle, hjust=hjust, size=size)
@@ -311,6 +323,7 @@ def plot_venn(sets, output_filename, width=8, height=8):
 def _venn_plot_sets(sets, output_filename, width=8, height=8):
     """Plot a venn diagram into the pdf file output_filename.
     Takes a dictionary of sets and passes them straight on to R"""
+    raise TypeError("This is an error checking function")
     load_r()
     robjects.r('pdf')(output_filename, width=width, height=height)
     x = robjects.r('Venn')(Sets = [numpy.array(list(x)) for x in sets.values()], SetNames=sets.keys())
