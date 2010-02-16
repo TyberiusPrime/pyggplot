@@ -1,4 +1,5 @@
 import exptools
+import sys
 from hilbert import hilbert_plot
 import rpy2.robjects as robjects
 
@@ -316,6 +317,28 @@ class Plot:
     def scale_shape_manual(self, values):
         self._other_adds.append(robjects.r('scale_shape_manual')(values=values))
 
+def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
+    if exptools.output_file_exists(output_filename):
+        return
+    for s in lists:
+        until_which_k = min(len(s), until_which_k)
+    max_k = until_which_k
+    first = lists[0]
+    lists = lists[1:]
+    plot_data = {"k": [], 'overlap': []}
+    print 'building overlap assoc plot'
+    tr = exptools.TimeRemainingGuestimator(max_k)
+    for k in xrange(1, max_k + 1):
+        plot_data['k'].append(k)
+        my_set = set(first[:k])
+        for l in lists:
+            my_set = my_set.intersection(set(l[:k]))
+        plot_data['overlap'].append(len(my_set) / float(k))
+        tr.step()
+    tr.finished()
+    plot = Plot(exptools.DF.DataFrame(plot_data), 'k', 'overlap')
+    plot.add_line('k','overlap')
+    plot.render(output_filename)
 
 def plot_venn(sets, output_filename, width=8, height=8):
     _venn_plot_weights(sets ,output_filename, width, height)
