@@ -2,13 +2,13 @@ import exptools
 import sys
 from hilbert import hilbert_plot
 import rpy2.robjects as robjects
+import venn
 
 _r_loaded = False
 def load_r():
     global _r_loaded
     if not _r_loaded:
         robjects.r('library(ggplot2)')
-        robjects.r('library(Vennerable)')
 import numpy
 
 class Plot:
@@ -341,48 +341,8 @@ def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
     plot.render(output_filename)
 
 def plot_venn(sets, output_filename, width=8, height=8):
-    _venn_plot_weights(sets ,output_filename, width, height)
- 
-def _venn_plot_sets(sets, output_filename, width=8, height=8):
-    """Plot a venn diagram into the pdf file output_filename.
-    Takes a dictionary of sets and passes them straight on to R"""
-    raise TypeError("This is an error checking function")
-    load_r()
-    robjects.r('pdf')(output_filename, width=width, height=height)
-    x = robjects.r('Venn')(Sets = [numpy.array(list(x)) for x in sets.values()], SetNames=sets.keys())
-    robjects.r('plot')(x, **{'type': 'squares', 'doWeights': False})
-    robjects.r('dev.off()')
-
-def _venn_plot_weights(sets, output_filename, width=8, height=8):
-    """Plot a venn diagram into the pdf file output_filename.
-    Takes a dictionary of sets and does the intersection calculation in python
-    (which hopefully is a lot faster than passing 10k set elements to R)
-    (and anyhow, we have the smarter code)"""
-    load_r()
-    weights = [0]
-    sets_by_power_of_two = {}
-    for ii, kset in enumerate(sorted(sets.keys())):
-        iset = sets[kset]
-        sets_by_power_of_two[2**ii] = set(iset)
-    for i in xrange(1, 2**len(sets)):
-        sets_to_intersect = []
-        to_exclude = set()
-        for ii in xrange(0, len(sets)):
-            if (i & (2**ii)):
-                sets_to_intersect.append(sets_by_power_of_two[i & (2**ii)])
-            else:
-                to_exclude = to_exclude.union(sets_by_power_of_two[(2**ii)])
-        final = set.intersection(*sets_to_intersect) - to_exclude
-        weights.append( len(final))
-    robjects.r('pdf')(output_filename, width=width, height=height)
-    x = robjects.r('Venn')(Weight = numpy.array(weights), SetNames=sorted(sets.keys()))
-    if len(sets) <= 3:
-        venn_type = 'circles'
-    else:
-        venn_type = 'squares'
-
-    robjects.r('plot')(x, **{'type': venn_type, 'doWeights': False})
-    robjects.r('dev.off()')
+    df = venn.VennDiagram(sets)
+    df.plot_normal(output_filename, width, height)
 
 
  
