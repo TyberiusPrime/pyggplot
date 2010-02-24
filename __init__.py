@@ -2,7 +2,8 @@ import exptools
 import sys
 from hilbert import hilbert_plot
 import rpy2.robjects as robjects
-import venn
+exptools.ensureSoftwareVersion('pyvenn')
+import pyvenn
 
 _r_loaded = False
 def load_r():
@@ -341,8 +342,55 @@ def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
     plot.render(output_filename)
 
 def plot_venn(sets, output_filename, width=8, height=8):
-    df = venn.VennDiagram(sets)
-    df.plot_normal(output_filename, width, height)
+    df = pyvenn.VennDiagram(sets)
+    df.plot_normal(output_filename, width)
+
+def powerset(seq):
+    """
+    Returns all the subsets of this set. This is a generator.
+    """
+    if len(seq) <= 1:
+        yield seq
+        yield []
+    else:
+        for item in powerset(seq[1:]):
+            yield [seq[0]]+item
+            yield item
+
+def intersection(list_of_sects):
+    final_set = list_of_sects[0]
+    for k in list_of_sects[1:]:
+        final_set = final_set.intersection(k)
+    return k
+
+def union(list_of_sects):
+    final_set = list_of_sects[0]
+    for k in list_of_sects[1:]:
+        final_set = final_set.union(k)
+    return k
+
+def dump_venn(sets, output_filename):
+    dfs = {}
+    ordered = sets.keys()
+    ordered.sort()
+
+    for subset in powerset(sets.keys()):
+        not_in_set = []
+        name_of_subset = [] 
+        for name in ordered:
+            if name in subset:
+                name_of_subset.append(name)
+            else:
+                name_of_subset.append("(NOT %s)" % name)
+                not_in_set.append(name)
+        name_of_subset = " AND ".join(name_of_subset)
+        actual_set = intersection(sets[x] for x in subset).difference(union(sets[x] for x in not_in_set))
+        df = exptools.DataFrame({"Name": actual_set})
+        dfs[name_of_subset] = df
+    exptools.DF.DF2Excel().write(dfs, output_filename)
+
+
+
 
 
  
