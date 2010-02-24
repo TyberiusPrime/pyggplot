@@ -118,7 +118,6 @@ class HilbertTests(unittest.TestCase):
     def test_plot(self):
         vector = numpy.array([1,2,3,4], dtype=numpy.int8)
         plot = hilbert_plot(vector, 16)
-        print plot
         self.assertEqual(plot.shape[0], 16)
         self.assertEqual(plot.shape[1], 16)
         self.assertEqual(plot[4,4], 1)
@@ -147,7 +146,7 @@ class HilbertTests(unittest.TestCase):
         self.assertEqual(plot[0,1],0)
 
     def test_plot4(self):
-        vector = numpy.array(range(0, 8 ), dtype=numpy.double)
+        vector = numpy.array(range(0, 512 ), dtype=numpy.double)
         plot = hilbert_plot(vector, 2)
         self.assertEqual(plot.shape[0], 2)
         self.assertEqual(plot.shape[1], 2)

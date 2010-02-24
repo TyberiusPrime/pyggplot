@@ -1,7 +1,9 @@
 import exptools
+exptools.ensureSoftwareVersion('pyvenn','tip')
 import sys
 from hilbert import hilbert_plot
 import rpy2.robjects as robjects
+import pyvenn
 
 _r_loaded = False
 def load_r():
@@ -341,7 +343,12 @@ def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
     plot.render(output_filename)
 
 def plot_venn(sets, output_filename, width=8, height=8):
-    _venn_plot_weights(sets ,output_filename, width, height)
+    vd = pyvenn.Venn(sets)
+    try:
+        vd.plot_proportional(output_filename, width)
+    except:
+        vd.plot_normal(output_filename, width) 
+    #_venn_plot_weights(sets ,output_filename, width, height)
  
 def _venn_plot_sets(sets, output_filename, width=8, height=8):
     """Plot a venn diagram into the pdf file output_filename.
