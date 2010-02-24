@@ -373,7 +373,12 @@ def union(list_of_sects):
         final_set = final_set.union(k)
     return final_set 
 
-def dump_venn(sets, output_filename):
+def _no_annotation(set_name, set_entries):
+    return { set_name: set_entries}
+
+def dump_venn(sets, output_filename, annotator = None):
+    if annotator is None:
+        annotator = _no_annotation
     dfs = {}
     ordered = sets.keys()
     ordered.sort()
@@ -401,7 +406,8 @@ def dump_venn(sets, output_filename):
         long_name = " AND ".join(long_name)
         #print 'name_of_subset', name_of_subset
         actual_set = intersection([sets[x] for x in subset]).difference(union([sets[x] for x in not_in_set]))
-        df = exptools.DF.DataFrame({long_name: actual_set})
+        data = annotator(long_name, actual_set)
+        df = exptools.DF.DataFrame(data)
         dfs[name_of_subset] = df
     overview = {"Short name": [], 'Set name': []} 
     for one_letter, name in zip(one_letter_names, ordered):
