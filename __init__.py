@@ -2,7 +2,7 @@ import exptools
 import sys
 from hilbert import hilbert_plot
 import rpy2.robjects as robjects
-exptools.ensureSoftwareVersion('pyvenn')
+exptools.ensureSoftwareVersion('pyvenn','tip')
 import pyvenn
 
 _r_loaded = False
@@ -358,35 +358,56 @@ def powerset(seq):
             yield item
 
 def intersection(list_of_sects):
+    if not list_of_sects:
+        return set() 
     final_set = list_of_sects[0]
     for k in list_of_sects[1:]:
         final_set = final_set.intersection(k)
-    return k
+    return final_set
 
 def union(list_of_sects):
+    if not list_of_sects:
+        return set() 
     final_set = list_of_sects[0]
     for k in list_of_sects[1:]:
         final_set = final_set.union(k)
-    return k
+    return final_set 
 
 def dump_venn(sets, output_filename):
     dfs = {}
     ordered = sets.keys()
     ordered.sort()
+    sets = dict((k,set(v)) for (k, v) in sets.items())
+    one_letter_names = []
+    current_letter = 'A'
+    for name in ordered:
+        one_letter_names.append(current_letter)
+        current_letter = chr(ord(current_letter) + 1)
 
     for subset in powerset(sets.keys()):
-        not_in_set = []
+        if not subset:
+            continue
+        not_in_set = [x for x in sets.keys() if not x in subset]
         name_of_subset = [] 
-        for name in ordered:
+        long_name = []
+        for one_letter, name in zip(one_letter_names, ordered):
             if name in subset:
-                name_of_subset.append(name)
+                name_of_subset.append(one_letter)
+                long_name.append(name)
             else:
-                name_of_subset.append("(NOT %s)" % name)
-                not_in_set.append(name)
-        name_of_subset = " AND ".join(name_of_subset)
-        actual_set = intersection(sets[x] for x in subset).difference(union(sets[x] for x in not_in_set))
-        df = exptools.DataFrame({"Name": actual_set})
+                name_of_subset.append("~%s" % one_letter)
+                long_name.append("(NOT %s)" % name)
+        name_of_subset = "".join(name_of_subset)
+        long_name = " AND ".join(long_name)
+        #print 'name_of_subset', name_of_subset
+        actual_set = intersection([sets[x] for x in subset]).difference(union([sets[x] for x in not_in_set]))
+        df = exptools.DF.DataFrame({long_name: actual_set})
         dfs[name_of_subset] = df
+    overview = {"Short name": [], 'Set name': []} 
+    for one_letter, name in zip(one_letter_names, ordered):
+        overview["Short name"].append(one_letter)
+        overview["Set name"].append(name)
+    dfs['Overview'] = exptools.DF.DataFrame(overview)
     exptools.DF.DF2Excel().write(dfs, output_filename)
 
 
