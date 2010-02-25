@@ -1,6 +1,6 @@
 import exptools
 import sys
-from hilbert import hilbert_plot
+from hilbert import hilbert_plot, hilbert_to_image
 import rpy2.robjects as robjects
 exptools.ensureSoftwareVersion('pyvenn','tip')
 import pyvenn

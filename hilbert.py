@@ -3,12 +3,13 @@ import time
 import numpy
 import scipy.weave
 import unittest
+import cairo
 
 coordinate_cache = {}
 def hilbert_plot(vector, bitmap_width, interpolate = True):
     """Take a numpy 1d array and plot it into a 2d array of bitmap_width * bitmap_width,
     for example for plotting"""
-    if math.log(bitmap_width, 4) % 1.0 != 0:
+    if math.log(bitmap_width, 4) % 1.0 != 0 and bitmap_width != 2:
         raise ValueError("Bitmap width must be a power of 4")
     bitmap = numpy.zeros((bitmap_width, bitmap_width,), dtype=vector.dtype)
     #reps = int(math.ceil(math.log(vector.shape[0], 4)))
@@ -18,10 +19,16 @@ def hilbert_plot(vector, bitmap_width, interpolate = True):
     hilbert_coordinates = coordinate_cache[bitmap_width]
     #draw_coordinates = numpy.array(hilbert_coordinates * bitmap_width, dtype=numpy.uint32)
     if interpolate:
-        draw_data = numpy.interp(numpy.array(range(0, bitmap_width * bitmap_width)) * 
-                                 vector.shape[0] / float(bitmap_width * bitmap_width),
-                                 range(0, vector.shape[0]),
-                                 vector)
+        #draw_data = numpy.interp(numpy.array(range(0, bitmap_width * bitmap_width)) * 
+                                 #vector.shape[0] / float(bitmap_width * bitmap_width),
+                                 #range(0, vector.shape[0]),
+                                 #vector)
+        draw_data = numpy.zeros((bitmap_width * bitmap_width,), dtype=numpy.float)
+        factor = vector.shape[0] / float(bitmap_width * bitmap_width)
+        for ii in xrange(0, bitmap_width * bitmap_width):
+            x0 = int(math.floor(ii * factor))
+            x1 = int(math.ceil((ii + 1) * factor))
+            draw_data[ii] = numpy.sum(vector[x0:x1]) / float(x1 - x0)
     else:
         draw_data = vector
         if len(vector) > len(hilbert_coordinates):
@@ -32,6 +39,34 @@ def hilbert_plot(vector, bitmap_width, interpolate = True):
         if value:
             bitmap[x_draw,y_draw] = value
     return bitmap
+
+def hilbert_to_image(output_filename ,redMatrix, greenMatrix = None, blueMatrix = None):
+    image_width, image_height = redMatrix.shape
+    if output_filename.endswith('.pdf'):
+        surface = cairo.PDFSurface(output_filename, image_width, image_height) 
+    elif output_filename.endswith('.png'):
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32,image_width, image_height)
+    else:
+        raise ValueError("_plot_proportional_two currently only understands .pdf and .png output filenames")
+    if greenMatrix is None:
+        greenMatrix = numpy.zeros(redMatrix.shape, redMatrix.dtype)
+    if blueMatrix is None:
+        blueMatrix = numpy.zeros(redMatrix.shape, redMatrix.dtype)
+    ctx = cairo.Context(surface)
+    for x in xrange(redMatrix.shape[0]):
+        for y in xrange(redMatrix.shape[0]):
+            ctx.set_source_rgb(redMatrix[x,y],greenMatrix[x,y],blueMatrix[x,y])
+            ctx.rectangle(x,y,1,1)
+            ctx.fill()
+
+    if output_filename.endswith('.pdf'):
+        pass #taken care of when initializing the surface
+    else:
+        surface.write_to_png(output_filename)
+    surface.finish()
+
+
+
 
 
   
