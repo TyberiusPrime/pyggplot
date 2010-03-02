@@ -136,8 +136,7 @@ class Plot:
         if which_legend:
             self.lab_rename[which_legend] = real_name
 
-
-    def _build_aesthetic(self, params):
+    def _translate_params(self, params):
         aes_params = []
         for aes_name, aes_column in params.items():
             if aes_column in self.old_names:
@@ -146,6 +145,10 @@ class Plot:
                 self._fix_axis_label(aes_name, new_name, aes_column)
             else: #a fixeud value
                 aes_params.append("%s=%s" % (aes_name, aes_column))
+        return aes_params
+
+    def _build_aesthetic(self, params):
+        aes_params = self._translate_params(params)
         aes_params = ", ".join(aes_params)
         return robjects.r('aes(%s)' % aes_params)
 
@@ -169,8 +172,15 @@ class Plot:
             else:
                 aes_params['size'] = str(size)
         self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params), **other_params))
-        #self.add_aesthetic('x',x_column)
-        ###self.add_aesthetic('y',y_column)
+
+    def add_error_bars(self, x_column, ymin, ymax, color=None, group=None):
+        aes_params = {'x': x_column, 'ymin': ymin, 'ymax':ymax}
+        other_params = {}
+        if color:
+            aes_params['colour'] = color
+        if group:
+            aes_params['group'] = group
+        self._other_adds.append(robjects.r('geom_errorbar')(self._build_aesthetic(aes_params), **other_params))
 
     def add_ab_line(self, intercept, slope):
         self._other_adds.append(robjects.r('geom_abline(intercept=%f, slope=%f)' % (intercept, slope)))
@@ -230,9 +240,13 @@ class Plot:
         else:
             scale = 'fixed'
         if column_two:
-            facet_specification = '%s ~ %s' % (column_one, column_two)
+            params = self._translate_params({column_one: column_two})[0]
+            facet_specification = params.replace('=', '~')
+            #facet_specification = '%s ~ %s' % (column_one, column_two)
         else:
-            facet_specification = '~ %s' % (column_one,)
+            params = self._translate_params({"":column_one})[0]
+            facet_specification = params.replace('=', '~')
+            #facet_specification = '~ %s' % (column_one,)
         params = {
             'scale': scale}
         if ncol:
