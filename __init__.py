@@ -1,13 +1,15 @@
 import exptools
-from hilbert import hilbert_plot
+import sys
+from hilbert import hilbert_plot, hilbert_to_image
 import rpy2.robjects as robjects
+exptools.ensureSoftwareVersion('pyvenn','tip')
+import pyvenn
 
 _r_loaded = False
 def load_r():
     global _r_loaded
     if not _r_loaded:
         robjects.r('library(ggplot2)')
-        robjects.r('library(Vennerable)')
 import numpy
 
 class Plot:
@@ -292,6 +294,18 @@ class Plot:
             robjects.r('scale_x_continuous')(**other_params)
         )
 
+    def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None):
+        other_params = {}
+        if breaks:
+            other_params['breaks'] = numpy.array(breaks)
+        if minor_breaks:
+            other_params['minor_breaks'] = numpy.array(minor_breaks)
+        if trans:
+            other_params['trans'] = str(trans)
+        self._other_adds.append(
+            robjects.r('scale_y_continuous')(**other_params)
+        )
+
     def turn_x_axis_labels(self,  angle=75, hjust=1, size=8):
         kargs = {
             'axis.text.x': robjects.r('theme_text')(angle = angle, hjust=hjust, size=size)
@@ -318,49 +332,106 @@ class Plot:
     def scale_shape_manual(self, values):
         self._other_adds.append(robjects.r('scale_shape_manual')(values=values))
 
+def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
+    if exptools.output_file_exists(output_filename):
+        return
+    for s in lists:
+        until_which_k = min(len(s), until_which_k)
+    max_k = until_which_k
+    first = lists[0]
+    lists = lists[1:]
+    plot_data = {"k": [], 'overlap': []}
+    print 'building overlap assoc plot'
+    tr = exptools.TimeRemainingGuestimator(max_k)
+    for k in xrange(1, max_k + 1):
+        plot_data['k'].append(k)
+        my_set = set(first[:k])
+        for l in lists:
+            my_set = my_set.intersection(set(l[:k]))
+        plot_data['overlap'].append(len(my_set) / float(k))
+        tr.step()
+    tr.finished()
+    plot = Plot(exptools.DF.DataFrame(plot_data), 'k', 'overlap')
+    plot.add_line('k','overlap')
+    plot.render(output_filename)
 
 def plot_venn(sets, output_filename, width=8, height=8):
-    _venn_plot_weights(sets ,output_filename, width, height)
- 
-def _venn_plot_sets(sets, output_filename, width=8, height=8):
-    """Plot a venn diagram into the pdf file output_filename.
-    Takes a dictionary of sets and passes them straight on to R"""
-    load_r()
-    robjects.r('pdf')(output_filename, width=width, height=height)
-    x = robjects.r('Venn')(Sets = [numpy.array(list(x)) for x in sets.values()], SetNames=sets.keys())
-    robjects.r('plot')(x, **{'type': 'squares', 'doWeights': False})
-    robjects.r('dev.off()')
+    df = pyvenn.VennDiagram(sets)
+    df.plot_normal(output_filename, width)
 
-def _venn_plot_weights(sets, output_filename, width=8, height=8):
-    """Plot a venn diagram into the pdf file output_filename.
-    Takes a dictionary of sets and does the intersection calculation in python
-    (which hopefully is a lot faster than passing 10k set elements to R)
-    (and anyhow, we have the smarter code)"""
-    load_r()
-    weights = [0]
-    sets_by_power_of_two = {}
-    for ii, kset in enumerate(sorted(sets.keys())):
-        iset = sets[kset]
-        sets_by_power_of_two[2**ii] = set(iset)
-    for i in xrange(1, 2**len(sets)):
-        sets_to_intersect = []
-        to_exclude = set()
-        for ii in xrange(0, len(sets)):
-            if (i & (2**ii)):
-                sets_to_intersect.append(sets_by_power_of_two[i & (2**ii)])
-            else:
-                to_exclude = to_exclude.union(sets_by_power_of_two[(2**ii)])
-        final = set.intersection(*sets_to_intersect) - to_exclude
-        weights.append( len(final))
-    robjects.r('pdf')(output_filename, width=width, height=height)
-    x = robjects.r('Venn')(Weight = numpy.array(weights), SetNames=sorted(sets.keys()))
-    if len(sets) <= 3:
-        venn_type = 'circles'
+def powerset(seq):
+    """
+    Returns all the subsets of this set. This is a generator.
+    """
+    if len(seq) <= 1:
+        yield seq
+        yield []
     else:
-        venn_type = 'squares'
+        for item in powerset(seq[1:]):
+            yield [seq[0]]+item
+            yield item
 
-    robjects.r('plot')(x, **{'type': venn_type, 'doWeights': False})
-    robjects.r('dev.off()')
+def intersection(list_of_sects):
+    if not list_of_sects:
+        return set() 
+    final_set = list_of_sects[0]
+    for k in list_of_sects[1:]:
+        final_set = final_set.intersection(k)
+    return final_set
+
+def union(list_of_sects):
+    if not list_of_sects:
+        return set() 
+    final_set = list_of_sects[0]
+    for k in list_of_sects[1:]:
+        final_set = final_set.union(k)
+    return final_set 
+
+def _no_annotation(set_name, set_entries):
+    return { set_name: set_entries}
+
+def dump_venn(sets, output_filename, annotator = None):
+    if annotator is None:
+        annotator = _no_annotation
+    dfs = {}
+    ordered = sets.keys()
+    ordered.sort()
+    sets = dict((k,set(v)) for (k, v) in sets.items())
+    one_letter_names = []
+    current_letter = 'A'
+    for name in ordered:
+        one_letter_names.append(current_letter)
+        current_letter = chr(ord(current_letter) + 1)
+
+    for subset in powerset(sets.keys()):
+        if not subset:
+            continue
+        not_in_set = [x for x in sets.keys() if not x in subset]
+        name_of_subset = [] 
+        long_name = []
+        for one_letter, name in zip(one_letter_names, ordered):
+            if name in subset:
+                name_of_subset.append(one_letter)
+                long_name.append(name)
+            else:
+                name_of_subset.append("~%s" % one_letter)
+                long_name.append("(NOT %s)" % name)
+        name_of_subset = "".join(name_of_subset)
+        long_name = " AND ".join(long_name)
+        #print 'name_of_subset', name_of_subset
+        actual_set = intersection([sets[x] for x in subset]).difference(union([sets[x] for x in not_in_set]))
+        data = annotator(long_name, actual_set)
+        df = exptools.DF.DataFrame(data)
+        dfs[name_of_subset] = df
+    overview = {"Short name": [], 'Set name': []} 
+    for one_letter, name in zip(one_letter_names, ordered):
+        overview["Short name"].append(one_letter)
+        overview["Set name"].append(name)
+    dfs['Overview'] = exptools.DF.DataFrame(overview)
+    exptools.DF.DF2Excel().write(dfs, output_filename)
+
+
+
 
 
  
