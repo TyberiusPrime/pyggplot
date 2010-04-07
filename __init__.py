@@ -4,6 +4,7 @@ from hilbert import hilbert_plot, hilbert_to_image
 import rpy2.robjects as robjects
 exptools.ensureSoftwareVersion('pyvenn','tip')
 import pyvenn
+import re
 
 _r_loaded = False
 def load_r():
@@ -282,7 +283,7 @@ class Plot:
     def scale_x_log_10(self):
         self.scale_x_continuous(trans = 'log10')
 
-    def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None):
+    def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None):
         other_params = {}
         if breaks:
             other_params['breaks'] = numpy.array(breaks)
@@ -290,11 +291,13 @@ class Plot:
             other_params['minor_breaks'] = numpy.array(minor_breaks)
         if trans:
             other_params['trans'] = str(trans)
+        if limits:
+            other_params['limits'] = numpy.array(limits)
         self._other_adds.append(
             robjects.r('scale_x_continuous')(**other_params)
         )
 
-    def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None):
+    def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None):
         other_params = {}
         if breaks:
             other_params['breaks'] = numpy.array(breaks)
@@ -302,6 +305,8 @@ class Plot:
             other_params['minor_breaks'] = numpy.array(minor_breaks)
         if trans:
             other_params['trans'] = str(trans)
+        if limits:
+            other_params['limits'] = numpy.array(limits)
         self._other_adds.append(
             robjects.r('scale_y_continuous')(**other_params)
         )
@@ -390,7 +395,7 @@ def union(list_of_sects):
 def _no_annotation(set_name, set_entries):
     return { set_name: set_entries}
 
-def dump_venn(sets, output_filename, annotator = None):
+def venn_to_dataframes(sets, annotator = None):
     if annotator is None:
         annotator = _no_annotation
     dfs = {}
@@ -421,13 +426,33 @@ def dump_venn(sets, output_filename, annotator = None):
         #print 'name_of_subset', name_of_subset
         actual_set = intersection([sets[x] for x in subset]).difference(union([sets[x] for x in not_in_set]))
         data = annotator(long_name, actual_set)
-        df = exptools.DF.DataFrame(data)
+        df = exptools.DF.DataFrame(data, [long_name])
         dfs[name_of_subset] = df
     overview = {"Short name": [], 'Set name': []} 
     for one_letter, name in zip(one_letter_names, ordered):
         overview["Short name"].append(one_letter)
         overview["Set name"].append(name)
     dfs['Overview'] = exptools.DF.DataFrame(overview)
+    return dfs
+
+def dataframes_to_venn(dfs):
+    sets = {}
+    lookup = {}
+    for row in dfs['Overview'].iter_rows():
+        lookup[row['Short name']] = row['Set name']
+    for set_name in dfs:
+        if set_name == 'Overview':
+            continue
+        goes_where = re.sub("~[A-Z]", '', set_name)
+        to_add = set(dfs[set_name].get_column_view(0)) 
+        for letter in goes_where:
+            if not lookup[letter] in sets:
+                sets[lookup[letter]] = set()
+            sets[lookup[letter]].update(to_add)
+    return sets
+
+def dump_venn(sets, output_filename, annotator = None):
+    dfs = venn_to_dataframes(sets, annotator)
     exptools.DF.DF2Excel().write(dfs, output_filename)
 
 
