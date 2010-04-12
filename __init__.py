@@ -5,6 +5,7 @@ import rpy2.robjects as robjects
 exptools.ensureSoftwareVersion('pyvenn','tip')
 import pyvenn
 import re
+from sequence_logos import plot_sequences
 
 _r_loaded = False
 def load_r():
