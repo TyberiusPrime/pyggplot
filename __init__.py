@@ -113,14 +113,15 @@ class Plot:
             robjects.r('geom_boxplot')(self._build_aesthetic(aes_params))
         )
 
-    def add_heatmap(self, fill):
+    def add_heatmap(self, fill, low="red", mid="white", high="blue", midpoint=0):
         aes_params = {}
         aes_params['fill'] = fill
         self._other_adds.append(
             robjects.r('geom_tile')(self._build_aesthetic(aes_params), stat="identity")
         )
         self._other_adds.append(
-            robjects.r('scale_fill_gradient2(low="red", mid="white", high="blue", midpoint=0)')
+            robjects.r('scale_fill_gradient2(low="%s", mid="%s", high="%s", midpoint=%.f)' % (
+            low, mid, high, midpoint))
         )
     
     def _fix_axis_label(self, aes_name, new_name, real_name):
@@ -177,13 +178,15 @@ class Plot:
                 aes_params['size'] = str(size)
         self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params), **other_params))
 
-    def add_error_bars(self, x_column, ymin, ymax, color=None, group=None):
+    def add_error_bars(self, x_column, ymin, ymax, color=None, group=None, position=None):
         aes_params = {'x': x_column, 'ymin': ymin, 'ymax':ymax}
         other_params = {}
         if color:
             aes_params['colour'] = color
         if group:
             aes_params['group'] = group
+        if position:
+            other_params['position'] = position
         self._other_adds.append(robjects.r('geom_errorbar')(self._build_aesthetic(aes_params), **other_params))
 
     def add_ab_line(self, intercept, slope):
@@ -318,6 +321,12 @@ class Plot:
         }
         self._other_adds.append( robjects.r('opts')(**kargs))
 
+    def hide_y_axis_labels(self):
+        self._other_adds.append(robjects.r('opts')(**{"axis.text.y": robjects.r('theme_blank()')}))
+
+    def hide_x_axis_labels(self):
+        self._other_adds.append(robjects.r('opts')(**{"axis.text.x": robjects.r('theme_blank()')}))
+
     def set_fill(self, list_of_colors):
         self._other_adds.append(robjects.r('scale_fill_manual')(values = numpy.array(list_of_colors)))
 
@@ -337,6 +346,7 @@ class Plot:
 
     def scale_shape_manual(self, values):
         self._other_adds.append(robjects.r('scale_shape_manual')(values=values))
+
 
 def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
     if exptools.output_file_exists(output_filename):
