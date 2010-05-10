@@ -6,6 +6,7 @@ exptools.ensureSoftwareVersion('pyvenn','tip')
 import pyvenn
 import re
 from sequence_logos import plot_sequences
+from pwmlocationplotter import PWMLocationPlotter
 
 _r_loaded = False
 def load_r():

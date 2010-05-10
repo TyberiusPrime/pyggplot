@@ -68,10 +68,8 @@ class LogoOnCairoDrawer:
                     frequency = float(count) / columnSum
                     H += frequency * math.log(frequency,2)
                 H = -H
-                print H
                 correction = 0
                 RSequence = math.log(bitsPerPosition,2) - (H + correction)
-                print RSequence
                 for letter in column:
                     count = column[letter]
                     frequency = float(count) / columnSum
@@ -89,7 +87,6 @@ class LogoOnCairoDrawer:
             org = ctx.get_matrix() 
             #tempMatrix = cairo.Matrix(letterWidth,0,0,10,0,0)                    
             #ctx.set_font_matrix(tempMatrix)                                
-            print lettersToDraw
             for counts in lettersToDraw:                
                 pos += 1
                 yOffset = 0     
