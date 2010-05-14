@@ -156,6 +156,7 @@ class Plot:
     def _build_aesthetic(self, params):
         aes_params = self._translate_params(params)
         aes_params = ", ".join(aes_params)
+        print aes_params
         return robjects.r('aes(%s)' % aes_params)
 
 
@@ -342,6 +343,14 @@ class Plot:
     def coord_flip(self):
         self._other_adds.append(robjects.r('coord_flip()'))
 
+    def coord_polar(self, theta="x", start=0, direction=1, expand=False):
+        self._other_adds.append(robjects.r('coord_polar')(
+            theta = theta,
+            start = start,
+            direction = direction,
+            expand = expand))
+
+
     def legend_position(self, value):
         if type(value) is tuple:
             self._other_adds.append(robjects.r('opts(legend.position = c(%i,%i))' % value))
@@ -355,6 +364,9 @@ class Plot:
 
     def scale_shape_manual(self, values):
         self._other_adds.append(robjects.r('scale_shape_manual')(values=values))
+
+    def scale_colour_manual(self, values):
+        self._other_adds.append(robjects.r('scale_colour_manual')(values=numpy.array(values)))
 
 
 def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
