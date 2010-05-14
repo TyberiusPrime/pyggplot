@@ -17,7 +17,7 @@ import numpy
 
 class Plot:
 
-    def __init__(self, dataframe, xaxis='X', yaxis=None):
+    def __init__(self, dataframe, *ignored):
         load_r()
         self.r = {}
         self.r['ggplot'] = robjects.r['ggplot']
@@ -27,20 +27,25 @@ class Plot:
         self.r['facet_wrap'] = robjects.r['facet_wrap']
         self.r['geom_text'] = robjects.r['geom_text']
         self.r['ggsave'] = robjects.r['ggsave']
-        self.dataframe = dataframe.copy()
-        self.old_names = self.dataframe.columns_ordered[:]
+        self.old_names = []
         self.lab_rename = {}
-        for ii in xrange(0, len(self.old_names)):
-            self.dataframe.rename_column(self.old_names[ii], 'dat_%s' % ii)
-        self._aesthetics = {} 
-        self._aesthetics['x'] = xaxis
-        if yaxis:
-            self._aesthetics['y'] = yaxis
+        self.dataframe = self._prep_dataframe(dataframe)
         self._other_adds = []
 
+    def _prep_dataframe(self, dataframe):
+        df = dataframe.copy()
+        new_names = []
+        for name in df.columns_ordered:
+            if not name in self.old_names:
+                new_names.append(name)
+        self.old_names.extend(new_names)
+        for name in df.columns_ordered[:]:
+            df.rename_column(name, 'dat_%s' % self.old_names.index(name))
+        return df
+
     def render(self, output_filename, width=8, height=6):
-        aes = self._build_aesthetic(self._aesthetics)
-        plot = self.r['ggplot'](self.dataframe, aes)
+        #print self.dataframe
+        plot = self.r['ggplot'](self.dataframe)
         for obj in self._other_adds:
             plot = self.r['add'](plot, obj)
         for name, value in self.lab_rename.items():
@@ -77,11 +82,6 @@ class Plot:
     def add_stacked_bar_plot(self, x_column, y_column, fill):
         aes_params  = {'x': x_column, 'y': y_column, 'fill': fill}
         self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position='stack'))
-
-    #def add_bar_plot(self, x_column, y_column, fill, position = 'dodge'):
-        #aes_params  = {'x': x_column, 'y': y_column, 'fill': fill}
-        #self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position=position,
-                                                      #stat='identity'))
 
     def add_histogram(self, x_column, y_column = "..count..", color=None, group = None, fill=None, position="dodge"):
         aes_params = {'x': x_column}
@@ -207,6 +207,14 @@ class Plot:
             )
         )
 
+    def add_rect(self, x_min_column, x_max_column, y_min_colum, y_max_column, data = None):
+        aes_params = {'xmin': x_min_column, 'xmax': x_max_column, 'ymin': y_min_colum, 'ymax': y_max_column}
+        other_params = {}
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+        print self.old_names
+        obj = robjects.r('geom_rect')(self._build_aesthetic(aes_params), **other_params)
+        self._other_adds.append(obj)
 
     def add_stat_smooth(self):
         self._other_adds.append(robjects.r('stat_smooth(method="lm", se=FALSE)'))
