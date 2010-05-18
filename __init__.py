@@ -510,7 +510,7 @@ def dump_venn(sets, output_filename, annotator = None):
     exptools.DF.DF2Excel().write(dfs, output_filename)
 
 
-def PlotPiechartHistogram(df, column_name):
+def PlotPiechartHistogram(df, column_name, include_counts = True, include_percentage = False):
     df = df.copy()
     column = df.get_column_view(column_name)
     if isinstance(column, exptools.DF.factors.Factor):
@@ -525,6 +525,20 @@ def PlotPiechartHistogram(df, column_name):
         counts.append(cc)
         positions.append(current + cc / 2.0)
         current += cc
+    total = current
+    labels = []
+    for cc in counts:
+        if include_counts and include_percentage:
+            l = "%i\n(%.2f%%)" % (cc, float(cc) / total * 100)
+        elif include_counts:
+            l = "%i" % cc
+        elif include_percentage:
+            l = "%.2f%%" % (float(cc) / total * 100,)
+        else:
+            l = ""
+        labels.append(l)
+
+
     count_column = 'count'
     while count_column in df.columns_ordered:
         count_column += 'c'
@@ -532,11 +546,13 @@ def PlotPiechartHistogram(df, column_name):
         'Dummy': [1] * len(counts), 
         'Counts': counts,
         'Values': [str(x) for x in ordered],
+        'Labels': labels,
         'y': positions
     })
     plot = Plot(plot_df, 'Dummy')
     plot.add_bar_plot("Dummy", 'Counts', fill="Values", position="stack")
-    plot.add_text('Dummy','y', 'Counts')
+    if include_percentage or include_counts:
+        plot.add_text('Dummy','y', 'Labels')
     plot.coord_polar(theta='y')
     plot.hide_x_axis_labels()
     plot.hide_x_axis_title()
