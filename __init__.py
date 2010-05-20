@@ -248,6 +248,19 @@ class Plot:
 
             )
         )
+    
+    def add_text(self, x, y, label, data = None):
+        aes_params = {
+            'x': x,
+            'y': y,
+            'label': label
+        }
+        other_params = {}
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+        self._other_adds.append(
+            robjects.r('geom_text')(self._build_aesthetic(aes_params), **other_params)
+        )
 
     def facet(self, column_one, column_two = None, fixed_x = True, fixed_y = True, ncol=None):
         facet_wrap = robjects.r['facet_wrap']
@@ -260,13 +273,14 @@ class Plot:
         else:
             scale = 'fixed'
         if column_two:
-            params = self._translate_params({column_one: column_two})[0]
-            facet_specification = params.replace('=', '~')
-            #facet_specification = '%s ~ %s' % (column_one, column_two)
+            new_one = 'dat_%s'  % self.old_names.index(column_one)
+            new_two = 'dat_%s'  % self.old_names.index(column_two)
+            facet_specification = '%s ~ %s' % (new_one, new_two)
         else:
             params = self._translate_params({"":column_one})[0]
             facet_specification = params.replace('=', '~')
             #facet_specification = '~ %s' % (column_one,)
+        print facet_specification
         params = {
             'scale': scale}
         if ncol:
@@ -284,7 +298,7 @@ class Plot:
             kwargs['base_size'] = float(base_size)
         self._other_adds.append(robjects.r('theme_bw')(**kwargs))
         
-    def add_text(self, text, xpos, ypos):
+    def add_label(self, text, xpos, ypos):
         import exptools
         data = exptools.DataFrame.DataFrame({'x': [xpos], 'y': [ypos], 'text': [text]})
         self._other_adds.append(
@@ -343,6 +357,15 @@ class Plot:
 
     def hide_x_axis_labels(self):
         self._other_adds.append(robjects.r('opts')(**{"axis.text.x": robjects.r('theme_blank()')}))
+
+    def hide_axis_ticks(self):
+        self._other_adds.append(robjects.r('opts')(**{"axis.ticks": robjects.r('theme_blank()')}))
+
+    def hide_y_axis_title(self):
+        self._other_adds.append(robjects.r('opts')(**{"axis.title.y": robjects.r('theme_blank()')}))
+
+    def hide_x_axis_title(self):
+        self._other_adds.append(robjects.r('opts')(**{"axis.title.x": robjects.r('theme_blank()')}))
 
     def set_fill(self, list_of_colors):
         self._other_adds.append(robjects.r('scale_fill_manual')(values = numpy.array(list_of_colors)))
@@ -495,6 +518,56 @@ def dump_venn(sets, output_filename, annotator = None):
     exptools.DF.DF2Excel().write(dfs, output_filename)
 
 
+def PlotPiechartHistogram(df, column_name, include_counts = True, include_percentage = False):
+    df = df.copy()
+    column = df.get_column_view(column_name)
+    if isinstance(column, exptools.DF.factors.Factor):
+        ordered = column.levels
+    else:
+        ordered = list(sorted(df.get_column_unique(column_name)))
+    positions = []
+    counts = []
+    current = 0
+    for value in ordered:
+        cc = numpy.sum([column == value])
+        counts.append(cc)
+        positions.append(current + cc / 2.0)
+        current += cc
+    total = current
+    labels = []
+    for cc in counts:
+        if include_counts and include_percentage:
+            l = "%i\n(%.2f%%)" % (cc, float(cc) / total * 100)
+        elif include_counts:
+            l = "%i" % cc
+        elif include_percentage:
+            l = "%.2f%%" % (float(cc) / total * 100,)
+        else:
+            l = ""
+        labels.append(l)
+
+
+    count_column = 'count'
+    while count_column in df.columns_ordered:
+        count_column += 'c'
+    plot_df = exptools.DF.DataFrame({
+        'Dummy': [1] * len(counts), 
+        'Counts': counts,
+        'Values': [str(x) for x in ordered],
+        'Labels': labels,
+        'y': positions
+    })
+    plot = Plot(plot_df, 'Dummy')
+    plot.add_bar_plot("Dummy", 'Counts', fill="Values", position="stack")
+    if include_percentage or include_counts:
+        plot.add_text('Dummy','y', 'Labels')
+    plot.coord_polar(theta='y')
+    plot.hide_x_axis_labels()
+    plot.hide_x_axis_title()
+    plot.hide_axis_ticks()
+    plot.hide_y_axis_labels()
+    plot.hide_y_axis_title()
+    return plot
 
 
 

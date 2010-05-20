@@ -1,7 +1,10 @@
 import exptools
 import math
 import cairo
-import chipseq
+try:
+    import chipseq
+except:
+    pass
 
 class PWMLocationPlotter:
 
