@@ -6,7 +6,10 @@ exptools.ensureSoftwareVersion('pyvenn','tip')
 import pyvenn
 import re
 from sequence_logos import plot_sequences
-from pwmlocationplotter import PWMLocationPlotter
+try:
+    from pwmlocationplotter import PWMLocationPlotter
+except ImportError:
+    pass
 
 _r_loaded = False
 def load_r():
@@ -297,30 +300,34 @@ class Plot:
     def scale_x_log_10(self):
         self.scale_x_continuous(trans = 'log10')
 
-    def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None):
+    def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None):
         other_params = {}
-        if breaks:
+        if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
-        if minor_breaks:
+        if not minor_breaks is None:
             other_params['minor_breaks'] = numpy.array(minor_breaks)
         if trans:
             other_params['trans'] = str(trans)
-        if limits:
+        if not limits is None:
             other_params['limits'] = numpy.array(limits)
+        if not labels is None:
+            other_params['labels'] = numpy.array(labels)
         self._other_adds.append(
             robjects.r('scale_x_continuous')(**other_params)
         )
 
-    def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None):
+    def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None):
         other_params = {}
-        if breaks:
+        if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
-        if minor_breaks:
+        if not minor_breaks is None:
             other_params['minor_breaks'] = numpy.array(minor_breaks)
-        if trans:
+        if not trans is None:
             other_params['trans'] = str(trans)
-        if limits:
+        if not limits is None:
             other_params['limits'] = numpy.array(limits)
+        if not labels is None:
+            other_params['labels'] = numpy.array(labels)
         self._other_adds.append(
             robjects.r('scale_y_continuous')(**other_params)
         )
