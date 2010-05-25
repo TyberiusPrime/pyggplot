@@ -46,7 +46,7 @@ class Plot:
             df.rename_column(name, 'dat_%s' % self.old_names.index(name))
         return df
 
-    def render(self, output_filename, width=8, height=6):
+    def render(self, output_filename, width=8, height=6, dpi=300):
         #print self.dataframe
         plot = self.r['ggplot'](self.dataframe)
         for obj in self._other_adds:
@@ -55,26 +55,27 @@ class Plot:
             plot = self.r['add'](plot, robjects.r('labs(%s = "%s")' % (name, value)))
         #plot = self.r['add'](plot, self.r['layer'](geom="point"))
         #robjects.r('options( error=recover )')
-        self.r['ggsave'](filename=output_filename,plot=plot, width=width, height=height, dpi=300)
+        self.r['ggsave'](filename=output_filename,plot=plot, width=width, height=height, dpi=dpi)
 
     def add_aesthetic(self, name, column_name):
         self._aesthetics[name] = column_name
 
     def add_scatter(self, x_column, y_column, color=None, group=None, shape=None, size=None):
         aes_params = {'x': x_column, 'y': y_column}
+        other_params = {}
         if color:
             aes_params['colour'] = color
         if group:
             aes_params['group'] = group
         if shape:
             aes_params['shape'] = shape
-        if size:
-            aes_params['size'] = size
-        self._other_adds.append(robjects.r('geom_point')(self._build_aesthetic(aes_params)))
+        if not size is None:
+            if type(size) is int or type(size) is float:
+                other_params['size'] = size
+            else:
+                aes_params['size'] = str(size)
+        self._other_adds.append(robjects.r('geom_point')(self._build_aesthetic(aes_params), **other_params))
         return
-        self._other_adds.append(self.r['layer'](geom="point"))
-        self.add_aesthetic('x',x_column)
-        self.add_aesthetic('y',y_column)
 
     def add_jitter(self, x_column, y_column, color=None):
         aes_params = {'x': x_column, 'y': y_column}
@@ -211,11 +212,20 @@ class Plot:
             )
         )
 
-    def add_rect(self, x_min_column, x_max_column, y_min_colum, y_max_column, data = None):
+    def add_rect(self, x_min_column, x_max_column, y_min_colum, y_max_column, color=None, fill = None, data = None, alpha = None):
         aes_params = {'xmin': x_min_column, 'xmax': x_max_column, 'ymin': y_min_colum, 'ymax': y_max_column}
         other_params = {}
         if not data is None:
             other_params['data'] = self._prep_dataframe(data)
+        if color:
+            aes_params['colour'] = color
+        if fill:
+            aes_params['fill'] = fill
+        if type(alpha) == int or type(alpha) == float:
+            other_params['alpha'] = alpha
+        else:
+            aes_params['alpha'] = str(alpha)
+
         print self.old_names
         obj = robjects.r('geom_rect')(self._build_aesthetic(aes_params), **other_params)
         self._other_adds.append(obj)
@@ -249,7 +259,7 @@ class Plot:
             )
         )
     
-    def add_text(self, x, y, label, data = None):
+    def add_text(self, x, y, label, data = None, angle=None, alpha=None, size=None, hjust=None, vjust=None):
         aes_params = {
             'x': x,
             'y': y,
@@ -258,6 +268,32 @@ class Plot:
         other_params = {}
         if not data is None:
             other_params['data'] = self._prep_dataframe(data)
+        if not angle is None:
+            if type(angle) == int or type(angle) == float:
+                other_params['angle'] = angle
+            else:
+                aes_params['angle'] = str(angle)
+        if not alpha is None:
+            if type(alpha) == int or type(alpha) == float:
+                other_params['alpha'] = alpha
+            else:
+                aes_params['alpha'] = str(alpha)
+        if not size is None:
+            if type(size) == int or type(size) == float:
+                other_params['size'] = size
+            else:
+                aes_params['size'] = str(size)
+        if not vjust is None:
+            if type(vjust) == int or type(vjust) == float:
+                other_params['vjust'] = vjust
+            else:
+                aes_params['vjust'] = str(vjust)
+        if not vjust is None:
+            if type(hjust) == int or type(hjust) == float:
+                other_params['hjust'] = hjust
+            else:
+                aes_params['hjust'] = str(hjust)
+
         self._other_adds.append(
             robjects.r('geom_text')(self._build_aesthetic(aes_params), **other_params)
         )
@@ -297,6 +333,9 @@ class Plot:
         if base_size:
             kwargs['base_size'] = float(base_size)
         self._other_adds.append(robjects.r('theme_bw')(**kwargs))
+
+    def set_base_size(self, base_size = 10):
+        self.theme_bw(base_size = base_size)
         
     def add_label(self, text, xpos, ypos):
         import exptools
@@ -314,7 +353,7 @@ class Plot:
     def scale_x_log_10(self):
         self.scale_x_continuous(trans = 'log10')
 
-    def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None):
+    def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -324,13 +363,21 @@ class Plot:
             other_params['trans'] = str(trans)
         if not limits is None:
             other_params['limits'] = numpy.array(limits)
+        if not limits is None:
+            other_params['limits'] = numpy.array(limits)
         if not labels is None:
             other_params['labels'] = numpy.array(labels)
+        if not expand is None:
+            other_params['expand'] = numpy.array(expand)
+        if not breaks is None and not labels is None:
+                if len(breaks) != len(labels):
+                    raise ValueError("len(breaks) != len(labels)")
+
         self._other_adds.append(
             robjects.r('scale_x_continuous')(**other_params)
         )
 
-    def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None):
+    def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -342,6 +389,12 @@ class Plot:
             other_params['limits'] = numpy.array(limits)
         if not labels is None:
             other_params['labels'] = numpy.array(labels)
+        if not expand is None:
+            other_params['expand'] = numpy.array(expand)
+        if not breaks is None and not labels is None:
+                if len(breaks) != len(labels):
+                    raise ValueError("len(breaks) != len(labels)")
+
         self._other_adds.append(
             robjects.r('scale_y_continuous')(**other_params)
         )
@@ -386,6 +439,26 @@ class Plot:
             self._other_adds.append(robjects.r('opts(legend.position = c(%i,%i))' % value))
         else:
             self._other_adds.append(robjects.r('opts(legend.position = "%s")' % value))
+
+    def hide_legend(self):
+        self.legend_position('none')
+
+    def hide_panel_border(self):
+        self._other_adds.append(robjects.r('opts(panel.border=theme_rect(fill=NA, colour=NA))'))
+
+    def set_axis_color(self, color=None):
+        if color is None:
+            self._other_adds.append(robjects.r('opts(axis.line = theme_segment())'))
+        else:
+            self._other_adds.append(robjects.r('opts(axis.line = theme_segment(colour = "%s"))' % color))
+
+    def hide_grid(self):
+        self._other_adds.append(robjects.r('opts(panel.grid.major = theme_line(colour = NA))'))
+        self._other_adds.append(robjects.r('opts(panel.grid.minor = theme_line(colour = NA))'))
+
+    def hide_grid_minor(self):
+        #self._other_adds.append(robjects.r('opts(panel.grid.major = theme_line(colour = NA))'))
+        self._other_adds.append(robjects.r('opts(panel.grid.minor = theme_line(colour = NA))'))
 
     def smaller_margins(self):
         self._other_adds.append(robjects.r('opts(panel.margin = unit(0.0, "lines"))'))
