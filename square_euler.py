@@ -44,6 +44,8 @@ class Square_Euler:
         ctx.set_source_rgb(1,1,1)
         ctx.rectangle(0,0,image_width, image_height)
         ctx.fill()
+        ctx.scale(0.95, 0.95)
+        ctx.translate(image_width * 0.025, image_height * 0.025)
         ctx.set_source_rgb(0,0,0)
 
 
@@ -139,6 +141,7 @@ class Square_Euler:
                         (image_height / 2.0) - (image_height * rect_size / 2.0),
                         (image_width * rect_size),
                         (image_height * rect_size) )
+        ctx.set_line_width(image_width / 200.0)
         ctx.stroke()
 
         ctx.set_font_size(image_height / 20)
@@ -159,22 +162,22 @@ class Square_Euler:
                     ctx.move_to(x - widths[ii] / 2.0, y + line_height * ii)
                     ctx.show_text(line)
 
-        rendered_text( image_width / 2.0, image_height * rect_size / 2.0, 
+        rendered_text( image_width / 2.0, image_height * rect_size / 3.0, 
                       "%s\n%i" % (self.class_tuples[0][0],
                                  len(self.class_tuples[0][1] - self.class_tuples[1][1] - self.class_tuples[3][1])
                                  )
                      )
-        rendered_text( image_width - image_width * rect_size / 2.0, image_height / 2.0, 
+        rendered_text( image_width - image_width * rect_size / 3.0, image_height / 2.0, 
                       "%s\n%i" % (self.class_tuples[1][0],
                                  len(self.class_tuples[1][1] - self.class_tuples[0][1] - self.class_tuples[2][1])
                                  )
                      )
-        rendered_text( image_width / 2.0, image_height - image_height * rect_size / 2.0, 
+        rendered_text( image_width / 2.0, image_height - image_height * rect_size / 3.0, 
                       "%s\n%i" % (self.class_tuples[2][0],
                                  len(self.class_tuples[2][1] - self.class_tuples[1][1] - self.class_tuples[3][1])
                                  )
                      )
-        rendered_text( image_width * rect_size / 2.0, image_height / 2.0, 
+        rendered_text( image_width * rect_size / 3.0, image_height / 2.0, 
                       "%s\n%i" % (self.class_tuples[3][0],
                                  len(self.class_tuples[3][1] - self.class_tuples[0][1] - self.class_tuples[2][1])
                                  )

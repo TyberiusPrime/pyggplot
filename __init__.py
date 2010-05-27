@@ -4,6 +4,7 @@ from hilbert import hilbert_plot, hilbert_to_image
 import rpy2.robjects as robjects
 exptools.ensureSoftwareVersion('pyvenn','tip')
 import pyvenn
+from square_euler import Square_Euler
 import re
 from sequence_logos import plot_sequences
 try:
