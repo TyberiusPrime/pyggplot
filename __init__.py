@@ -195,8 +195,16 @@ class Plot:
             other_params['position'] = position
         self._other_adds.append(robjects.r('geom_errorbar')(self._build_aesthetic(aes_params), **other_params))
 
-    def add_ab_line(self, intercept, slope):
-        self._other_adds.append(robjects.r('geom_abline(intercept=%f, slope=%f)' % (intercept, slope)))
+    def add_ab_line(self, intercept, slope, alpha = None):
+        other_params = {}
+        aes_params = {}
+        if type(alpha) == int or type(alpha) == float:
+            other_params['alpha'] = alpha
+        else:
+            aes_params['alpha'] = str(alpha)
+        other_params['intercept'] = intercept
+        other_params['slope'] = slope
+        self._other_adds.append(robjects.r('geom_abline')(self._build_aesthetic(aes_params), **other_params))
 
     def add_density(self, x_column, y_column = None, color = None):
         """add a kernel estimated density plot - gauss kernel and bw.SJ estimation of bandwith"""
