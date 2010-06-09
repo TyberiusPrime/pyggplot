@@ -4,7 +4,7 @@ from hilbert import hilbert_plot, hilbert_to_image
 import rpy2.robjects as robjects
 exptools.ensureSoftwareVersion('pyvenn','tip')
 import pyvenn
-from square_euler import Square_Euler
+from square_euler import SquareEuler
 import re
 from sequence_logos import plot_sequences
 try:
@@ -421,8 +421,14 @@ class Plot:
     def hide_x_axis_title(self):
         self._other_adds.append(robjects.r('opts')(**{"axis.title.x": robjects.r('theme_blank()')}))
 
-    def set_fill(self, list_of_colors):
+    def scale_fill_manual(self, list_of_colors):
         self._other_adds.append(robjects.r('scale_fill_manual')(values = numpy.array(list_of_colors)))
+
+    def scale_fill_brewer(self, name = None):
+        args = []
+        if name:
+            args.append(name)
+        self._other_adds.append(robjects.r('scale_fill_brewer')(*args))
 
     def coord_flip(self):
         self._other_adds.append(robjects.r('coord_flip()'))
@@ -472,6 +478,11 @@ class Plot:
     def scale_colour_manual(self, values):
         self._other_adds.append(robjects.r('scale_colour_manual')(values=numpy.array(values)))
 
+    def scale_colour_brewer(self, name = None):
+        args = []
+        if name:
+            args.append(name)
+        self._other_adds.append(robjects.r('scale_colour_brewer')(*args))
 
 def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
     if exptools.output_file_exists(output_filename):
