@@ -1,4 +1,5 @@
 import exptools
+from ordereddict import OrderedDict
 import sys
 from hilbert import hilbert_plot, hilbert_to_image
 import rpy2.robjects as robjects
@@ -554,12 +555,13 @@ def union(list_of_sects):
 def _no_annotation(set_name, set_entries):
     return { set_name: set_entries}
 
-def venn_to_dataframes(sets, annotator = None):
+def venn_to_dataframes(sets, annotator = None, ordered = None):
     if annotator is None:
         annotator = _no_annotation
     dfs = {}
-    ordered = sets.keys()
-    ordered.sort()
+    if ordered is None:
+        ordered = sets.keys()
+        ordered.sort()
     sets = dict((k,set(v)) for (k, v) in sets.items())
     one_letter_names = []
     current_letter = 'A'
@@ -595,7 +597,7 @@ def venn_to_dataframes(sets, annotator = None):
     return dfs
 
 def dataframes_to_venn(dfs):
-    sets = {}
+    sets = OrderedDict()
     lookup = {}
     for row in dfs['Overview'].iter_rows():
         lookup[row['Short name']] = row['Set name']
