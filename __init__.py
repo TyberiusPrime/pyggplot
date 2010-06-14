@@ -113,8 +113,10 @@ class Plot:
             robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat="identity", position=position)
         )
 
-    def add_box_plot(self, x_column, y_column):
+    def add_box_plot(self, x_column, y_column, color= None):
         aes_params = {'x': x_column, 'y': y_column}
+        if color:
+            aes_params['colour'] = color
         self._other_adds.append(
             robjects.r('geom_boxplot')(self._build_aesthetic(aes_params))
         )
