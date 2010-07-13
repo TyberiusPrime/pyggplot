@@ -49,6 +49,8 @@ class SquareEulerFromNumbers:
             surface = cairo.PDFSurface(output_filename, image_width, image_height) 
         elif output_filename.endswith('.png'):
             surface = cairo.ImageSurface(cairo.FORMAT_ARGB32,image_width, image_height)
+	else:
+            raise ValueError("Invalid output file for plot %s" % output_filename)
 
         rect_size = 3.0 / 7.0
 

@@ -79,17 +79,30 @@ class Plot:
         self._other_adds.append(robjects.r('geom_point')(self._build_aesthetic(aes_params), **other_params))
         return
 
-    def add_jitter(self, x_column, y_column, color=None):
+    def add_jitter(self, x_column, y_column, color=None, jitter_x = None, jitter_y = None, data=None):
         aes_params = {'x': x_column, 'y': y_column}
+        other_params = {}
         if color:
             aes_params['colour'] = color
-        self._other_adds.append(robjects.r('geom_jitter')(self._build_aesthetic(aes_params)))
+        position_params = {}
+        if not jitter_x is None:
+            position_params['width'] = jitter_x
+        if not jitter_y is None:
+            position_params['height'] = jitter_y
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+
+        if position_params:
+            self._other_adds.append(robjects.r('geom_jitter')(self._build_aesthetic(aes_params), position=robjects.r('position_jitter')(**position_params), **other_params))
+        else:
+            self._other_adds.append(robjects.r('geom_jitter')(self._build_aesthetic(aes_params), **other_params))
 
     def add_stacked_bar_plot(self, x_column, y_column, fill):
         aes_params  = {'x': x_column, 'y': y_column, 'fill': fill}
         self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position='stack'))
 
-    def add_histogram(self, x_column, y_column = "..count..", color=None, group = None, fill=None, position="dodge"):
+
+    def add_histogram(self, x_column, y_column = "..count..", color=None, group = None, fill=None, position="dodge", add_text = False):
         aes_params = {'x': x_column}
         if fill:
             aes_params['fill'] = fill
@@ -101,6 +114,9 @@ class Plot:
         self._other_adds.append(
             robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat='bin', position=position)
         )
+        if add_text:
+            self._other_adds.append(
+                robjects.r('geom_text')(self._build_aesthetic({'x': x_column, 'y':'..count..', 'label':'..count..'}),stat='bin' ))
 
     def add_bar_plot(self, x_column, y_column, color=None, group = None, fill=None, position="dodge"):
         aes_params = {'x': x_column, 'y': y_column}
@@ -114,11 +130,14 @@ class Plot:
             robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat="identity", position=position)
         )
 
-    def add_box_plot(self, x_column, y_column, color=None):
+    def add_box_plot(self, x_column, y_column, color=None, group = None, fill=None):
         aes_params = {'x': x_column, 'y': y_column}
+        if fill:
+            aes_params['fill'] = fill
         if color:
             aes_params['colour'] = color
-
+        if group:
+            aes_params['group'] = group
         self._other_adds.append(
             robjects.r('geom_boxplot')(self._build_aesthetic(aes_params))
         )
@@ -229,6 +248,24 @@ class Plot:
             )
         )
 
+    def add_density_2d(self, x_column, y_column, color = None):
+        """add a kernel estimated density plot - gauss kernel and bw.SJ estimation of bandwith"""
+        aes_params = {'x': x_column}
+        aes_params['y'] =  y_column
+        if color:
+            aes_params['colour'] = color
+        self._other_adds.append(robjects.r('geom_density2d')(
+            self._build_aesthetic(aes_params),
+            )
+        )
+
+    def add_stat_sum_color(self, x_column, y_column, size = 0.5):
+        """A scatter plat that's colored by no of overlapping points"""
+        aes_params = {'x': x_column}
+        aes_params['y'] =  y_column
+        aes_params['color'] = '..n..'
+        self._other_adds.append(robjects.r('stat_sum')(self._build_aesthetic(aes_params), size = size))
+
     def add_rect(self, x_min_column, x_max_column, y_min_colum, y_max_column, color=None, fill = None, data = None, alpha = None):
         aes_params = {'xmin': x_min_column, 'xmax': x_max_column, 'ymin': y_min_colum, 'ymax': y_max_column}
         other_params = {}
@@ -276,7 +313,7 @@ class Plot:
             )
         )
     
-    def add_text(self, x, y, label, data = None, angle=None, alpha=None, size=None, hjust=None, vjust=None):
+    def add_text(self, x, y, label, data = None, angle=None, alpha=None, size=None, hjust=None, vjust=None, fontface = None):
         aes_params = {
             'x': x,
             'y': y,
@@ -310,7 +347,8 @@ class Plot:
                 other_params['hjust'] = hjust
             else:
                 aes_params['hjust'] = str(hjust)
-
+        if not fontface is None:
+            other_params['fontface'] = fontface
         self._other_adds.append(
             robjects.r('geom_text')(self._build_aesthetic(aes_params), **other_params)
         )
@@ -416,11 +454,20 @@ class Plot:
             robjects.r('scale_y_continuous')(**other_params)
         )
 
+    def scale_x_reverse(self):
+        self._other_adds.append(robjects.r('scale_x_reverse()'))
+
+    def scale_y_reverse(self):
+        self._other_adds.append(robjects.r('scale_y_reverse()'))
+
     def turn_x_axis_labels(self,  angle=75, hjust=1, size=8):
         kargs = {
             'axis.text.x': robjects.r('theme_text')(angle = angle, hjust=hjust, size=size)
         }
         self._other_adds.append( robjects.r('opts')(**kargs))
+
+    def hide_background(self):
+        self._other_adds.append(robjects.r('opts')(**{'panel.background': robjects.r('theme_blank()')}))
 
     def hide_y_axis_labels(self):
         self._other_adds.append(robjects.r('opts')(**{"axis.text.y": robjects.r('theme_blank()')}))
