@@ -18,6 +18,19 @@ def load_r():
     global _r_loaded
     if not _r_loaded:
         robjects.r('library(ggplot2)')
+        #apperantly, as_df is missing in some downloaded versions of plyr
+        robjects.r("""as_df = function (output) 
+{
+    if (length(output) == 0) 
+        return(data.frame())
+    df <- data.frame(matrix(ncol = 0, nrow = length(output[[1]])))
+    for (var in names(output)) {
+        df[var] <- output[var]
+    }
+    df
+}
+""")
+
 import numpy
 
 class Plot:
