@@ -70,7 +70,11 @@ class Plot:
 
     def render(self, output_filename, width=8, height=6, dpi=300):
         #print self.dataframe
-        plot = self.r['ggplot'](self.dataframe)
+        try:
+            plot = self.r['ggplot'](self.dataframe)
+        except ValueError:
+            print self.old_names
+            raise
         for obj in self._other_adds:
             plot = self.r['add'](plot, obj)
         for name, value in self.lab_rename.items():
