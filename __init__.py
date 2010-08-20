@@ -33,6 +33,13 @@ def load_r():
 
 import numpy
 
+
+def r_expression(expr):
+    return robjects.r('expression(%s)' % expr)
+
+NA = robjects.r("NA")
+
+
 class Plot:
 
     def __init__(self, dataframe, *ignored):
