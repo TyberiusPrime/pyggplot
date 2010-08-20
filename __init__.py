@@ -86,7 +86,7 @@ class Plot:
     def add_aesthetic(self, name, column_name):
         self._aesthetics[name] = column_name
 
-    def add_scatter(self, x_column, y_column, color=None, group=None, shape=None, size=None):
+    def add_scatter(self, x_column, y_column, color=None, group=None, shape=None, size=None, alpha=None):
         aes_params = {'x': x_column, 'y': y_column}
         other_params = {}
         if color:
@@ -95,6 +95,11 @@ class Plot:
             aes_params['group'] = group
         if shape:
             aes_params['shape'] = shape
+        if not alpha is None:
+            if type(alpha) == int or type(alpha) == float:
+                other_params['alpha'] = alpha
+            else:
+                aes_params['alpha'] = str(alpha)
         if not size is None:
             if type(size) is int or type(size) is float:
                 other_params['size'] = size
@@ -103,7 +108,7 @@ class Plot:
         self._other_adds.append(robjects.r('geom_point')(self._build_aesthetic(aes_params), **other_params))
         return
 
-    def add_jitter(self, x_column, y_column, color=None, jitter_x = None, jitter_y = None, data=None):
+    def add_jitter(self, x_column, y_column, color=None, jitter_x = None, jitter_y = None, shape=None, size=None, data=None):
         aes_params = {'x': x_column, 'y': y_column}
         other_params = {}
         if color:
@@ -113,6 +118,13 @@ class Plot:
             position_params['width'] = jitter_x
         if not jitter_y is None:
             position_params['height'] = jitter_y
+        if shape:
+            aes_params['shape'] = shape
+        if not size is None:
+            if type(size) is int or type(size) is float:
+                other_params['size'] = size
+            else:
+                aes_params['size'] = str(size)
         if not data is None:
             other_params['data'] = self._prep_dataframe(data)
 
@@ -144,14 +156,24 @@ class Plot:
 
     def add_bar_plot(self, x_column, y_column, color=None, group = None, fill=None, position="dodge"):
         aes_params = {'x': x_column, 'y': y_column}
-        if fill:
-            aes_params['fill'] = fill
-        if color:
-            aes_params['colour'] = color
+        other_params = {
+                'stat':  'identity',
+                'position': position}
+        if not fill is None:
+            if fill in self.old_names:
+                aes_params['fill'] = fill
+            else:
+                other_params['fill'] = fill
+        if not color is None:
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color
         if group:
             aes_params['group'] = group
+
         self._other_adds.append(
-            robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat="identity", position=position)
+            robjects.r('geom_bar')(self._build_aesthetic(aes_params),  **other_params)
         )
 
     def add_box_plot(self, x_column, y_column, color=None, group = None, fill=None):
@@ -216,7 +238,10 @@ class Plot:
         aes_params = {'x': x_column, 'y': y_column}
         other_params = {}
         if color:
-            aes_params['colour'] = color
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color
         if group:
             aes_params['group'] = group
         if shape:
@@ -232,16 +257,38 @@ class Plot:
                 aes_params['size'] = str(size)
         self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params), **other_params))
 
-    def add_error_bars(self, x_column, ymin, ymax, color=None, group=None, position=None):
+    def add_error_bars(self, x_column, ymin, ymax, color=None, group=None, position=None, width=0.25,alpha=1):
         aes_params = {'x': x_column, 'ymin': ymin, 'ymax':ymax}
         other_params = {}
         if color:
             aes_params['colour'] = color
         if group:
             aes_params['group'] = group
+        if type(alpha) == int or type(alpha) == float:
+            other_params['alpha'] = alpha
+        else:
+            aes_params['alpha'] = str(alpha)
         if position:
             other_params['position'] = position
+        other_params['width'] = width
         self._other_adds.append(robjects.r('geom_errorbar')(self._build_aesthetic(aes_params), **other_params))
+
+    def add_error_barsh(self, x_column, ypos, xmin, xmax, color=None, group=None, position=None, width=0.25, alpha=1):
+        aes_params = {'x': x_column, 'y': ypos, 'xmin': xmin, 'xmax':xmax}
+        other_params = {}
+        if color:
+            aes_params['colour'] = color
+        if group:
+            aes_params['group'] = group
+        if type(alpha) == int or type(alpha) == float:
+            other_params['alpha'] = alpha
+        else:
+            aes_params['alpha'] = str(alpha)
+        if position:
+            other_params['position'] = position
+        other_params['width'] = width
+
+        self._other_adds.append(robjects.r('geom_errorbarh')(self._build_aesthetic(aes_params), **other_params))
 
     def add_ab_line(self, intercept, slope, alpha = None, size = None):
         other_params = {}
@@ -337,7 +384,7 @@ class Plot:
             )
         )
     
-    def add_text(self, x, y, label, data = None, angle=None, alpha=None, size=None, hjust=None, vjust=None, fontface = None):
+    def add_text(self, x, y, label, data = None, angle=None, alpha=None, size=None, hjust=None, vjust=None, fontface = None, color=None):
         aes_params = {
             'x': x,
             'y': y,
@@ -366,13 +413,20 @@ class Plot:
                 other_params['vjust'] = vjust
             else:
                 aes_params['vjust'] = str(vjust)
-        if not vjust is None:
+        if not hjust is None:
             if type(hjust) == int or type(hjust) == float:
                 other_params['hjust'] = hjust
             else:
                 aes_params['hjust'] = str(hjust)
+        if not color is None:
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color
+
         if not fontface is None:
             other_params['fontface'] = fontface
+        print aes_params, other_params
         self._other_adds.append(
             robjects.r('geom_text')(self._build_aesthetic(aes_params), **other_params)
         )
@@ -455,8 +509,31 @@ class Plot:
         self._other_adds.append(
             robjects.r('scale_x_continuous')(**other_params)
         )
+    def scale_x_discrete(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None):
+        other_params = {}
+        if not breaks is None:
+            other_params['breaks'] = numpy.array(breaks)
+        if not minor_breaks is None:
+            other_params['minor_breaks'] = numpy.array(minor_breaks)
+        if trans:
+            other_params['trans'] = str(trans)
+        if not limits is None:
+            other_params['limits'] = numpy.array(limits)
+        if not limits is None:
+            other_params['limits'] = numpy.array(limits)
+        if not labels is None:
+            other_params['labels'] = numpy.array(labels)
+        if not expand is None:
+            other_params['expand'] = numpy.array(expand)
+        if not breaks is None and not labels is None:
+                if len(breaks) != len(labels):
+                    raise ValueError("len(breaks) != len(labels)")
 
-    def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None):
+        self._other_adds.append(
+            robjects.r('scale_x_discrete')(**other_params)
+        )
+
+    def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None, name = None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -470,6 +547,32 @@ class Plot:
             other_params['labels'] = numpy.array(labels)
         if not expand is None:
             other_params['expand'] = numpy.array(expand)
+        if not name is None:
+            other_params['name'] = name
+        if not breaks is None and not labels is None:
+                if len(breaks) != len(labels):
+                    raise ValueError("len(breaks) != len(labels)")
+
+        self._other_adds.append(
+            robjects.r('scale_y_continuous')(**other_params)
+        )
+
+    def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None, name = None):
+        other_params = {}
+        if not breaks is None:
+            other_params['breaks'] = numpy.array(breaks)
+        if not minor_breaks is None:
+            other_params['minor_breaks'] = numpy.array(minor_breaks)
+        if not trans is None:
+            other_params['trans'] = str(trans)
+        if not limits is None:
+            other_params['limits'] = numpy.array(limits)
+        if not labels is None:
+            other_params['labels'] = numpy.array(labels)
+        if not expand is None:
+            other_params['expand'] = numpy.array(expand)
+        if not name is None:
+            other_params['name'] = name
         if not breaks is None and not labels is None:
                 if len(breaks) != len(labels):
                     raise ValueError("len(breaks) != len(labels)")
@@ -484,9 +587,9 @@ class Plot:
     def scale_y_reverse(self):
         self._other_adds.append(robjects.r('scale_y_reverse()'))
 
-    def turn_x_axis_labels(self,  angle=75, hjust=1, size=8):
+    def turn_x_axis_labels(self,  angle=75, hjust=1, size=8, vjust=0):
         kargs = {
-            'axis.text.x': robjects.r('theme_text')(angle = angle, hjust=hjust, size=size)
+            'axis.text.x': robjects.r('theme_text')(angle = angle, hjust=hjust, size=size, vjust=0)
         }
         self._other_adds.append( robjects.r('opts')(**kargs))
 
@@ -511,11 +614,13 @@ class Plot:
     def scale_fill_manual(self, list_of_colors):
         self._other_adds.append(robjects.r('scale_fill_manual')(values = numpy.array(list_of_colors)))
 
-    def scale_fill_brewer(self, name = None):
-        args = []
-        if name:
-            args.append(name)
-        self._other_adds.append(robjects.r('scale_fill_brewer')(*args))
+    def scale_fill_brewer(self, name = None, palette = 'Set1'):
+        other_params = {}
+        if not name is None:
+            other_params['name'] = name
+        if not palette is None:
+            other_params['palette'] = palette
+        self._other_adds.append(robjects.r('scale_fill_brewer')(**other_params))
 
     def coord_flip(self):
         self._other_adds.append(robjects.r('coord_flip()'))
@@ -556,8 +661,12 @@ class Plot:
 
     def smaller_margins(self):
         self._other_adds.append(robjects.r('opts(panel.margin = unit(0.0, "lines"))'))
-        self._other_adds.append(robjects.r('opts(plot.margin = unit(c(0,0,0,0), "lines"))'))
         self._other_adds.append(robjects.r('opts(axis.ticks.margin = unit(0.0, "cm"))'))
+        self.plot_margin(0,0,0,0)
+
+    def plot_margin(self, top, left, bottom, right):
+        self._other_adds.append(robjects.r('opts(plot.margin = unit(c(%i,%i,%i,%i), "lines"))' % (top, left, bottom, right)))
+
 
     def scale_shape_manual(self, values):
         self._other_adds.append(robjects.r('scale_shape_manual')(values=values))
@@ -570,6 +679,9 @@ class Plot:
         if name:
             args.append(name)
         self._other_adds.append(robjects.r('scale_colour_brewer')(*args))
+
+    def scale_colour_grey(self):
+        self._other_adds.append(robjects.r('scale_colour_grey')())
 
 def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
     if exptools.output_file_exists(output_filename):
