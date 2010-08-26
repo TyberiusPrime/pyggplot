@@ -293,14 +293,16 @@ class Plot:
     def add_ab_line(self, intercept, slope, alpha = None, size = None):
         other_params = {}
         aes_params = {}
-        if type(alpha) == int or type(alpha) == float:
-            other_params['alpha'] = alpha
-        else:
-            aes_params['alpha'] = str(alpha)
-        if type(size) == int or type(size) == float:
-            other_params['size'] = size
-        else:
-            aes_params['size'] = str(size)
+        if not alpha is None:
+            if type(alpha) == int or type(alpha) == float:
+                other_params['alpha'] = alpha
+            else:
+                aes_params['alpha'] = str(alpha)
+        if not size is None:
+            if type(size) == int or type(size) == float:
+                other_params['size'] = size
+            else:
+                aes_params['size'] = str(size)
         other_params['intercept'] = intercept
         other_params['slope'] = slope
         self._other_adds.append(robjects.r('geom_abline')(self._build_aesthetic(aes_params), **other_params))
