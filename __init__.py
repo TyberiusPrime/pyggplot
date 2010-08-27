@@ -154,7 +154,10 @@ class Plot:
             self._other_adds.append(
                 robjects.r('geom_text')(self._build_aesthetic({'x': x_column, 'y':'..count..', 'label':'..count..'}),stat='bin' ))
 
-    def add_bar_plot(self, x_column, y_column, color=None, group = None, fill=None, position="dodge"):
+
+    def add_bar(self, *args, **kwargs):
+        return self.add_bar_plot(*args, **kwargs)
+    def add_bar_plot(self, x_column, y_column, color=None, group = None, fill=None, position="dodge", data=None):
         aes_params = {'x': x_column, 'y': y_column}
         other_params = {
                 'stat':  'identity',
@@ -171,6 +174,8 @@ class Plot:
                 other_params['colour'] = color
         if group:
             aes_params['group'] = group
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
 
         self._other_adds.append(
             robjects.r('geom_bar')(self._build_aesthetic(aes_params),  **other_params)
@@ -188,16 +193,23 @@ class Plot:
             robjects.r('geom_boxplot')(self._build_aesthetic(aes_params))
         )
 
-    def add_heatmap(self, fill, low="red", mid="white", high="blue", midpoint=0):
+    def add_heatmap(self, x_column, y_column, fill, low="red", mid=None, high="blue", midpoint=0):
         aes_params = {}
+        aes_params['x'] = x_column
+        aes_params['y'] = y_column
         aes_params['fill'] = fill
         self._other_adds.append(
             robjects.r('geom_tile')(self._build_aesthetic(aes_params), stat="identity")
         )
-        self._other_adds.append(
-            robjects.r('scale_fill_gradient2(low="%s", mid="%s", high="%s", midpoint=%.f)' % (
-            low, mid, high, midpoint))
-        )
+        if mid is None:
+            self._other_adds.append(
+                    robjects.r('scale_fill_gradient')(low=low, high=high)
+                    )
+        else:
+            self._other_adds.append(
+                robjects.r('scale_fill_gradient2(low="%s", mid="%s", high="%s", midpoint=%.f)' % (
+                low, mid, high, midpoint))
+            )
     
     def _fix_axis_label(self, aes_name, new_name, real_name):
         which_legend = False
@@ -234,7 +246,7 @@ class Plot:
         return robjects.r('aes(%s)' % aes_params)
 
 
-    def add_line(self, x_column, y_column, color=None, group=None, shape=None, alpha=1.0, size=None):
+    def add_line(self, x_column, y_column, color=None, group=None, shape=None, alpha=1.0, size=None, data=None):
         aes_params = {'x': x_column, 'y': y_column}
         other_params = {}
         if color:
@@ -255,7 +267,87 @@ class Plot:
                 other_params['size'] = size
             else:
                 aes_params['size'] = str(size)
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
         self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params), **other_params))
+
+    def add_area(self, x_column, y_column, color=None, fill=None, linetype=1, alpha=1.0, size=None, data=None, position=None):
+        aes_params = {'x': x_column, 'y': y_column}
+        other_params = {}
+        if not color is None:
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color
+        if not fill is None:
+            if fill in self.old_names:
+                aes_params['fill'] = fill
+            else:
+                other_params['fill'] = fill
+        if not alpha is None:
+            if alpha in self.old_names:
+                aes_params['alpha'] = alpha
+            else:
+                other_params['alpha'] = alpha
+        if not size is None:
+            if size in self.old_names:
+                aes_params['size'] = size
+            else:
+                other_params['size'] = size
+        if not linetype is None:
+            if linetype in self.old_names:
+                aes_params['linetype'] = linetype
+            else:
+                other_params['linetype'] = linetype
+        if not position is None:
+            other_params['position'] = position
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+
+        self._other_adds.append(robjects.r('geom_area')(self._build_aesthetic(aes_params), **other_params))
+
+    def add_ribbon(self, x, ymin, ymax, color = None, fill = None, size = 0.5, linetype = 1, alpha = 1, position=None, data=None):
+        aes_params = {'x': x}
+        other_params = {}
+        if ymin in self.old_names:
+            aes_params['ymin'] = ymin
+        else:
+            other_params['ymin'] = ymin
+        if ymax in self.old_names:
+            aes_params['ymax'] = ymax
+        else:
+            other_params['ymax'] = ymax
+        if not color is None:
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color
+        if not fill is None:
+            if fill in self.old_names:
+                aes_params['fill'] = fill
+            else:
+                other_params['fill'] = fill
+        if not alpha is None:
+            if alpha in self.old_names:
+                aes_params['alpha'] = alpha
+            else:
+                other_params['alpha'] = alpha
+        if not size is None:
+            if size in self.old_names:
+                aes_params['size'] = size
+            else:
+                other_params['size'] = size
+        if not linetype is None:
+            if linetype in self.old_names:
+                aes_params['linetype'] = linetype
+            else:
+                other_params['linetype'] = linetype
+        if not position is None:
+            other_params['position'] = position
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+
+        self._other_adds.append(robjects.r('geom_ribbon')(self._build_aesthetic(aes_params), **other_params))
 
     def add_error_bars(self, x_column, ymin, ymax, color=None, group=None, position=None, width=0.25,alpha=1):
         aes_params = {'x': x_column, 'ymin': ymin, 'ymax':ymax}
@@ -624,6 +716,28 @@ class Plot:
             other_params['palette'] = palette
         self._other_adds.append(robjects.r('scale_fill_brewer')(**other_params))
 
+    def scale_fill_hue(self, h = None, l = None, c = None, limits = None, breaks = None, labels = None, h_start = None, direction = None):
+        other_params = {}
+        if not h is None:
+            other_params['h'] = h
+        if not l is None:
+            other_params['l'] = l
+        if not c is None:
+            other_params['c'] = c
+        if not limits is None:
+            other_params['limits'] = numpy.array(limits)
+        if not breaks is None:
+            other_params['breaks'] = numpy.array(breaks)
+        if not labels is None:
+            other_params['labels'] = numpy.array(labels)
+        if not h_start is None:
+            other_params['h.start'] = h_start
+        if not direction is None:
+            other_params['direction'] = direction
+        self._other_adds.append(robjects.r('scale_fill_hue')(**other_params))
+
+
+
     def coord_flip(self):
         self._other_adds.append(robjects.r('coord_flip()'))
 
@@ -676,11 +790,14 @@ class Plot:
     def scale_colour_manual(self, values):
         self._other_adds.append(robjects.r('scale_colour_manual')(values=numpy.array(values)))
 
-    def scale_colour_brewer(self, name = None):
-        args = []
-        if name:
-            args.append(name)
-        self._other_adds.append(robjects.r('scale_colour_brewer')(*args))
+    def scale_color_brewer(self, name = None, palette = 'Set1'):
+        other_params = {}
+        if not name is None:
+            other_params['name'] = name
+        if not palette is None:
+            other_params['palette'] = palette
+        self._other_adds.append(robjects.r('scale_colour_brewer')(**other_params))
+
 
     def scale_colour_grey(self):
         self._other_adds.append(robjects.r('scale_colour_grey')())
