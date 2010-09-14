@@ -10,7 +10,9 @@ def plot_sequences(sequences, output_filename, is_dna = True, width=7, height=2)
         height *= 150
         surface = cairo.ImageSurface(cairo.FORMAT_RGB24, width, height)
     elif output_filename.endswith('.pdf'):
-        surface = cairo.PDFSurface(width, height)
+        width *= 72
+        height *= 72
+        surface = cairo.PDFSurface(output_filename, width, height)
         sft = 'pdf'
     else:
         raise ValueError("Don't know how to create a surface for this extension: %s" % output_filename)
@@ -53,7 +55,7 @@ class LogoOnCairoDrawer:
         fg = colors['foreground']
         ctx.set_source_rgb(fg[0],fg[1],fg[2])
         ctx.rectangle(0,0,width,height)
-        ctx.stroke()
+        #ctx.stroke()
         ctx.select_font_face("Courier New")        
         scaleX, scaleY = self.findFontScalingFactors(ctx)
         org = ctx.set_matrix(cairo.Matrix(1,0,0,1,0,0))
