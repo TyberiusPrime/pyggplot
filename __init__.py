@@ -29,6 +29,13 @@ def load_r():
     }
     df
 }
+TransInvNegLog10 <- Trans$new("InvNegLog10", f = function(x) 10^(-x), 
+inverse = function(x) -log10(x), labels = function(x) x)
+TransInvNegLog10b <- Trans$new("InvNegLog10b", 
+            f = function(x) -log10(x),
+            inverse = function(x) 10^-x, 
+            labels = function(x) bquote(10^.(-x)))
+
 """)
 
 import numpy
