@@ -571,14 +571,14 @@ class Plot:
     def set_base_size(self, base_size = 10):
         self.theme_bw(base_size = base_size)
         
-    def add_label(self, text, xpos, ypos):
+    def add_label(self, text, xpos, ypos, size=3):
         import exptools
         data = exptools.DataFrame.DataFrame({'x': [xpos], 'y': [ypos], 'text': [text]})
         self._other_adds.append(
             self.r['geom_text'](
                robjects.r('aes(x=x, y=y, label=text)'),
                data,
-                size=3,
+                size=size,
                 color="black"
 
             )
