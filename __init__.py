@@ -3,7 +3,7 @@ from ordereddict import OrderedDict
 import sys
 from hilbert import hilbert_plot, hilbert_to_image
 import rpy2.robjects as robjects
-exptools.ensureSoftwareVersion('pyvenn','tip')
+exptools.load_software('pyvenn')
 import pyvenn
 from square_euler import SquareEuler
 import re
