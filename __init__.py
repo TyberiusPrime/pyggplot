@@ -7,7 +7,7 @@ exptools.load_software('pyvenn')
 import pyvenn
 from square_euler import SquareEuler
 import re
-from sequence_logos import plot_sequences
+from sequence_logos import plot_sequences, plot_sequence_alignment
 try:
     from pwmlocationplotter import PWMLocationPlotter
 except ImportError:

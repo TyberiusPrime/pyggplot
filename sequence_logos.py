@@ -2,6 +2,68 @@ import math
 import re
 import cairo
 
+def plot_sequence_alignment(name_sequence_pairs, output_filename, is_dna = True):
+    no_of_lines = len(name_sequence_pairs)
+    no_of_letters = max((len(a[0]) + len(a[1]) for a in name_sequence_pairs))
+    print no_of_letters
+
+    offset_position = max((len(a[0]) for a in name_sequence_pairs)) + 0.1 
+
+    line_height = 300 / 4
+    letter_width = 50
+    height = line_height * (no_of_lines + 1)
+    width = (no_of_letters) * letter_width
+
+    surface = cairo.PDFSurface(output_filename, width, height)
+    ctx = cairo.Context(surface)
+
+    colors = {
+        'foreground': (0,0,0,),
+        'background': (1,1,1),
+    }
+    if is_dna:
+        colors.update({
+            'letter_G': (1,165 / 255.0,0),     #ffa500
+            'letter_T': (1,0,0),     #ff0000
+            'letter_U': (1,0,0),     #ff0000
+            "letter_C": (0,0,1),     #0000ff
+            'letter_A': (0,0.5,0),     #008000
+        })
+    bg = colors['background']
+    ctx.set_source_rgb(bg[0],bg[1],bg[2])
+    ctx.rectangle(0,0,width,height)
+    ctx.fill()
+
+    ctx.select_font_face("Courier 10 Pitch")        
+
+    org = ctx.set_matrix(cairo.Matrix(1,0,0,1,0,0))
+    tempMatrix = cairo.Matrix(letter_width * 1,0,0,line_height * 1,0,0)                    
+    ctx.set_font_matrix(tempMatrix)                    
+
+    print 'extens', ctx.text_extents("M")        
+    
+    for line_no, name_sequence in enumerate(name_sequence_pairs):
+        ctx.set_source_rgb(colors['foreground'][0],colors['foreground'][1],colors['foreground'][2])
+        ctx.move_to(10,(line_no + 1)* line_height)                                        
+        ctx.show_text(name_sequence[0])
+        for letter_no, letter in enumerate(name_sequence[1]):
+            ctx.move_to(
+                    10 + 
+                    offset_position * letter_width
+                    + letter_no * letter_width * 0.8
+                    ,(line_no + 1) * line_height)                                        
+            if 'letter_' + letter in colors:
+                col = colors['letter_' + letter]
+                ctx.set_source_rgb(col[0],col[1],col[2])
+                ctx.show_text(letter)
+
+
+    surface.flush()
+    surface.finish()
+
+
+
+
 def plot_sequences(sequences, output_filename, is_dna = True, width=7, height=2):
     sequences = [s.upper() for s in sequences]
     if output_filename.endswith('.png'):
