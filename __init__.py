@@ -538,7 +538,7 @@ class Plot:
             scale = 'free_y'
         elif not fixed_x and fixed_y:
             scale = 'free_x'
-        elif not fixed_x and fixed_y:
+        elif not fixed_x and not fixed_y:
             scale = 'free'
         else:
             scale = 'fixed'
@@ -548,7 +548,7 @@ class Plot:
             facet_specification = '%s ~ %s' % (new_one, new_two)
         else:
             params = self._translate_params({"":column_one})[0]
-            facet_specification = params.replace('=', '~')
+            facet_specification = params.replace('=', '~') 
             #facet_specification = '~ %s' % (column_one,)
         print facet_specification
         params = {
@@ -556,6 +556,32 @@ class Plot:
         if ncol:
             params['ncol'] = ncol
         self._other_adds.append(facet_wrap(robjects.r(facet_specification), **params))
+
+    def facet_grid(self, column_one, column_two = None, fixed_x = True, fixed_y = True, ncol=None):
+        facet_wrap = robjects.r['facet_wrap']
+        if fixed_x and not fixed_y:
+            scale = 'free_y'
+        elif not fixed_x and fixed_y:
+            scale = 'free_x'
+        elif not fixed_x and not fixed_y:
+            scale = 'free'
+        else:
+            scale = 'fixed'
+        if column_two:
+            new_one = 'dat_%s'  % self.old_names.index(column_one)
+            new_two = 'dat_%s'  % self.old_names.index(column_two)
+            facet_specification = '%s ~ %s' % (new_one, new_two)
+        else:
+            params = self._translate_params({"":column_one})[0]
+            facet_specification = '. ' + params.replace('=', '~')
+            #facet_specification = '~ %s' % (column_one,)
+        print facet_specification
+        params = {
+            'scale': scale}
+        if ncol:
+            params['ncol'] = ncol
+        self._other_adds.append(robjects.r('facet_grid')(robjects.r(facet_specification), **params))
+
 
 
     def greyscale(self):
