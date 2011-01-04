@@ -79,16 +79,16 @@ class Plot:
         #print self.dataframe
         try:
             plot = self.r['ggplot'](self.dataframe)
+            for obj in self._other_adds:
+                plot = self.r['add'](plot, obj)
+            for name, value in self.lab_rename.items():
+                plot = self.r['add'](plot, robjects.r('labs(%s = "%s")' % (name, value)))
+            #plot = self.r['add'](plot, self.r['layer'](geom="point"))
+            #robjects.r('options( error=recover )')
+            self.r['ggsave'](filename=output_filename,plot=plot, width=width, height=height, dpi=dpi)
         except ValueError:
-            print self.old_names
+            print 'old names', self.old_names
             raise
-        for obj in self._other_adds:
-            plot = self.r['add'](plot, obj)
-        for name, value in self.lab_rename.items():
-            plot = self.r['add'](plot, robjects.r('labs(%s = "%s")' % (name, value)))
-        #plot = self.r['add'](plot, self.r['layer'](geom="point"))
-        #robjects.r('options( error=recover )')
-        self.r['ggsave'](filename=output_filename,plot=plot, width=width, height=height, dpi=dpi)
 
     def add_aesthetic(self, name, column_name):
         self._aesthetics[name] = column_name
@@ -249,7 +249,6 @@ class Plot:
     def _build_aesthetic(self, params):
         aes_params = self._translate_params(params)
         aes_params = ", ".join(aes_params)
-        print aes_params
         return robjects.r('aes(%s)' % aes_params)
 
 
@@ -438,21 +437,49 @@ class Plot:
         aes_params['color'] = '..n..'
         self._other_adds.append(robjects.r('stat_sum')(self._build_aesthetic(aes_params), size = size))
 
-    def add_rect(self, x_min_column, x_max_column, y_min_colum, y_max_column, color=None, fill = None, data = None, alpha = None):
-        aes_params = {'xmin': x_min_column, 'xmax': x_max_column, 'ymin': y_min_colum, 'ymax': y_max_column}
+    def add_rect(self, x_min, x_max, y_min, y_max, color=None, fill = None, data = None, alpha = None):
+        aes_params = {}
         other_params = {}
+        if x_min in self.old_names or (data and x_min in data.columns_ordered):
+            aes_params['xmin'] = x_min
+        else:
+            other_params['xmin'] = x_min
+        if y_min in self.old_names or (data and y_min in data.columns_ordered):
+            aes_params['ymin'] = y_min
+        else:
+            other_params['ymin'] = y_min
+        if x_max in self.old_names or (data and x_max in data.columns_ordered):
+            aes_params['xmax'] = x_max
+        else:
+            other_params['xmax'] = x_max
+        if y_max in self.old_names or (data and y_max in data.columns_ordered):
+            aes_params['ymax'] = y_max
+        else:
+            other_params['ymax'] = y_max
+
         if not data is None:
             other_params['data'] = self._prep_dataframe(data)
-        if color:
-            aes_params['colour'] = color
-        if fill:
-            aes_params['fill'] = fill
-        if type(alpha) == int or type(alpha) == float:
-            other_params['alpha'] = alpha
-        else:
-            aes_params['alpha'] = str(alpha)
 
-        print self.old_names
+        if color:
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color      
+        if fill:
+            if fill in self.old_names:
+                aes_params['fill'] = fill
+            else:
+                other_params['fill'] = fill      
+
+        if alpha:
+            if type(alpha) == int or type(alpha) == float:
+                other_params['alpha'] = alpha
+            else:
+                aes_params['alpha'] = str(alpha)
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+        print 'other', other_params
+
         obj = robjects.r('geom_rect')(self._build_aesthetic(aes_params), **other_params)
         self._other_adds.append(obj)
 
@@ -527,7 +554,6 @@ class Plot:
 
         if not fontface is None:
             other_params['fontface'] = fontface
-        print aes_params, other_params
         self._other_adds.append(
             robjects.r('geom_text')(self._build_aesthetic(aes_params), **other_params)
         )
@@ -550,7 +576,6 @@ class Plot:
             params = self._translate_params({"":column_one})[0]
             facet_specification = params.replace('=', '~') 
             #facet_specification = '~ %s' % (column_one,)
-        print facet_specification
         params = {
             'scale': scale}
         if ncol:
@@ -575,7 +600,6 @@ class Plot:
             params = self._translate_params({"":column_one})[0]
             facet_specification = '. ' + params.replace('=', '~')
             #facet_specification = '~ %s' % (column_one,)
-        print facet_specification
         params = {
             'scale': scale}
         if ncol:
