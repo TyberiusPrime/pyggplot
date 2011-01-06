@@ -569,9 +569,9 @@ class Plot:
         else:
             scale = 'fixed'
         if column_two:
-            new_one = 'dat_%s'  % self.old_names.index(column_one)
-            new_two = 'dat_%s'  % self.old_names.index(column_two)
-            facet_specification = '%s ~ %s' % (new_one, new_two)
+            params = self._translate_params({column_one: column_two})[0]
+            facet_specification = params.replace('=', '~')
+            #facet_specification = '%s ~ %s' % (column_one, column_two)
         else:
             params = self._translate_params({"":column_one})[0]
             facet_specification = params.replace('=', '~') 
