@@ -147,6 +147,7 @@ class Plot:
 
     def add_histogram(self, x_column, y_column = "..count..", color=None, group = None, fill=None, position="dodge", add_text = False):
         aes_params = {'x': x_column}
+        stat_params = {}
         if fill:
             aes_params['fill'] = fill
         if color:
@@ -154,9 +155,17 @@ class Plot:
         if group:
             aes_params['group'] = group
             #x = x_column, y = y_column)
-        self._other_adds.append(
-            robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat='bin', position=position)
-        )
+        if bin_width:
+            stat_params['bin_width'] = bin_width
+        if stat_params:
+            self._other_adds.append(
+                robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat= robjects.r('stat_bin')(**stat_params)
+                                   , position=position)
+            )
+        else:
+            self._other_adds.append(
+                robjects.r('geom_bar')(self._build_aesthetic(aes_params), position=position)
+            )
         if add_text:
             self._other_adds.append(
                 robjects.r('geom_text')(self._build_aesthetic({'x': x_column, 'y':'..count..', 'label':'..count..'}),stat='bin' ))
