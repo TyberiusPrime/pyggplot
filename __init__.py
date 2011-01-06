@@ -108,8 +108,12 @@ class Plot:
             robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat="identity", position=position)
         )
 
-    def add_box_plot(self, x_column, y_column):
+    def add_box_plot(self, x_column, y_column, color=None, fill = None):
         aes_params = {'x': x_column, 'y': y_column}
+        if color:
+            aes_params['colour'] = color
+        if fill:
+            aes_params['fill'] = fill
         self._other_adds.append(
             robjects.r('geom_boxplot')(self._build_aesthetic(aes_params))
         )
@@ -400,7 +404,6 @@ def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
     first = lists[0]
     lists = lists[1:]
     plot_data = {"k": [], 'overlap': []}
-    print 'building overlap assoc plot'
     tr = exptools.TimeRemainingGuestimator(max_k)
     for k in xrange(1, max_k + 1):
         plot_data['k'].append(k)
