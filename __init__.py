@@ -878,7 +878,6 @@ def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
     first = lists[0]
     lists = lists[1:]
     plot_data = {"k": [], 'overlap': []}
-    print 'building overlap assoc plot'
     tr = exptools.TimeRemainingGuestimator(max_k)
     for k in xrange(1, max_k + 1):
         plot_data['k'].append(k)
