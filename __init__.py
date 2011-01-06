@@ -114,8 +114,8 @@ class Plot:
             robjects.r('geom_boxplot')(self._build_aesthetic(aes_params))
         )
 
-    def add_heatmap(self, fill, low="red", mid="white", high="blue", midpoint=0):
-        aes_params = {}
+    def add_heatmap(self, x_column, y_column, fill, low="red", mid="white", high="blue", midpoint=0):
+        aes_params = {'x': x_column, 'y': y_column}
         aes_params['fill'] = fill
         self._other_adds.append(
             robjects.r('geom_tile')(self._build_aesthetic(aes_params), stat="identity")
