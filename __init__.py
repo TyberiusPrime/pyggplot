@@ -632,6 +632,7 @@ class Plot:
         self.theme_bw(base_size = base_size)
         
     def add_label(self, text, xpos, ypos, size=3):
+        import pydataframe
         data = pydataframe.DataFrame({'x': [xpos], 'y': [ypos], 'text': [text]})
         self._other_adds.append(
             self.r['geom_text'](
