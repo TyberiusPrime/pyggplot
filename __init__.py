@@ -1,5 +1,6 @@
 import exptools
 from ordereddict import OrderedDict
+import pydataframe
 import sys
 from hilbert import hilbert_plot, hilbert_to_image
 import rpy2.robjects as robjects
@@ -477,7 +478,7 @@ class Plot:
             robjects.r('geom_segment')
             (
                 robjects.r('aes(x=x, y=y, xend=xend, yend=yend)'),
-                exptools.DataFrame.DataFrame({"x": [xstart], 'xend': [xend], 'y': [ystart], 'yend': [yend]}),
+                pydataframe.DataFrame({"x": [xstart], 'xend': [xend], 'y': [ystart], 'yend': [yend]}),
                 colour=color,
                 alpha = alpha,
                 size = 0.5
@@ -572,8 +573,7 @@ class Plot:
         self.theme_bw(base_size = base_size)
         
     def add_label(self, text, xpos, ypos, size=3):
-        import exptools
-        data = exptools.DataFrame.DataFrame({'x': [xpos], 'y': [ypos], 'text': [text]})
+        data = pydataframe.DataFrame({'x': [xpos], 'y': [ypos], 'text': [text]})
         self._other_adds.append(
             self.r['geom_text'](
                robjects.r('aes(x=x, y=y, label=text)'),
@@ -1080,8 +1080,7 @@ def plotArray(numpy_array, title, xaxis_name = 'x', yaxis_name = 'y', xaxis_offs
     for (x, y) in enumerate(numpy_array):
         xs.append(x + xaxis_offset)
         ys.append(y)
-    import exptools
-    df = exptools.DataFrame.DataFrame({xaxis_name: xs, yaxis_name: ys})
+    df = pydataframe.DataFrame({xaxis_name: xs, yaxis_name: ys})
     robjects.r('library(ggplot2)')
     ggplot = robjects.r['ggplot']
     aes = robjects.r['aes']
