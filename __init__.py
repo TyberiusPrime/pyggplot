@@ -175,13 +175,19 @@ class Plot:
                 aes_params['size'] = str(size)
         self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params), **other_params))
 
-    def add_error_bars(self, x_column, ymin, ymax, color=None, group=None):
+    def add_error_bars(self, x_column, ymin, ymax, color=None, group=None, alpha=1.0, position=None):
         aes_params = {'x': x_column, 'ymin': ymin, 'ymax':ymax}
         other_params = {}
         if color:
             aes_params['colour'] = color
         if group:
             aes_params['group'] = group
+        if type(alpha) == int or type(alpha) == float:
+            other_params['alpha'] = alpha
+        else:
+            aes_params['alpha'] = str(alpha)
+        if position:
+            other_params['position'] = position
         self._other_adds.append(robjects.r('geom_errorbar')(self._build_aesthetic(aes_params), **other_params))
 
     def add_ab_line(self, intercept, slope):
@@ -242,9 +248,10 @@ class Plot:
         else:
             scale = 'fixed'
         if column_two:
-            params = self._translate_params({column_one: column_two})[0]
-            facet_specification = params.replace('=', '~')
-            #facet_specification = '%s ~ %s' % (column_one, column_two)
+            param1 = self._translate_params({"":column_one})[0].replace('=','')
+            param2 = self._translate_params({"":column_two})[0].replace('=','')
+            #facet_specification = params.replace('=', '~')
+            facet_specification = '%s ~ %s' % (param1, param2)
         else:
             params = self._translate_params({"":column_one})[0]
             facet_specification = params.replace('=', '~')
