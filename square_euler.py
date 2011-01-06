@@ -12,13 +12,13 @@ class SquareEulerFromNumbers:
             raise ValueError("Fill percentages takes exactly 8 values")
         self.fill_colors = [
                 (0, 100.0 / 255, 0, 1), #darkgreen
-                (0,0,0,1), #black
+                (0.3,.3,.3,1), #grey
                 (1,0,0,1), #red
-                (160.0 / 255, 32.0 / 255, 240.0 / 255, 1), # purple,
+                (0.3,.3,.3,1), #grey
                 (0,0,1,1), # blue,
-                (1,1,1,1), # white,
-                (1,1,1,1), # white,
-                (1,1,1,1), # white,
+                (0.3,.3,.3,1), #grey
+                (160.0 / 255, 32.0 / 255, 240.0 / 255, 1), # purple,
+                (0.3,.3,.3,1), #grey
         ]
         self.background_color = (1,1,1,1)
         self.border_color = (0,0,0,1) # black,
@@ -313,6 +313,8 @@ class SquareEuler(SquareEulerFromNumbers):
                     fill_percentages.append(float(len(s.intersection(filled_values))) / len(s))
                 else:
                     fill_percentages.append(0)
+        else:
+            fill_percentages = [1] * len(sets)
         return names, counts, fill_percentages
  
     def assert_distinct(self, setA, setB):
