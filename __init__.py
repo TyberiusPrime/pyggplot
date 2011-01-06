@@ -47,7 +47,6 @@ def r_expression(expr):
 
 NA = robjects.r("NA")
 
-
 class Plot:
 
     def __init__(self, dataframe, *ignored):
@@ -631,7 +630,7 @@ class Plot:
     def set_base_size(self, base_size = 10):
         self.theme_bw(base_size = base_size)
         
-    def add_label(self, text, xpos, ypos, size=3):
+    def add_label(self, text, xpos, ypos, size=8):
         import pydataframe
         data = pydataframe.DataFrame({'x': [xpos], 'y': [ypos], 'text': [text]})
         self._other_adds.append(
