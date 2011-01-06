@@ -891,9 +891,12 @@ def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
     plot.add_line('k','overlap')
     plot.render(output_filename)
 
-def plot_venn(sets, output_filename, width=8, height=8):
+def plot_venn(sets, output_filename, width=8, height=8, proportional = False):
     df = pyvenn.VennDiagram(sets)
-    df.plot_normal(output_filename, width)
+    if proportional:
+        df.plot_proportional(output_filename, width)
+    else:
+        df.plot_normal(output_filename, width)
 
 def powerset(seq):
     """
