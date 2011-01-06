@@ -210,7 +210,7 @@ class Plot:
         )
 
     def add_heatmap(self, x_column, y_column, fill, low="red", mid=None, high="blue", midpoint=0):
-        aes_params = {}
+        aes_params = {'x': x_column, 'y': y_column}
         aes_params['x'] = x_column
         aes_params['y'] = y_column
         aes_params['fill'] = fill
