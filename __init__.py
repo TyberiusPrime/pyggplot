@@ -254,15 +254,18 @@ class Plot:
 
 
     def add_line(self, x_column, y_column, color=None, group=None, shape=None, alpha=1.0, size=None, data=None):
-        aes_params = {'x': x_column, 'y': y_column}
+        aes_params = OrderedDict({'x': x_column, 'y': y_column})
         other_params = {}
-        if color:
+        if group:
+            if group in self.old_names:
+                aes_params['group'] = group
+            else:
+                other_params['group'] = group
+        if not color is None:
             if color in self.old_names:
                 aes_params['colour'] = color
             else:
                 other_params['colour'] = color
-        if group:
-            aes_params['group'] = group
         if shape:
             aes_params['shape'] = shape
         if type(alpha) == int or type(alpha) == float:
@@ -276,6 +279,8 @@ class Plot:
                 aes_params['size'] = str(size)
         if not data is None:
             other_params['data'] = self._prep_dataframe(data)
+        print 'aes', aes_params, 'other', other_params
+        print self._build_aesthetic(aes_params)
         self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params), **other_params))
 
     def add_area(self, x_column, y_column, color=None, fill=None, linetype=1, alpha=1.0, size=None, data=None, position=None):
@@ -445,8 +450,11 @@ class Plot:
             other_params['data'] = self._prep_dataframe(data)
         if color:
             aes_params['colour'] = color
-        if fill:
-            aes_params['fill'] = fill
+        if not fill is None:
+            if fill in self.old_names:
+                aes_params['fill'] = fill
+            else:
+                other_params['fill'] = fill
         if type(alpha) == int or type(alpha) == float:
             other_params['alpha'] = alpha
         else:
