@@ -389,7 +389,7 @@ class Plot:
 
         self._other_adds.append(robjects.r('geom_errorbarh')(self._build_aesthetic(aes_params), **other_params))
 
-    def add_ab_line(self, intercept, slope, alpha = None, size = None):
+    def add_ab_line(self, intercept, slope, alpha = None, size = None, color=None):
         other_params = {}
         aes_params = {}
         if not alpha is None:
@@ -397,6 +397,11 @@ class Plot:
                 other_params['alpha'] = alpha
             else:
                 aes_params['alpha'] = str(alpha)
+        if not color is None:
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color
         if not size is None:
             if type(size) == int or type(size) == float:
                 other_params['size'] = size
@@ -420,14 +425,23 @@ class Plot:
             )
         )
 
-    def add_density_2d(self, x_column, y_column, color = None):
+    def add_density_2d(self, x_column, y_column, color = None, alpha = None):
         """add a kernel estimated density plot - gauss kernel and bw.SJ estimation of bandwith"""
         aes_params = {'x': x_column}
         aes_params['y'] =  y_column
-        if color:
-            aes_params['colour'] = color
+        other_params = {}
+        if not color is None:
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color
+        if not alpha is None:
+            if type(alpha) == int or type(alpha) == float:
+                other_params['alpha'] = alpha
+            else:
+                aes_params['alpha'] = str(alpha)
         self._other_adds.append(robjects.r('geom_density2d')(
-            self._build_aesthetic(aes_params),
+            self._build_aesthetic(aes_params), **other_params
             )
         )
 
