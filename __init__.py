@@ -1,5 +1,6 @@
 import exptools
 from ordereddict import OrderedDict
+import pydataframe
 import sys
 from hilbert import hilbert_plot, hilbert_to_image
 import rpy2.robjects as robjects
@@ -46,7 +47,6 @@ def r_expression(expr):
 
 NA = robjects.r("NA")
 
-
 class Plot:
 
     def __init__(self, dataframe, *ignored):
@@ -79,16 +79,16 @@ class Plot:
         #print self.dataframe
         try:
             plot = self.r['ggplot'](self.dataframe)
+            for obj in self._other_adds:
+                plot = self.r['add'](plot, obj)
+            for name, value in self.lab_rename.items():
+                plot = self.r['add'](plot, robjects.r('labs(%s = "%s")' % (name, value)))
+            #plot = self.r['add'](plot, self.r['layer'](geom="point"))
+            #robjects.r('options( error=recover )')
+            self.r['ggsave'](filename=output_filename,plot=plot, width=width, height=height, dpi=dpi)
         except ValueError:
-            print self.old_names
+            print 'old names', self.old_names
             raise
-        for obj in self._other_adds:
-            plot = self.r['add'](plot, obj)
-        for name, value in self.lab_rename.items():
-            plot = self.r['add'](plot, robjects.r('labs(%s = "%s")' % (name, value)))
-        #plot = self.r['add'](plot, self.r['layer'](geom="point"))
-        #robjects.r('options( error=recover )')
-        self.r['ggsave'](filename=output_filename,plot=plot, width=width, height=height, dpi=dpi)
 
     def add_aesthetic(self, name, column_name):
         self._aesthetics[name] = column_name
@@ -145,8 +145,9 @@ class Plot:
         self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position='stack'))
 
 
-    def add_histogram(self, x_column, y_column = "..count..", color=None, group = None, fill=None, position="dodge", add_text = False):
+    def add_histogram(self, x_column, y_column = "..count..", color=None, group = None, fill=None, position="dodge", add_text = False, bin_width = None):
         aes_params = {'x': x_column}
+        stat_params = {}
         if fill:
             aes_params['fill'] = fill
         if color:
@@ -154,9 +155,17 @@ class Plot:
         if group:
             aes_params['group'] = group
             #x = x_column, y = y_column)
-        self._other_adds.append(
-            robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat='bin', position=position)
-        )
+        if bin_width:
+            stat_params['bin_width'] = bin_width
+        if stat_params:
+            self._other_adds.append(
+                robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat= robjects.r('stat_bin')(**stat_params)
+                                   , position=position)
+            )
+        else:
+            self._other_adds.append(
+                robjects.r('geom_bar')(self._build_aesthetic(aes_params), position=position)
+            )
         if add_text:
             self._other_adds.append(
                 robjects.r('geom_text')(self._build_aesthetic({'x': x_column, 'y':'..count..', 'label':'..count..'}),stat='bin' ))
@@ -201,7 +210,7 @@ class Plot:
         )
 
     def add_heatmap(self, x_column, y_column, fill, low="red", mid=None, high="blue", midpoint=0):
-        aes_params = {}
+        aes_params = {'x': x_column, 'y': y_column}
         aes_params['x'] = x_column
         aes_params['y'] = y_column
         aes_params['fill'] = fill
@@ -249,20 +258,22 @@ class Plot:
     def _build_aesthetic(self, params):
         aes_params = self._translate_params(params)
         aes_params = ", ".join(aes_params)
-        print aes_params
         return robjects.r('aes(%s)' % aes_params)
 
 
     def add_line(self, x_column, y_column, color=None, group=None, shape=None, alpha=1.0, size=None, data=None):
-        aes_params = {'x': x_column, 'y': y_column}
+        aes_params = OrderedDict({'x': x_column, 'y': y_column})
         other_params = {}
-        if color:
+        if group:
+            if group in self.old_names:
+                aes_params['group'] = group
+            else:
+                other_params['group'] = group
+        if not color is None:
             if color in self.old_names:
                 aes_params['colour'] = color
             else:
                 other_params['colour'] = color
-        if group:
-            aes_params['group'] = group
         if shape:
             aes_params['shape'] = shape
         if type(alpha) == int or type(alpha) == float:
@@ -276,6 +287,8 @@ class Plot:
                 aes_params['size'] = str(size)
         if not data is None:
             other_params['data'] = self._prep_dataframe(data)
+        print 'aes', aes_params, 'other', other_params
+        print self._build_aesthetic(aes_params)
         self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params), **other_params))
 
     def add_area(self, x_column, y_column, color=None, fill=None, linetype=1, alpha=1.0, size=None, data=None, position=None):
@@ -452,21 +465,48 @@ class Plot:
         aes_params['color'] = '..n..'
         self._other_adds.append(robjects.r('stat_sum')(self._build_aesthetic(aes_params), size = size))
 
-    def add_rect(self, x_min_column, x_max_column, y_min_colum, y_max_column, color=None, fill = None, data = None, alpha = None):
-        aes_params = {'xmin': x_min_column, 'xmax': x_max_column, 'ymin': y_min_colum, 'ymax': y_max_column}
+    def add_rect(self, x_min, x_max, y_min, y_max, color=None, fill = None, data = None, alpha = None):
+        aes_params = {}
         other_params = {}
+        if x_min in self.old_names or (data and x_min in data.columns_ordered):
+            aes_params['xmin'] = x_min
+        else:
+            other_params['xmin'] = x_min
+        if y_min in self.old_names or (data and y_min in data.columns_ordered):
+            aes_params['ymin'] = y_min
+        else:
+            other_params['ymin'] = y_min
+        if x_max in self.old_names or (data and x_max in data.columns_ordered):
+            aes_params['xmax'] = x_max
+        else:
+            other_params['xmax'] = x_max
+        if y_max in self.old_names or (data and y_max in data.columns_ordered):
+            aes_params['ymax'] = y_max
+        else:
+            other_params['ymax'] = y_max
+
         if not data is None:
             other_params['data'] = self._prep_dataframe(data)
-        if color:
-            aes_params['colour'] = color
-        if fill:
-            aes_params['fill'] = fill
-        if type(alpha) == int or type(alpha) == float:
-            other_params['alpha'] = alpha
-        else:
-            aes_params['alpha'] = str(alpha)
 
-        print self.old_names
+        if color:
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color      
+            if fill in self.old_names:
+                aes_params['fill'] = fill
+            else:
+                other_params['fill'] = fill      
+
+        if alpha:
+            if type(alpha) == int or type(alpha) == float:
+                other_params['alpha'] = alpha
+            else:
+                aes_params['alpha'] = str(alpha)
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+        print 'other', other_params
+
         obj = robjects.r('geom_rect')(self._build_aesthetic(aes_params), **other_params)
         self._other_adds.append(obj)
 
@@ -491,7 +531,7 @@ class Plot:
             robjects.r('geom_segment')
             (
                 robjects.r('aes(x=x, y=y, xend=xend, yend=yend)'),
-                exptools.DataFrame.DataFrame({"x": [xstart], 'xend': [xend], 'y': [ystart], 'yend': [yend]}),
+                pydataframe.DataFrame({"x": [xstart], 'xend': [xend], 'y': [ystart], 'yend': [yend]}),
                 colour=color,
                 alpha = alpha,
                 size = 0.5
@@ -541,7 +581,6 @@ class Plot:
 
         if not fontface is None:
             other_params['fontface'] = fontface
-        print aes_params, other_params
         self._other_adds.append(
             robjects.r('geom_text')(self._build_aesthetic(aes_params), **other_params)
         )
@@ -557,14 +596,13 @@ class Plot:
         else:
             scale = 'fixed'
         if column_two:
-            new_one = 'dat_%s'  % self.old_names.index(column_one)
-            new_two = 'dat_%s'  % self.old_names.index(column_two)
-            facet_specification = '%s ~ %s' % (new_one, new_two)
+            params = self._translate_params({column_one: column_two})[0]
+            facet_specification = params.replace('=', '~')
+            #facet_specification = '%s ~ %s' % (column_one, column_two)
         else:
             params = self._translate_params({"":column_one})[0]
             facet_specification = params.replace('=', '~') 
             #facet_specification = '~ %s' % (column_one,)
-        print facet_specification
         params = {
             'scale': scale}
         if ncol:
@@ -589,7 +627,6 @@ class Plot:
             params = self._translate_params({"":column_one})[0]
             facet_specification = '. ' + params.replace('=', '~')
             #facet_specification = '~ %s' % (column_one,)
-        print facet_specification
         params = {
             'scale': scale}
         if ncol:
@@ -611,9 +648,9 @@ class Plot:
     def set_base_size(self, base_size = 10):
         self.theme_bw(base_size = base_size)
         
-    def add_label(self, text, xpos, ypos, size=3):
-        import exptools
-        data = exptools.DF.DataFrame({'x': [xpos], 'y': [ypos], 'text': [text]})
+    def add_label(self, text, xpos, ypos, size=8):
+        import pydataframe
+        data = pydataframe.DataFrame({'x': [xpos], 'y': [ypos], 'text': [text]})
         self._other_adds.append(
             self.r['geom_text'](
                robjects.r('aes(x=x, y=y, label=text)'),
@@ -858,7 +895,6 @@ def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
     first = lists[0]
     lists = lists[1:]
     plot_data = {"k": [], 'overlap': []}
-    print 'building overlap assoc plot'
     tr = exptools.TimeRemainingGuestimator(max_k)
     for k in xrange(1, max_k + 1):
         plot_data['k'].append(k)
@@ -872,9 +908,12 @@ def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
     plot.add_line('k','overlap')
     plot.render(output_filename)
 
-def plot_venn(sets, output_filename, width=8, height=8):
+def plot_venn(sets, output_filename, width=8, height=8, proportional = False):
     df = pyvenn.VennDiagram(sets)
-    df.plot_normal(output_filename, width)
+    if proportional:
+        df.plot_proportional(output_filename, width)
+    else:
+        df.plot_normal(output_filename, width)
 
 def powerset(seq):
     """
@@ -1120,8 +1159,7 @@ def plotArray(numpy_array, title, xaxis_name = 'x', yaxis_name = 'y', xaxis_offs
     for (x, y) in enumerate(numpy_array):
         xs.append(x + xaxis_offset)
         ys.append(y)
-    import exptools
-    df = exptools.DataFrame.DataFrame({xaxis_name: xs, yaxis_name: ys})
+    df = pydataframe.DataFrame({xaxis_name: xs, yaxis_name: ys})
     robjects.r('library(ggplot2)')
     ggplot = robjects.r['ggplot']
     aes = robjects.r['aes']
