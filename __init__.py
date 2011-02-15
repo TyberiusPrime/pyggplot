@@ -145,8 +145,9 @@ class Plot:
         self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position='stack'))
 
 
-    def add_histogram(self, x_column, y_column = "..count..", color=None, group = None, fill=None, position="dodge", add_text = False, bin_width = None):
+    def add_histogram(self, x_column, y_column = "..count..", color=None, group = None, fill=None, position="dodge", add_text = False, bin_width = None, alpha = None):
         aes_params = {'x': x_column}
+        other_params = {}
         stat_params = {}
         if fill:
             aes_params['fill'] = fill
@@ -157,14 +158,22 @@ class Plot:
             #x = x_column, y = y_column)
         if bin_width:
             stat_params['bin_width'] = bin_width
+        if not alpha is None:
+            if alpha in self.old_names:
+                aes_params['alpha'] = alpha
+            else:
+                other_params['alpha'] = alpha
         if stat_params:
+            other_params['stat'] = robjects.r('stat_bin')(**stat_params)
+            other_params['position'] = position
             self._other_adds.append(
-                robjects.r('geom_bar')(self._build_aesthetic(aes_params), stat= robjects.r('stat_bin')(**stat_params)
-                                   , position=position)
+                robjects.r('geom_bar')(self._build_aesthetic(aes_params), 
+                                   **other_params)
             )
         else:
+            other_params['position'] = position
             self._other_adds.append(
-                robjects.r('geom_bar')(self._build_aesthetic(aes_params), position=position)
+                robjects.r('geom_bar')(self._build_aesthetic(aes_params), **other_params)
             )
         if add_text:
             self._other_adds.append(
