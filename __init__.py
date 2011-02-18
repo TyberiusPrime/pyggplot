@@ -19,6 +19,7 @@ def load_r():
     global _r_loaded
     if not _r_loaded:
         robjects.r('library(ggplot2)')
+        robjects.r('library(ggExtra)')
         #apperantly, as_df is missing in some downloaded versions of plyr
         robjects.r("""as_df = function (output) 
 {
@@ -290,10 +291,10 @@ class Plot:
         else:
             aes_params['alpha'] = str(alpha)
         if not size is None:
-            if type(size) is int or type(size) is float:
-                other_params['size'] = size
-            else:
+            if size in self.old_names:
                 aes_params['size'] = str(size)
+            else:
+                other_params['size'] = size
         if not data is None:
             other_params['data'] = self._prep_dataframe(data)
         print 'aes', aes_params, 'other', other_params
@@ -654,12 +655,77 @@ class Plot:
             kwargs['base_size'] = float(base_size)
         self._other_adds.append(robjects.r('theme_bw')(**kwargs))
 
+    def theme_dark(self, base_size = None):
+        kwargs = {}
+        if base_size:
+            kwargs['base_size'] = float(base_size)
+        self._other_adds.append(robjects.r('theme_dark')(**kwargs))
+
+    def theme_darktalk(self, base_size = None):
+        kwargs = {}
+        if base_size:
+            kwargs['base_size'] = float(base_size)
+        robjects.r("""
+    theme_darktalk = function (base_size = 28) 
+{
+    structure(
+        list(
+        axis.line = theme_blank(), 
+        axis.text.x = theme_text(size = base_size * 
+            0.8, lineheight = 0.9, colour = "white", vjust = 1), 
+        axis.text.y = theme_text(size = base_size * 0.8, lineheight = 0.9, 
+            colour = "white", hjust = 1),
+        axis.ticks = theme_segment(colour = "grey40"), 
+        axis.title.x = theme_text(size = base_size, vjust = 0.5, colour="white"), 
+        axis.title.y = theme_text(size = base_size, colour="white", angle=90), 
+        axis.ticks.length = unit(0.15, "cm"), 
+        axis.ticks.margin = unit(0.1, "cm"), 
+
+        legend.background = theme_rect(colour = "black"), 
+        legend.key = theme_rect(fill = "grey5", colour = "black"), 
+        legend.key.size = unit(2.2, "lines"), 
+            legend.text = theme_text(size = base_size * 1, colour="white"), 
+            legend.title = theme_text(size = base_size * 1, face = "bold", hjust = 0), 
+            legend.position = "right", 
+
+        panel.background = theme_rect(fill = "black", colour = NA), 
+        panel.border = theme_blank(), 
+        panel.grid.major = theme_line(colour = "grey40"), 
+        panel.grid.minor = theme_line(colour = "grey25", size = 0.25), 
+        panel.margin = unit(0.25, "lines"), 
+
+        strip.background = theme_rect(fill = "grey20", colour = NA), 
+        strip.label = function(variable, value) value, 
+        strip.text.x = theme_text(size = base_size * 0.8),
+        strip.text.y = theme_text(size = base_size * 0.8, angle = -90),
+
+        plot.background = theme_rect(colour = NA, fill = "black"), 
+        plot.title = theme_text(size = base_size * 1.2,colour="white"), plot.margin = unit(c(1, 1, 0.5, 0.5), "lines")), 
+
+        class = "options")
+}
+
+""")
+        self._other_adds.append(robjects.r('theme_darktalk')(**kwargs))
+
+    def theme_talk(self, base_size = None):
+        kwargs = {}
+        if base_size:
+            kwargs['base_size'] = float(base_size)
+        self._other_adds.append(robjects.r('theme_talk')(**kwargs))
+
     def set_base_size(self, base_size = 10):
         self.theme_bw(base_size = base_size)
         
-    def add_label(self, text, xpos, ypos, size=8):
+    def add_label(self, text, xpos, ypos, size=8, color=None):
         import pydataframe
         data = pydataframe.DataFrame({'x': [xpos], 'y': [ypos], 'text': [text]})
+        aes_params = OrderedDict({'x': 'x', 'y': 'y', 'label': 'text'})
+        other_params = {'data': data}
+        if color:
+            other_params['colour'] = color
+        self._other_adds.append(robjects.r('geom_text')(self._build_aesthetic(aes_params), **other_params))
+        return
         self._other_adds.append(
             self.r['geom_text'](
                robjects.r('aes(x=x, y=y, label=text)'),
@@ -779,6 +845,11 @@ class Plot:
             'axis.text.x': robjects.r('theme_text')(angle = angle, hjust=hjust, size=size, vjust=0)
         }
         self._other_adds.append( robjects.r('opts')(**kargs))
+    def turn_y_axis_labels(self,  angle=75, hjust=1, size=8, vjust=0):
+        kargs = {
+            'axis.text.y': robjects.r('theme_text')(angle = angle, hjust=hjust, size=size, vjust=0)
+        }
+        self._other_adds.append( robjects.r('opts')(**kargs))
 
     def hide_background(self):
         self._other_adds.append(robjects.r('opts')(**{'panel.background': robjects.r('theme_blank()')}))
@@ -872,6 +943,7 @@ class Plot:
         self._other_adds.append(robjects.r('opts(panel.margin = unit(0.0, "lines"))'))
         self._other_adds.append(robjects.r('opts(axis.ticks.margin = unit(0.0, "cm"))'))
         self.plot_margin(0,0,0,0)
+
 
     def plot_margin(self, top, left, bottom, right):
         self._other_adds.append(robjects.r('opts(plot.margin = unit(c(%i,%i,%i,%i), "lines"))' % (top, left, bottom, right)))
