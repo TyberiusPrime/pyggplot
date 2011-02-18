@@ -19,7 +19,6 @@ def load_r():
     global _r_loaded
     if not _r_loaded:
         robjects.r('library(ggplot2)')
-        robjects.r('library(ggExtra)')
         #apperantly, as_df is missing in some downloaded versions of plyr
         robjects.r("""as_df = function (output) 
 {
@@ -655,11 +654,6 @@ class Plot:
             kwargs['base_size'] = float(base_size)
         self._other_adds.append(robjects.r('theme_bw')(**kwargs))
 
-    def theme_dark(self, base_size = None):
-        kwargs = {}
-        if base_size:
-            kwargs['base_size'] = float(base_size)
-        self._other_adds.append(robjects.r('theme_dark')(**kwargs))
 
     def theme_darktalk(self, base_size = None):
         kwargs = {}
