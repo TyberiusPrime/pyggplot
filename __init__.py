@@ -92,6 +92,7 @@ class Plot:
 
     def add_aesthetic(self, name, column_name):
         self._aesthetics[name] = column_name
+        return self
 
     def add_scatter(self, x_column, y_column, color=None, group=None, shape=None, size=None, alpha=None):
         aes_params = {'x': x_column, 'y': y_column}
@@ -113,7 +114,7 @@ class Plot:
             else:
                 aes_params['size'] = str(size)
         self._other_adds.append(robjects.r('geom_point')(self._build_aesthetic(aes_params), **other_params))
-        return
+        return self
 
     def add_jitter(self, x_column, y_column, color=None, jitter_x = None, jitter_y = None, shape=None, size=None, data=None):
         aes_params = {'x': x_column, 'y': y_column}
@@ -139,10 +140,12 @@ class Plot:
             self._other_adds.append(robjects.r('geom_jitter')(self._build_aesthetic(aes_params), position=robjects.r('position_jitter')(**position_params), **other_params))
         else:
             self._other_adds.append(robjects.r('geom_jitter')(self._build_aesthetic(aes_params), **other_params))
+        return self
 
     def add_stacked_bar_plot(self, x_column, y_column, fill):
         aes_params  = {'x': x_column, 'y': y_column, 'fill': fill}
         self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position='stack'))
+        return self
 
 
     def add_histogram(self, x_column, y_column = "..count..", color=None, group = None, fill=None, position="dodge", add_text = False, bin_width = None):
@@ -168,7 +171,9 @@ class Plot:
             )
         if add_text:
             self._other_adds.append(
-                robjects.r('geom_text')(self._build_aesthetic({'x': x_column, 'y':'..count..', 'label':'..count..'}),stat='bin' ))
+                robjects.r('geom_text')(
+                    self._build_aesthetic({'x': x_column, 'y':'..count..', 'label':'..count..'}),stat='bin' ))
+        return self
 
 
     def add_bar(self, *args, **kwargs):
@@ -196,6 +201,7 @@ class Plot:
         self._other_adds.append(
             robjects.r('geom_bar')(self._build_aesthetic(aes_params),  **other_params)
         )
+        return self
 
     def add_box_plot(self, x_column, y_column, color=None, group = None, fill=None):
         aes_params = {'x': x_column, 'y': y_column}
@@ -208,6 +214,7 @@ class Plot:
         self._other_adds.append(
             robjects.r('geom_boxplot')(self._build_aesthetic(aes_params))
         )
+        return self
 
     def add_heatmap(self, x_column, y_column, fill, low="red", mid=None, high="blue", midpoint=0):
         aes_params = {'x': x_column, 'y': y_column}
@@ -226,6 +233,7 @@ class Plot:
                 robjects.r('scale_fill_gradient2(low="%s", mid="%s", high="%s", midpoint=%.f)' % (
                 low, mid, high, midpoint))
             )
+        return self
     
     def _fix_axis_label(self, aes_name, new_name, real_name):
         which_legend = False
@@ -260,7 +268,6 @@ class Plot:
         aes_params = ", ".join(aes_params)
         return robjects.r('aes(%s)' % aes_params)
 
-
     def add_line(self, x_column, y_column, color=None, group=None, shape=None, alpha=1.0, size=None, data=None):
         aes_params = OrderedDict({'x': x_column, 'y': y_column})
         other_params = {}
@@ -290,6 +297,7 @@ class Plot:
         print 'aes', aes_params, 'other', other_params
         print self._build_aesthetic(aes_params)
         self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params), **other_params))
+        return self
 
     def add_area(self, x_column, y_column, color=None, fill=None, linetype=1, alpha=1.0, size=None, data=None, position=None):
         aes_params = {'x': x_column, 'y': y_column}
@@ -325,6 +333,7 @@ class Plot:
             other_params['data'] = self._prep_dataframe(data)
 
         self._other_adds.append(robjects.r('geom_area')(self._build_aesthetic(aes_params), **other_params))
+        return self
 
     def add_ribbon(self, x, ymin, ymax, color = None, fill = None, size = 0.5, linetype = 1, alpha = 1, position=None, data=None):
         aes_params = {'x': x}
@@ -368,6 +377,7 @@ class Plot:
             other_params['data'] = self._prep_dataframe(data)
 
         self._other_adds.append(robjects.r('geom_ribbon')(self._build_aesthetic(aes_params), **other_params))
+        return self
 
     def add_error_bars(self, x_column, ymin, ymax, color=None, group=None, position=None, width=0.25,alpha=1):
         aes_params = {'x': x_column, 'ymin': ymin, 'ymax':ymax}
@@ -384,6 +394,7 @@ class Plot:
             other_params['position'] = position
         other_params['width'] = width
         self._other_adds.append(robjects.r('geom_errorbar')(self._build_aesthetic(aes_params), **other_params))
+        return self
 
     def add_error_barsh(self, x_column, ypos, xmin, xmax, color=None, group=None, position=None, width=0.25, alpha=1):
         aes_params = {'x': x_column, 'y': ypos, 'xmin': xmin, 'xmax':xmax}
@@ -401,6 +412,7 @@ class Plot:
         other_params['width'] = width
 
         self._other_adds.append(robjects.r('geom_errorbarh')(self._build_aesthetic(aes_params), **other_params))
+        return self
 
     def add_ab_line(self, intercept, slope, alpha = None, size = None, color=None):
         other_params = {}
@@ -423,6 +435,7 @@ class Plot:
         other_params['intercept'] = intercept
         other_params['slope'] = slope
         self._other_adds.append(robjects.r('geom_abline')(self._build_aesthetic(aes_params), **other_params))
+        return self
 
     def add_density(self, x_column, y_column = None, color = None):
         """add a kernel estimated density plot - gauss kernel and bw.SJ estimation of bandwith"""
@@ -437,6 +450,7 @@ class Plot:
             bw = robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(x_column)))
             )
         )
+        return self
 
     def add_density_2d(self, x_column, y_column, color = None, alpha = None):
         """add a kernel estimated density plot - gauss kernel and bw.SJ estimation of bandwith"""
@@ -457,6 +471,7 @@ class Plot:
             self._build_aesthetic(aes_params), **other_params
             )
         )
+        return self
 
     def add_stat_sum_color(self, x_column, y_column, size = 0.5):
         """A scatter plat that's colored by no of overlapping points"""
@@ -464,6 +479,7 @@ class Plot:
         aes_params['y'] =  y_column
         aes_params['color'] = '..n..'
         self._other_adds.append(robjects.r('stat_sum')(self._build_aesthetic(aes_params), size = size))
+        return self
 
     def add_rect(self, x_min, x_max, y_min, y_max, color=None, fill = None, data = None, alpha = None):
         aes_params = {}
@@ -509,9 +525,11 @@ class Plot:
 
         obj = robjects.r('geom_rect')(self._build_aesthetic(aes_params), **other_params)
         self._other_adds.append(obj)
+        return self
 
     def add_stat_smooth(self):
         self._other_adds.append(robjects.r('stat_smooth(method="lm", se=FALSE)'))
+        return self
 
     def set_title(self, title):
         self._other_adds.append(robjects.r('opts(title = "%s")' %  title))
@@ -520,11 +538,13 @@ class Plot:
         self._other_adds.append(
             robjects.r('geom_vline(aes(xintercept = %s),  alpha=%f, color="%s")' % (xpos, alpha, color))
         )
+        return self
 
     def add_horizontal_bar(self, ypos, alpha=0.5, color='black'):
         self._other_adds.append(
             robjects.r('geom_hline(aes(yintercept = %f),  alpha=%f, color="%s")' % (ypos, alpha,color))
         )
+        return self
 
     def add_segment(self, xstart, xend, ystart, yend, color, alpha = 1.0, size=0.5):
         self._other_adds.append(
@@ -538,6 +558,7 @@ class Plot:
 
             )
         )
+        return self
     
     def add_text(self, x, y, label, data = None, angle=None, alpha=None, size=None, hjust=None, vjust=None, fontface = None, color=None):
         aes_params = {
@@ -584,6 +605,7 @@ class Plot:
         self._other_adds.append(
             robjects.r('geom_text')(self._build_aesthetic(aes_params), **other_params)
         )
+        return self
 
     def facet(self, column_one, column_two = None, fixed_x = True, fixed_y = True, ncol=None):
         facet_wrap = robjects.r['facet_wrap']
@@ -660,6 +682,7 @@ class Plot:
 
             )
         )
+        return self
 
     def scale_x_log_10(self):
         self.scale_x_continuous(trans = 'log10')
