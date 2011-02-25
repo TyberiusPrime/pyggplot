@@ -440,14 +440,18 @@ class Plot:
     def add_density(self, x_column, y_column = None, color = None):
         """add a kernel estimated density plot - gauss kernel and bw.SJ estimation of bandwith"""
         aes_params = {'x': x_column}
+        other_params = {}
         if y_column:
             aes_params['y'] =  y_column
-
-        if color:
-            aes_params['colour'] = color
+        if not color is None:
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color
+        other_params['bw'] = robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(x_column)))
         self._other_adds.append(robjects.r('geom_density')(
             self._build_aesthetic(aes_params),
-            bw = robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(x_column)))
+            **other_params
             )
         )
         return self
