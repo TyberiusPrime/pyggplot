@@ -1,0 +1,10 @@
+syntax:glob
+build/*
+*.so
+*.pyc
+*.cksum
+peak_callers/MACS/bin/MACS
+*.o
+*.a
+aligners/bwa/bwa-0.5.8c/bwa
+
