@@ -117,8 +117,9 @@ class Plot:
         return self
 
     def add_jitter(self, x_column, y_column, color=None, jitter_x = None, jitter_y = None, shape=None, size=None, data=None):
-        aes_params = {'x': x_column, 'y': y_column}
+        aes_params = {'x': x_column}
         other_params = {}
+        aes_params['y'] =  y_column
         if color:
             aes_params['colour'] = color
         position_params = {}
@@ -759,6 +760,7 @@ class Plot:
 
     def scale_x_log_10(self):
         self.scale_x_continuous(trans = 'log10')
+        return self
 
     def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None):
         other_params = {}
@@ -783,6 +785,8 @@ class Plot:
         self._other_adds.append(
             robjects.r('scale_x_continuous')(**other_params)
         )
+        return self
+
     def scale_x_discrete(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None):
         other_params = {}
         if not breaks is None:
@@ -806,6 +810,7 @@ class Plot:
         self._other_adds.append(
             robjects.r('scale_x_discrete')(**other_params)
         )
+        return self
 
     def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None, name = None):
         other_params = {}
@@ -830,36 +835,15 @@ class Plot:
         self._other_adds.append(
             robjects.r('scale_y_continuous')(**other_params)
         )
-
-    def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None, name = None):
-        other_params = {}
-        if not breaks is None:
-            other_params['breaks'] = numpy.array(breaks)
-        if not minor_breaks is None:
-            other_params['minor_breaks'] = numpy.array(minor_breaks)
-        if not trans is None:
-            other_params['trans'] = str(trans)
-        if not limits is None:
-            other_params['limits'] = numpy.array(limits)
-        if not labels is None:
-            other_params['labels'] = numpy.array(labels)
-        if not expand is None:
-            other_params['expand'] = numpy.array(expand)
-        if not name is None:
-            other_params['name'] = name
-        if not breaks is None and not labels is None:
-                if len(breaks) != len(labels):
-                    raise ValueError("len(breaks) != len(labels)")
-
-        self._other_adds.append(
-            robjects.r('scale_y_continuous')(**other_params)
-        )
+        return self
 
     def scale_x_reverse(self):
         self._other_adds.append(robjects.r('scale_x_reverse()'))
+        return self
 
     def scale_y_reverse(self):
         self._other_adds.append(robjects.r('scale_y_reverse()'))
+        return self
 
     def turn_x_axis_labels(self,  angle=75, hjust=1, size=8, vjust=0):
         kargs = {
