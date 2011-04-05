@@ -550,15 +550,15 @@ class Plot:
     def set_title(self, title):
         self._other_adds.append(robjects.r('opts(title = "%s")' %  title))
 
-    def add_vertical_bar(self, xpos, alpha=0.5, color='black'):
+    def add_vertical_bar(self, xpos, alpha=0.5, color='black', size=1):
         self._other_adds.append(
-            robjects.r('geom_vline(aes(xintercept = %s),  alpha=%f, color="%s")' % (xpos, alpha, color))
+            robjects.r('geom_vline(aes(xintercept = %s),  alpha=%f, color="%s", size=%f)' % (xpos, alpha, color, size))
         )
         return self
 
-    def add_horizontal_bar(self, ypos, alpha=0.5, color='black'):
+    def add_horizontal_bar(self, ypos, alpha=0.5, color='black', size=1):
         self._other_adds.append(
-            robjects.r('geom_hline(aes(yintercept = %f),  alpha=%f, color="%s")' % (ypos, alpha,color))
+            robjects.r('geom_hline(aes(yintercept = %f),  alpha=%f, color="%s", size=%f)' % (ypos, alpha,color, size))
         )
         return self
 
