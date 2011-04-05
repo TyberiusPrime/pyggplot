@@ -117,8 +117,9 @@ class Plot:
         return self
 
     def add_jitter(self, x_column, y_column, color=None, jitter_x = None, jitter_y = None, shape=None, size=None, data=None):
-        aes_params = {'x': x_column, 'y': y_column}
+        aes_params = {'x': x_column}
         other_params = {}
+        aes_params['y'] =  y_column
         if color:
             aes_params['colour'] = color
         position_params = {}
@@ -169,12 +170,14 @@ class Plot:
         if stat_params:
             other_params['stat'] = robjects.r('stat_bin')(**stat_params)
             other_params['position'] = position
+            print 'a', other_params
             self._other_adds.append(
                 robjects.r('geom_bar')(self._build_aesthetic(aes_params), 
                                    **other_params)
             )
         else:
             other_params['position'] = position
+            print 'b', other_params
             self._other_adds.append(
                 robjects.r('geom_bar')(self._build_aesthetic(aes_params), **other_params)
             )
@@ -547,15 +550,15 @@ class Plot:
     def set_title(self, title):
         self._other_adds.append(robjects.r('opts(title = "%s")' %  title))
 
-    def add_vertical_bar(self, xpos, alpha=0.5, color='black'):
+    def add_vertical_bar(self, xpos, alpha=0.5, color='black', size=1):
         self._other_adds.append(
-            robjects.r('geom_vline(aes(xintercept = %s),  alpha=%f, color="%s")' % (xpos, alpha, color))
+            robjects.r('geom_vline(aes(xintercept = %s),  alpha=%f, color="%s", size=%f)' % (xpos, alpha, color, size))
         )
         return self
 
-    def add_horizontal_bar(self, ypos, alpha=0.5, color='black'):
+    def add_horizontal_bar(self, ypos, alpha=0.5, color='black', size=1):
         self._other_adds.append(
-            robjects.r('geom_hline(aes(yintercept = %f),  alpha=%f, color="%s")' % (ypos, alpha,color))
+            robjects.r('geom_hline(aes(yintercept = %f),  alpha=%f, color="%s", size=%f)' % (ypos, alpha,color, size))
         )
         return self
 
@@ -785,6 +788,7 @@ class Plot:
             robjects.r('scale_x_continuous')(**other_params)
         )
         return self
+
     def scale_x_discrete(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None):
         other_params = {}
         if not breaks is None:
@@ -835,31 +839,7 @@ class Plot:
         )
         return self
 
-    def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None, name = None):
-        other_params = {}
-        if not breaks is None:
-            other_params['breaks'] = numpy.array(breaks)
-        if not minor_breaks is None:
-            other_params['minor_breaks'] = numpy.array(minor_breaks)
-        if not trans is None:
-            other_params['trans'] = str(trans)
-        if not limits is None:
-            other_params['limits'] = numpy.array(limits)
-        if not labels is None:
-            other_params['labels'] = numpy.array(labels)
-        if not expand is None:
-            other_params['expand'] = numpy.array(expand)
-        if not name is None:
-            other_params['name'] = name
-        if not breaks is None and not labels is None:
-                if len(breaks) != len(labels):
-                    raise ValueError("len(breaks) != len(labels)")
-
-        self._other_adds.append(
-            robjects.r('scale_y_continuous')(**other_params)
-        )
         return self
-
     def scale_x_reverse(self):
         self._other_adds.append(robjects.r('scale_x_reverse()'))
         return self
@@ -932,6 +912,7 @@ class Plot:
 
     def coord_flip(self):
         self._other_adds.append(robjects.r('coord_flip()'))
+        return self
 
     def coord_polar(self, theta="x", start=0, direction=1, expand=False):
         self._other_adds.append(robjects.r('coord_polar')(
@@ -939,6 +920,7 @@ class Plot:
             start = start,
             direction = direction,
             expand = expand))
+        return self
 
 
     def legend_position(self, value):
@@ -1134,9 +1116,10 @@ def PlotPiechartHistogram(df, column_name, include_counts = True, include_percen
         current += cc
     total = current
     labels = []
-    for cc in counts:
+    label_positions = []
+    for ii, cc in enumerate(counts):
         if include_counts and include_percentage:
-            l = "%i\n(%.2f%%)" % (cc, float(cc) / total * 100)
+            l = "%i (%.2f%%)" % (cc, float(cc) / total * 100)
         elif include_counts:
             l = "%i" % cc
         elif include_percentage:
@@ -1144,6 +1127,7 @@ def PlotPiechartHistogram(df, column_name, include_counts = True, include_percen
         else:
             l = ""
         labels.append(l)
+        label_positions.append([2, 2.25, 2.5][ii % 3])
 
 
     count_column = 'count'
@@ -1154,12 +1138,14 @@ def PlotPiechartHistogram(df, column_name, include_counts = True, include_percen
         'Counts': counts,
         'Values': [str(x) for x in ordered],
         'Labels': labels,
+        'Label_positions': label_positions,
         'y': positions
     })
     plot = Plot(plot_df, 'Dummy')
     plot.add_bar_plot("Dummy", 'Counts', fill="Values", position="stack")
     if include_percentage or include_counts:
-        plot.add_text('Dummy','y', 'Labels')
+        plot.add_text('Label_positions','y', 'Labels', color="Values")
+        #plot.add_segment(0, 'Label_positions', 1, 'y', color="Values")
     plot.coord_polar(theta='y')
     plot.hide_x_axis_labels()
     plot.hide_x_axis_title()
