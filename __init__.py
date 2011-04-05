@@ -745,7 +745,7 @@ class Plot:
         if color:
             other_params['colour'] = color
         self._other_adds.append(robjects.r('geom_text')(self._build_aesthetic(aes_params), **other_params))
-        return
+        return self
         self._other_adds.append(
             self.r['geom_text'](
                robjects.r('aes(x=x, y=y, label=text)'),
@@ -759,6 +759,7 @@ class Plot:
 
     def scale_x_log_10(self):
         self.scale_x_continuous(trans = 'log10')
+        return self
 
     def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None):
         other_params = {}
@@ -783,6 +784,7 @@ class Plot:
         self._other_adds.append(
             robjects.r('scale_x_continuous')(**other_params)
         )
+        return self
     def scale_x_discrete(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None):
         other_params = {}
         if not breaks is None:
@@ -806,6 +808,7 @@ class Plot:
         self._other_adds.append(
             robjects.r('scale_x_discrete')(**other_params)
         )
+        return self
 
     def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None, name = None):
         other_params = {}
@@ -830,6 +833,7 @@ class Plot:
         self._other_adds.append(
             robjects.r('scale_y_continuous')(**other_params)
         )
+        return self
 
     def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None, name = None):
         other_params = {}
@@ -854,12 +858,15 @@ class Plot:
         self._other_adds.append(
             robjects.r('scale_y_continuous')(**other_params)
         )
+        return self
 
     def scale_x_reverse(self):
         self._other_adds.append(robjects.r('scale_x_reverse()'))
+        return self
 
     def scale_y_reverse(self):
         self._other_adds.append(robjects.r('scale_y_reverse()'))
+        return self
 
     def turn_x_axis_labels(self,  angle=75, hjust=1, size=8, vjust=0):
         kargs = {
