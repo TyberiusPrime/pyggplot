@@ -562,16 +562,40 @@ class Plot:
         )
         return self
 
-    def add_segment(self, xstart, xend, ystart, yend, color, alpha = 1.0, size=0.5):
+    def add_segment(self, xstart, xend, ystart, yend, color = None, alpha = 1.0, size=0.5, data=None):
+        aes_params = { }
+        other_params = {}
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+        if xstart in self.old_names or (data and xstart in data.columns_ordered):
+            aes_params['x'] = xstart
+        else:
+            other_params['x'] = xstart
+        if xend in self.old_names or (data and xend in data.columns_ordered):
+            aes_params['xend'] = xend
+        else:
+            other_params['xend'] = xend
+        if ystart in self.old_names or (data and ystart in data.columns_ordered):
+            aes_params['y'] = ystart
+        else:
+            other_params['y'] = ystart
+        if yend in self.old_names or (data and yend in data.columns_ordered):
+            aes_params['yend'] = yend
+        else:
+            other_params['yend'] = yend
+        if color:
+            other_params['colour'] = color
+        if alpha:
+            other_params['alpha'] = alpha
+        if size:
+            other_params['size'] = size
+        print 'aes', aes_params
+        print 'other', other_params
         self._other_adds.append(
             robjects.r('geom_segment')
             (
-                robjects.r('aes(x=x, y=y, xend=xend, yend=yend)'),
-                pydataframe.DataFrame({"x": [xstart], 'xend': [xend], 'y': [ystart], 'yend': [yend]}),
-                colour=color,
-                alpha = alpha,
-                size = 0.5
-
+                self._build_aesthetic(aes_params), 
+                **other_params
             )
         )
         return self
