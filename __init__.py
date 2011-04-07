@@ -772,7 +772,7 @@ class Plot:
         if color:
             other_params['colour'] = color
         self._other_adds.append(robjects.r('geom_text')(self._build_aesthetic(aes_params), **other_params))
-        return
+        return self
         self._other_adds.append(
             self.r['geom_text'](
                robjects.r('aes(x=x, y=y, label=text)'),
@@ -863,6 +863,7 @@ class Plot:
         )
         return self
 
+        return self
     def scale_x_reverse(self):
         self._other_adds.append(robjects.r('scale_x_reverse()'))
         return self
