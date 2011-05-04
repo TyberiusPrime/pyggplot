@@ -94,9 +94,11 @@ class Plot:
         self._aesthetics[name] = column_name
         return self
 
-    def add_scatter(self, x_column, y_column, color=None, group=None, shape=None, size=None, alpha=None):
+    def add_scatter(self, x_column, y_column, color=None, group=None, shape=None, size=None, alpha=None, data=None):
         aes_params = {'x': x_column, 'y': y_column}
         other_params = {}
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
         if color:
             aes_params['colour'] = color
         if group:
