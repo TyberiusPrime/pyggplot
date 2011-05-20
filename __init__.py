@@ -574,30 +574,39 @@ class Plot:
         other_params = {}
         if not data is None:
             other_params['data'] = self._prep_dataframe(data)
-        if xstart in self.old_names or (data and xstart in data.columns_ordered):
+        if xstart in self.old_names:
             aes_params['x'] = xstart
         else:
             other_params['x'] = xstart
-        if xend in self.old_names or (data and xend in data.columns_ordered):
+        if xend in self.old_names:
             aes_params['xend'] = xend
         else:
             other_params['xend'] = xend
-        if ystart in self.old_names or (data and ystart in data.columns_ordered):
+        if ystart in self.old_names:
             aes_params['y'] = ystart
         else:
             other_params['y'] = ystart
-        if yend in self.old_names or (data and yend in data.columns_ordered):
+        if yend in self.old_names:
             aes_params['yend'] = yend
         else:
             other_params['yend'] = yend
         if color:
-            other_params['colour'] = color
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color
         if alpha:
-            other_params['alpha'] = alpha
+            if alpha in self.old_names:
+                aes_params['alpha'] = alpha
+            else:
+                other_params['alpha'] = alpha
         if size:
-            other_params['size'] = size
-        #print 'aes', aes_params
-        #print 'other', other_params
+            if size in self.old_names:
+                aes_params['size'] = size
+            else:
+                other_params['size'] = size
+        print 'aes', aes_params
+        print 'other', other_params
         self._other_adds.append(
             robjects.r('geom_segment')
             (
@@ -795,7 +804,7 @@ class Plot:
         self.scale_x_continuous(trans = 'log10')
         return self
 
-    def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None):
+    def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None, formatter = None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -814,6 +823,8 @@ class Plot:
         if not breaks is None and not labels is None:
                 if len(breaks) != len(labels):
                     raise ValueError("len(breaks) != len(labels)")
+        if not formatter is None:
+            other_params['formatter'] = formatter
 
         self._other_adds.append(
             robjects.r('scale_x_continuous')(**other_params)
@@ -848,7 +859,10 @@ class Plot:
     def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None, name = None):
         other_params = {}
         if not breaks is None:
-            other_params['breaks'] = numpy.array(breaks)
+            if breaks != 'NA':
+                other_params['breaks'] = numpy.array(breaks)
+            else:
+                other_params['breaks'] = robjects.r("NA")
         if not minor_breaks is None:
             other_params['minor_breaks'] = numpy.array(minor_breaks)
         if not trans is None:
@@ -898,6 +912,7 @@ class Plot:
 
     def hide_x_axis_labels(self):
         self._other_adds.append(robjects.r('opts')(**{"axis.text.x": robjects.r('theme_blank()')}))
+
 
     def hide_axis_ticks(self):
         self._other_adds.append(robjects.r('opts')(**{"axis.ticks": robjects.r('theme_blank()')}))
