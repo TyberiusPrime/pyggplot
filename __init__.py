@@ -550,8 +550,18 @@ class Plot:
         self._other_adds.append(obj)
         return self
 
-    def add_stat_smooth(self):
-        self._other_adds.append(robjects.r('stat_smooth(method="lm", se=FALSE)'))
+    def add_stat_smooth(self, method='lm', se=True, x_column = None, y_column = None):
+        """
+        http://had.co.nz/ggplot2/stat_smooth.html
+        """
+        aes_params = {}
+        if x_column is not None:
+            aes_params['x'] = x_column
+        if y_column is not None:
+            aes_params['y'] = y_column
+        other_params = {'method': method, 
+                'se': se}
+        self._other_adds.append(robjects.r('stat_smooth')(self._build_aesthetic(aes_params), **other_params))
         return self
 
     def set_title(self, title):
