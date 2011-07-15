@@ -550,6 +550,44 @@ class Plot:
         self._other_adds.append(obj)
         return self
 
+    def add_tile(self, x, y, color = None, fill = None, size = None, linetype = None, alpha = None, data = None):
+        aes_params = {}
+        other_params = {}
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+        if x in self.old_names:
+            aes_params['x'] = x
+        else:
+            other_params['x'] = x
+        if y in self.old_names:
+            aes_params['y'] = y
+        else:
+            other_params['y'] = y
+        if color:
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color      
+        if fill:
+            if fill in self.old_names:
+                aes_params['fill'] = fill
+            else:
+                other_params['fill'] = fill      
+        if alpha:
+            if type(alpha) == int or type(alpha) == float:
+                other_params['alpha'] = alpha
+            else:
+                aes_params['alpha'] = str(alpha)
+        if linetype:
+            if linetype in self.old_names:
+                aes_params['linetype'] = fill
+            else:
+                other_params['linetype'] = fill   
+        obj = robjects.r('geom_tile')(self._build_aesthetic(aes_params), **other_params)
+        self._other_adds.append(obj)
+        return self
+
+
     def add_stat_smooth(self, method='lm', se=True, x_column = None, y_column = None):
         """
         http://had.co.nz/ggplot2/stat_smooth.html
