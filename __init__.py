@@ -121,6 +121,8 @@ class Plot:
     def add_jitter(self, x_column, y_column, color=None, jitter_x = None, jitter_y = None, shape=None, size=None, data=None):
         aes_params = {'x': x_column}
         other_params = {}
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
         aes_params['y'] =  y_column
         if color:
             aes_params['colour'] = color
@@ -136,8 +138,6 @@ class Plot:
                 other_params['size'] = size
             else:
                 aes_params['size'] = str(size)
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
 
         if position_params:
             self._other_adds.append(robjects.r('geom_jitter')(self._build_aesthetic(aes_params), position=robjects.r('position_jitter')(**position_params), **other_params))
@@ -172,14 +172,14 @@ class Plot:
         if stat_params:
             other_params['stat'] = robjects.r('stat_bin')(**stat_params)
             other_params['position'] = position
-            print 'a', other_params
+            #print 'a', other_params
             self._other_adds.append(
                 robjects.r('geom_bar')(self._build_aesthetic(aes_params), 
                                    **other_params)
             )
         else:
             other_params['position'] = position
-            print 'b', other_params
+            #print 'b', other_params
             self._other_adds.append(
                 robjects.r('geom_bar')(self._build_aesthetic(aes_params), **other_params)
             )
@@ -197,6 +197,9 @@ class Plot:
         other_params = {
                 'stat':  'identity',
                 'position': position}
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+
         if not fill is None:
             if fill in self.old_names:
                 aes_params['fill'] = fill
@@ -209,8 +212,6 @@ class Plot:
                 other_params['colour'] = color
         if group:
             aes_params['group'] = group
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
 
         self._other_adds.append(
             robjects.r('geom_bar')(self._build_aesthetic(aes_params),  **other_params)
@@ -285,6 +286,8 @@ class Plot:
     def add_line(self, x_column, y_column, color=None, group=None, shape=None, alpha=1.0, size=None, data=None):
         aes_params = OrderedDict({'x': x_column, 'y': y_column})
         other_params = {}
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
         if group:
             if group in self.old_names:
                 aes_params['group'] = group
@@ -306,16 +309,17 @@ class Plot:
                 aes_params['size'] = str(size)
             else:
                 other_params['size'] = size
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
-        print 'aes', aes_params, 'other', other_params
-        print self._build_aesthetic(aes_params)
+        #print 'aes', aes_params, 'other', other_params
+        #print self._build_aesthetic(aes_params)
         self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params), **other_params))
         return self
 
     def add_area(self, x_column, y_column, color=None, fill=None, linetype=1, alpha=1.0, size=None, data=None, position=None):
         aes_params = {'x': x_column, 'y': y_column}
         other_params = {}
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+
         if not color is None:
             if color in self.old_names:
                 aes_params['colour'] = color
@@ -343,8 +347,6 @@ class Plot:
                 other_params['linetype'] = linetype
         if not position is None:
             other_params['position'] = position
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
 
         self._other_adds.append(robjects.r('geom_area')(self._build_aesthetic(aes_params), **other_params))
         return self
@@ -352,6 +354,9 @@ class Plot:
     def add_ribbon(self, x, ymin, ymax, color = None, fill = None, size = 0.5, linetype = 1, alpha = 1, position=None, data=None):
         aes_params = {'x': x}
         other_params = {}
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+
         if ymin in self.old_names:
             aes_params['ymin'] = ymin
         else:
@@ -387,8 +392,6 @@ class Plot:
                 other_params['linetype'] = linetype
         if not position is None:
             other_params['position'] = position
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
 
         self._other_adds.append(robjects.r('geom_ribbon')(self._build_aesthetic(aes_params), **other_params))
         return self
@@ -502,6 +505,9 @@ class Plot:
     def add_rect(self, x_min, x_max, y_min, y_max, color=None, fill = None, data = None, alpha = None):
         aes_params = {}
         other_params = {}
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+
         if x_min in self.old_names or (data and x_min in data.columns_ordered):
             aes_params['xmin'] = x_min
         else:
@@ -527,6 +533,7 @@ class Plot:
                 aes_params['colour'] = color
             else:
                 other_params['colour'] = color      
+        if fill:
             if fill in self.old_names:
                 aes_params['fill'] = fill
             else:
@@ -537,16 +544,62 @@ class Plot:
                 other_params['alpha'] = alpha
             else:
                 aes_params['alpha'] = str(alpha)
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
-        print 'other', other_params
+        #print 'other', other_params
 
         obj = robjects.r('geom_rect')(self._build_aesthetic(aes_params), **other_params)
         self._other_adds.append(obj)
         return self
 
-    def add_stat_smooth(self):
-        self._other_adds.append(robjects.r('stat_smooth(method="lm", se=FALSE)'))
+    def add_tile(self, x, y, color = None, fill = None, size = None, linetype = None, alpha = None, data = None):
+        aes_params = {}
+        other_params = {}
+        if not data is None:
+            other_params['data'] = self._prep_dataframe(data)
+        if x in self.old_names:
+            aes_params['x'] = x
+        else:
+            other_params['x'] = x
+        if y in self.old_names:
+            aes_params['y'] = y
+        else:
+            other_params['y'] = y
+        if color:
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color      
+        if fill:
+            if fill in self.old_names:
+                aes_params['fill'] = fill
+            else:
+                other_params['fill'] = fill      
+        if alpha:
+            if type(alpha) == int or type(alpha) == float:
+                other_params['alpha'] = alpha
+            else:
+                aes_params['alpha'] = str(alpha)
+        if linetype:
+            if linetype in self.old_names:
+                aes_params['linetype'] = fill
+            else:
+                other_params['linetype'] = fill   
+        obj = robjects.r('geom_tile')(self._build_aesthetic(aes_params), **other_params)
+        self._other_adds.append(obj)
+        return self
+
+
+    def add_stat_smooth(self, method='lm', se=True, x_column = None, y_column = None):
+        """
+        http://had.co.nz/ggplot2/stat_smooth.html
+        """
+        aes_params = {}
+        if x_column is not None:
+            aes_params['x'] = x_column
+        if y_column is not None:
+            aes_params['y'] = y_column
+        other_params = {'method': method, 
+                'se': se}
+        self._other_adds.append(robjects.r('stat_smooth')(self._build_aesthetic(aes_params), **other_params))
         return self
 
     def set_title(self, title):
@@ -569,28 +622,37 @@ class Plot:
         other_params = {}
         if not data is None:
             other_params['data'] = self._prep_dataframe(data)
-        if xstart in self.old_names or (data and xstart in data.columns_ordered):
+        if xstart in self.old_names:
             aes_params['x'] = xstart
         else:
             other_params['x'] = xstart
-        if xend in self.old_names or (data and xend in data.columns_ordered):
+        if xend in self.old_names:
             aes_params['xend'] = xend
         else:
             other_params['xend'] = xend
-        if ystart in self.old_names or (data and ystart in data.columns_ordered):
+        if ystart in self.old_names:
             aes_params['y'] = ystart
         else:
             other_params['y'] = ystart
-        if yend in self.old_names or (data and yend in data.columns_ordered):
+        if yend in self.old_names:
             aes_params['yend'] = yend
         else:
             other_params['yend'] = yend
         if color:
-            other_params['colour'] = color
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color
         if alpha:
-            other_params['alpha'] = alpha
+            if alpha in self.old_names:
+                aes_params['alpha'] = alpha
+            else:
+                other_params['alpha'] = alpha
         if size:
-            other_params['size'] = size
+            if size in self.old_names:
+                aes_params['size'] = size
+            else:
+                other_params['size'] = size
         print 'aes', aes_params
         print 'other', other_params
         self._other_adds.append(
@@ -790,7 +852,7 @@ class Plot:
         self.scale_x_continuous(trans = 'log10')
         return self
 
-    def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None):
+    def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None, formatter = None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -809,6 +871,8 @@ class Plot:
         if not breaks is None and not labels is None:
                 if len(breaks) != len(labels):
                     raise ValueError("len(breaks) != len(labels)")
+        if not formatter is None:
+            other_params['formatter'] = formatter
 
         self._other_adds.append(
             robjects.r('scale_x_continuous')(**other_params)
@@ -843,7 +907,10 @@ class Plot:
     def scale_y_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None, name = None):
         other_params = {}
         if not breaks is None:
-            other_params['breaks'] = numpy.array(breaks)
+            if breaks != 'NA':
+                other_params['breaks'] = numpy.array(breaks)
+            else:
+                other_params['breaks'] = robjects.r("NA")
         if not minor_breaks is None:
             other_params['minor_breaks'] = numpy.array(minor_breaks)
         if not trans is None:
@@ -893,6 +960,7 @@ class Plot:
 
     def hide_x_axis_labels(self):
         self._other_adds.append(robjects.r('opts')(**{"axis.text.x": robjects.r('theme_blank()')}))
+
 
     def hide_axis_ticks(self):
         self._other_adds.append(robjects.r('opts')(**{"axis.ticks": robjects.r('theme_blank()')}))
