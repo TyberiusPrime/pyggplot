@@ -99,12 +99,18 @@ class Plot:
         other_params = {}
         if not data is None:
             other_params['data'] = self._prep_dataframe(data)
-        if color:
-            aes_params['colour'] = color
+        if not color is None:
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color
         if group:
             aes_params['group'] = group
-        if shape:
-            aes_params['shape'] = shape
+        if not shape is None:
+            if shape in self.old_names:
+                aes_params['shape'] = shape
+            else:
+                other_params['shape'] = shape
         if not alpha is None:
             if type(alpha) == int or type(alpha) == float:
                 other_params['alpha'] = alpha
@@ -1041,7 +1047,8 @@ class Plot:
 
     def hide_grid_minor(self):
         #self._other_adds.append(robjects.r('opts(panel.grid.major = theme_line(colour = NA))'))
-        self._other_adds.append(robjects.r('opts(panel.grid.minor = theme_line(colour = NA))'))
+ #       self._other_adds.append(robjects.r('opts(panel.grid.minor = theme_line(colour = NA))'))
+        self._other_adds.append(robjects.r('opts(panel.grid.minor = theme_blank())'))
 
     def smaller_margins(self):
         self._other_adds.append(robjects.r('opts(panel.margin = unit(0.0, "lines"))'))
@@ -1055,9 +1062,14 @@ class Plot:
 
     def scale_shape_manual(self, values):
         self._other_adds.append(robjects.r('scale_shape_manual')(values=values))
+    def scale_shape(self, solid = True):
+        self._other_adds.append(robjects.r('scale_shape')(solid=solid))
 
     def scale_colour_manual(self, values):
         self._other_adds.append(robjects.r('scale_colour_manual')(values=numpy.array(values)))
+
+    def scale_color_identity(self):
+        self._other_adds.append(robjects.r('scale_colour_identity')())
 
     def scale_color_brewer(self, name = None, palette = 'Set1'):
         other_params = {}
