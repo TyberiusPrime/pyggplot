@@ -47,6 +47,7 @@ def r_expression(expr):
 
 NA = robjects.r("NA")
 
+
 class Plot:
 
     def __init__(self, dataframe, *ignored):
@@ -63,17 +64,10 @@ class Plot:
         self.lab_rename = {}
         self.dataframe = self._prep_dataframe(dataframe)
         self._other_adds = []
+        self.to_rename = {}
 
-    def _prep_dataframe(self, dataframe):
-        df = dataframe.copy()
-        new_names = []
-        for name in df.columns_ordered:
-            if not name in self.old_names:
-                new_names.append(name)
-        self.old_names.extend(new_names)
-        for name in df.columns_ordered[:]:
-            df.rename_column(name, 'dat_%s' % self.old_names.index(name))
-        return df
+        self._add_geom_methods()
+
 
     def render(self, output_filename, width=8, height=6, dpi=300):
         #print self.dataframe
@@ -90,71 +84,166 @@ class Plot:
             print 'old names', self.old_names
             raise
 
-    def add_aesthetic(self, name, column_name):
-        self._aesthetics[name] = column_name
-        return self
+    def _prep_dataframe(self, dataframe):
+        df = dataframe.copy()
+        new_names = []
+        for name in df.columns_ordered:
+            if not name in self.old_names:
+                new_names.append(name)
+        self.old_names.extend(new_names)
+        for name in df.columns_ordered[:]:
+            df.rename_column(name, 'dat_%s' % self.old_names.index(name))
+        return df
 
-    def add_scatter(self, x_column, y_column, color=None, group=None, shape=None, size=None, alpha=None, data=None):
-        aes_params = {'x': x_column, 'y': y_column}
-        other_params = {}
+    def _translate_params(self, params):
+        """Translate between the original dataframe names and the numbered ones we assign
+        to avoid r-parsing issues"""
+
+        aes_params = []
+        for aes_name, aes_column in params.items():
+            if aes_column in self.old_names:
+                new_name = 'dat_%s'  % self.old_names.index(aes_column)
+                aes_params.append('%s=%s' % (aes_name, new_name))
+                if aes_column in self.to_rename:
+                    self._fix_axis_label(aes_name, new_name, self.to_rename[aes_column])
+                else:
+                    self._fix_axis_label(aes_name, new_name, aes_column)
+            else: #a fixeud value
+                aes_params.append("%s=%s" % (aes_name, aes_column))
+        return aes_params
+
+    def _fix_axis_label(self, aes_name, new_name, real_name):
+        """Reapply the correct (or new) labels to the axis, overwriting our dat_%i numbered dataframe 
+        columns"""
+        which_legend = False
+        import pypipegraph
+        logger = pypipegraph.util.start_logging('pyggplot2')
+        logger.info('fixing %s to %s' % (aes_name, real_name))
+        if aes_name == 'x':
+            which_legend = 'x'
+        elif aes_name == 'y':
+            which_legend = 'y'
+        elif aes_name == 'color' or aes_name == 'colour':
+            which_legend = 'colour'
+        elif aes_name == 'fill':
+            which_legend = 'fill'
+        elif aes_name == 'shape':
+            which_legend = 'shape'
+        elif aes_name == 'size':
+            which_legend = 'size'
+        if which_legend:
+            self.lab_rename[which_legend] = real_name
+
+
+    def _build_aesthetic(self, params):
+        """Tarnsform a pythhon list of aesthetics to the R aes() object"""
+        aes_params = self._translate_params(params)
+        aes_params = ", ".join(aes_params)
+        return robjects.r('aes(%s)' % aes_params)
+
+    def parse_param(self, name, value, required = True):
+        """
+        Transform parameters into either aes_params or other_params, 
+        depending on whether they are in our df.
+        if value is None, this parameter is ignored
+        
+        """
+        if not value is None:
+            if isinstance(value, tuple):
+                new_name = value[1]
+                value = value[0]
+                self.to_rename[value] = new_name
+            if value in self.old_names:
+                self.aes_collection[name] = value
+            else:
+                self.other_collection[name] = value
+
+    def reset_params(self, data):
+        self.aes_collection = {}
+        self.other_collection = {}
         if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
-        if not color is None:
-            if color in self.old_names:
-                aes_params['colour'] = color
-            else:
-                other_params['colour'] = color
-        if group:
-            aes_params['group'] = group
-        if not shape is None:
-            if shape in self.old_names:
-                aes_params['shape'] = shape
-            else:
-                other_params['shape'] = shape
-        if not alpha is None:
-            if type(alpha) == int or type(alpha) == float:
-                other_params['alpha'] = alpha
-            else:
-                aes_params['alpha'] = str(alpha)
-        if not size is None:
-            if type(size) is int or type(size) is float:
-                other_params['size'] = size
-            else:
-                aes_params['size'] = str(size)
-        self._other_adds.append(robjects.r('geom_point')(self._build_aesthetic(aes_params), **other_params))
-        return self
+            self.other_collection['data'] = self._prep_dataframe(data)
 
-    def add_jitter(self, x_column, y_column, color=None, jitter_x = None, jitter_y = None, shape=None, size=None, data=None):
-        aes_params = {'x': x_column}
-        other_params = {}
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
-        aes_params['y'] =  y_column
-        if color:
-            aes_params['colour'] = color
-        position_params = {}
-        if not jitter_x is None:
-            position_params['width'] = jitter_x
-        if not jitter_y is None:
-            position_params['height'] = jitter_y
-        if shape:
-            aes_params['shape'] = shape
-        if not size is None:
-            if type(size) is int or type(size) is float:
-                other_params['size'] = size
-            else:
-                aes_params['size'] = str(size)
+    def _add(self, name, geom_name, required_mappings, optional_mappings, defaults, args, kwargs):
+        """The generic method to add a geom to the ggplot.
+        You need to call add_xyz (see _add_geom_methods for a list, with each variable mapping
+        being one argument) with the respectivly required parameters (see ggplot documentation).
+        You may optionally pass in an argument called data, which will replace the plot-global dataframe
+        for this particular geom
+        """
+        mappings = {}
+        for a, b in zip(required_mappings, args):
+            mappings[a] = b
+        mappings.update(kwargs)
 
-        if position_params:
-            self._other_adds.append(robjects.r('geom_jitter')(self._build_aesthetic(aes_params), position=robjects.r('position_jitter')(**position_params), **other_params))
+        for mapping in mappings:
+            if not mapping in required_mappings and not mapping in optional_mappings:
+                raise ValueError("add_%s / %s does not take parameter %s" % (name, geom_name, mapping))
+        for mapping in required_mappings:
+            if not mapping in mappings:
+                raise ValueError("Missing required mapping in add_%s / %s: %s" % (name, geom_name, mapping))
+        if 'data' in mappings:
+            data = mappings['data']
+            del mappings['data']
         else:
-            self._other_adds.append(robjects.r('geom_jitter')(self._build_aesthetic(aes_params), **other_params))
-        return self
+            data = None
+        for mapping in optional_mappings:
+            if not mapping in mappings:
+                if mapping in defaults:
+                    if hasattr('__call__', defaults[mapping]):
+                        mappings[mapping] = defaults[mapping](mappings)
+                    else:
+                        mappings[mapping] = defaults[mapping]
+                else:
+                    mappings[mapping] = None
 
-    def add_stacked_bar_plot(self, x_column, y_column, fill):
-        aes_params  = {'x': x_column, 'y': y_column, 'fill': fill}
-        self._other_adds.append(robjects.r('geom_bar')(self._build_aesthetic(aes_params), position='stack'))
-        return self
+        self.reset_params(data)
+        for param in mappings:
+            self.parse_param(param, mappings[param])
+
+        self._other_adds.append(robjects.r(geom_name)(self._build_aesthetic(self.aes_collection), **self.other_collection))
+
+    def _add_geom_methods(self):
+        """add add_xyz methods for all geoms in ggplot.
+        All geoms have required & optional attributes and take an optional data parameter with another
+        dataframe
+        """
+        #python method name (add_ + name), geom (R) name, required attributes, optional attributes
+        methods = (
+                #geoms
+                ('scatter', 'geom_point', ['x','y'], ('color', 'group', 'shape', 'size', 'alpha'), {}),
+                ('jitter', 'geom_jitter', ['x','y'], ('color', 'group', 'shape', 'size', 'alpha', 'jitter_x', 'jitter_y'), {}),
+                ('bar', 'geom_bar', ['x','y'], ['color','group', 'fill','position', 'stat'], {'position': 'dodge', 'stat': 'identity'}),
+                ('box_plot', 'geom_boxplot', ['x','y'], ['color','group','fill'], {}),
+                ('line', 'geom_line', ['x','y'], ['color', 'group', 'shape', 'alpha', 'size'], {}),
+                ('area', 'geom_area', ['x','y'], ['color','fill', 'linetype', 'alpha', 'size', 'position'], {}),
+                ('ribbon', 'geom_ribbon', ['x', 'ymin', 'ymax'], ['color', 'fill', 'size', 'linetype', 'alpha', 'position'], {}),
+                ('error_bars', 'geom_errorbar', ['x','ymin', 'ymax'], ['color', 'group', 'width', 'alpha'], {'width': 0.25}),
+                ('error_barsh', 'geom_errorbarh', ['y','xmin', 'xmax'], ['color', 'group', 'width', 'alpha'], {'width': 0.25}),
+                ('ab_line', 'geom_abline', ['intercept', 'slope'], ['alpha', 'size', 'color'], {}),
+                ('density', 'geom_density', ['x'], ['y', 'color'], 
+                    {'bw': lambda mappings: robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(mappings['x'])))}),
+                ('density_2d', 'geom_density2d', ['x','y'], ['color', 'alpha'], {}),
+                ('rect', 'geom_rect', ['xmin','xmax','ymin', 'ymax'], ['color', 'fill', 'alpha'], {}),
+                ('tile', 'geom_tile', ['x','y'], ['color', 'fill', 'size', 'linetype', 'alpha'], {}),
+                ('vertical_bar', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
+                ('horizontal_bar', 'geom_hline', ['yintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
+                ('segment', 'geom_segment', ['xstart', 'xend', 'ystart', 'yend'], ['color', 'alpha', 'size'], {'size': 0.5}),
+                ('text', 'geom_text', ['x','y','label'], ['angle','alpha', 'size', 'hjust', 'vjust', 'fontface', 'color'], {}),
+
+
+
+                #stast
+                ('stat_sum_color', 'stat_sum', ['x','y'], ['size'], {'color': '..n..', 'size': 0.5}),
+                ('stat_smooth', 'stat_smooth', [], ['method', 'se', 'x', 'y'], {"method": 'lm', 'se': True}),
+
+                ('stacked_bar_plot', ['x','y','fill'], []), #do we still need this?
+                #"""A scatter plat that's colored by no of overlapping points"""
+                )
+
+        for (name, geom, required, optional, defaults) in methods:
+            setattr(self, 'add_' + name, 
+                    lambda *args, **kwargs: self._add(name, geom, required, optional, defaults, args, kwargs))
 
 
     def add_histogram(self, x_column, y_column = "..count..", color=None, group = None, fill=None, position="dodge", add_text = False, bin_width = None, alpha = None):
@@ -196,46 +285,8 @@ class Plot:
         return self
 
 
-    def add_bar(self, *args, **kwargs):
         return self.add_bar_plot(*args, **kwargs)
-    def add_bar_plot(self, x_column, y_column, color=None, group = None, fill=None, position="dodge", data=None):
-        aes_params = {'x': x_column, 'y': y_column}
-        other_params = {
-                'stat':  'identity',
-                'position': position}
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
 
-        if not fill is None:
-            if fill in self.old_names:
-                aes_params['fill'] = fill
-            else:
-                other_params['fill'] = fill
-        if not color is None:
-            if color in self.old_names:
-                aes_params['colour'] = color
-            else:
-                other_params['colour'] = color
-        if group:
-            aes_params['group'] = group
-
-        self._other_adds.append(
-            robjects.r('geom_bar')(self._build_aesthetic(aes_params),  **other_params)
-        )
-        return self
-
-    def add_box_plot(self, x_column, y_column, color=None, group = None, fill=None):
-        aes_params = {'x': x_column, 'y': y_column}
-        if fill:
-            aes_params['fill'] = fill
-        if color:
-            aes_params['colour'] = color
-        if group:
-            aes_params['group'] = group
-        self._other_adds.append(
-            robjects.r('geom_boxplot')(self._build_aesthetic(aes_params))
-        )
-        return self
 
     def add_heatmap(self, x_column, y_column, fill, low="red", mid=None, high="blue", midpoint=0):
         aes_params = {'x': x_column, 'y': y_column}
@@ -255,468 +306,26 @@ class Plot:
                 low, mid, high, midpoint))
             )
         return self
-    
-    def _fix_axis_label(self, aes_name, new_name, real_name):
-        which_legend = False
-        if aes_name == 'x':
-            which_legend = 'x'
-        elif aes_name == 'y':
-            which_legend = 'y'
-        elif aes_name == 'color' or aes_name == 'colour':
-            which_legend = 'colour'
-        elif aes_name == 'fill':
-            which_legend = 'fill'
-        elif aes_name == 'shape':
-            which_legend = 'shape'
-        elif aes_name == 'size':
-            which_legend = 'size'
-        if which_legend:
-            self.lab_rename[which_legend] = real_name
-
-    def _translate_params(self, params):
-        aes_params = []
-        for aes_name, aes_column in params.items():
-            if aes_column in self.old_names:
-                new_name = 'dat_%s'  % self.old_names.index(aes_column)
-                aes_params.append('%s=%s' % (aes_name, new_name))
-                self._fix_axis_label(aes_name, new_name, aes_column)
-            else: #a fixeud value
-                aes_params.append("%s=%s" % (aes_name, aes_column))
-        return aes_params
-
-    def _build_aesthetic(self, params):
-        aes_params = self._translate_params(params)
-        aes_params = ", ".join(aes_params)
-        return robjects.r('aes(%s)' % aes_params)
-
-    def add_line(self, x_column, y_column, color=None, group=None, shape=None, alpha=1.0, size=None, data=None):
-        aes_params = OrderedDict({'x': x_column, 'y': y_column})
-        other_params = {}
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
-        if group:
-            if group in self.old_names:
-                aes_params['group'] = group
-            else:
-                other_params['group'] = group
-        if not color is None:
-            if color in self.old_names:
-                aes_params['colour'] = color
-            else:
-                other_params['colour'] = color
-        if shape:
-            aes_params['shape'] = shape
-        if type(alpha) == int or type(alpha) == float:
-            other_params['alpha'] = alpha
-        else:
-            aes_params['alpha'] = str(alpha)
-        if not size is None:
-            if size in self.old_names:
-                aes_params['size'] = str(size)
-            else:
-                other_params['size'] = size
-        #print 'aes', aes_params, 'other', other_params
-        #print self._build_aesthetic(aes_params)
-        self._other_adds.append(robjects.r('geom_line')(self._build_aesthetic(aes_params), **other_params))
-        return self
-
-    def add_area(self, x_column, y_column, color=None, fill=None, linetype=1, alpha=1.0, size=None, data=None, position=None):
-        aes_params = {'x': x_column, 'y': y_column}
-        other_params = {}
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
-
-        if not color is None:
-            if color in self.old_names:
-                aes_params['colour'] = color
-            else:
-                other_params['colour'] = color
-        if not fill is None:
-            if fill in self.old_names:
-                aes_params['fill'] = fill
-            else:
-                other_params['fill'] = fill
-        if not alpha is None:
-            if alpha in self.old_names:
-                aes_params['alpha'] = alpha
-            else:
-                other_params['alpha'] = alpha
-        if not size is None:
-            if size in self.old_names:
-                aes_params['size'] = size
-            else:
-                other_params['size'] = size
-        if not linetype is None:
-            if linetype in self.old_names:
-                aes_params['linetype'] = linetype
-            else:
-                other_params['linetype'] = linetype
-        if not position is None:
-            other_params['position'] = position
-
-        self._other_adds.append(robjects.r('geom_area')(self._build_aesthetic(aes_params), **other_params))
-        return self
-
-    def add_ribbon(self, x, ymin, ymax, color = None, fill = None, size = 0.5, linetype = 1, alpha = 1, position=None, data=None):
-        aes_params = {'x': x}
-        other_params = {}
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
-
-        if ymin in self.old_names:
-            aes_params['ymin'] = ymin
-        else:
-            other_params['ymin'] = ymin
-        if ymax in self.old_names:
-            aes_params['ymax'] = ymax
-        else:
-            other_params['ymax'] = ymax
-        if not color is None:
-            if color in self.old_names:
-                aes_params['colour'] = color
-            else:
-                other_params['colour'] = color
-        if not fill is None:
-            if fill in self.old_names:
-                aes_params['fill'] = fill
-            else:
-                other_params['fill'] = fill
-        if not alpha is None:
-            if alpha in self.old_names:
-                aes_params['alpha'] = alpha
-            else:
-                other_params['alpha'] = alpha
-        if not size is None:
-            if size in self.old_names:
-                aes_params['size'] = size
-            else:
-                other_params['size'] = size
-        if not linetype is None:
-            if linetype in self.old_names:
-                aes_params['linetype'] = linetype
-            else:
-                other_params['linetype'] = linetype
-        if not position is None:
-            other_params['position'] = position
-
-        self._other_adds.append(robjects.r('geom_ribbon')(self._build_aesthetic(aes_params), **other_params))
-        return self
-
-    def add_error_bars(self, x_column, ymin, ymax, color=None, group=None, position=None, width=0.25,alpha=1):
-        aes_params = {'x': x_column, 'ymin': ymin, 'ymax':ymax}
-        other_params = {}
-        if color:
-            aes_params['colour'] = color
-        if group:
-            aes_params['group'] = group
-        if type(alpha) == int or type(alpha) == float:
-            other_params['alpha'] = alpha
-        else:
-            aes_params['alpha'] = str(alpha)
-        if position:
-            other_params['position'] = position
-        other_params['width'] = width
-        self._other_adds.append(robjects.r('geom_errorbar')(self._build_aesthetic(aes_params), **other_params))
-        return self
-
-    def add_error_barsh(self, x_column, ypos, xmin, xmax, color=None, group=None, position=None, width=0.25, alpha=1):
-        aes_params = {'x': x_column, 'y': ypos, 'xmin': xmin, 'xmax':xmax}
-        other_params = {}
-        if color:
-            aes_params['colour'] = color
-        if group:
-            aes_params['group'] = group
-        if type(alpha) == int or type(alpha) == float:
-            other_params['alpha'] = alpha
-        else:
-            aes_params['alpha'] = str(alpha)
-        if position:
-            other_params['position'] = position
-        other_params['width'] = width
-
-        self._other_adds.append(robjects.r('geom_errorbarh')(self._build_aesthetic(aes_params), **other_params))
-        return self
-
-    def add_ab_line(self, intercept, slope, alpha = None, size = None, color=None):
-        other_params = {}
-        aes_params = {}
-        if not alpha is None:
-            if type(alpha) == int or type(alpha) == float:
-                other_params['alpha'] = alpha
-            else:
-                aes_params['alpha'] = str(alpha)
-        if not color is None:
-            if color in self.old_names:
-                aes_params['colour'] = color
-            else:
-                other_params['colour'] = color
-        if not size is None:
-            if type(size) == int or type(size) == float:
-                other_params['size'] = size
-            else:
-                aes_params['size'] = str(size)
-        other_params['intercept'] = intercept
-        other_params['slope'] = slope
-        self._other_adds.append(robjects.r('geom_abline')(self._build_aesthetic(aes_params), **other_params))
-        return self
-
-    def add_density(self, x_column, y_column = None, color = None):
-        """add a kernel estimated density plot - gauss kernel and bw.SJ estimation of bandwith"""
-        aes_params = {'x': x_column}
-        other_params = {}
-        if y_column:
-            aes_params['y'] =  y_column
-        if not color is None:
-            if color in self.old_names:
-                aes_params['colour'] = color
-            else:
-                other_params['colour'] = color
-        other_params['bw'] = robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(x_column)))
-        self._other_adds.append(robjects.r('geom_density')(
-            self._build_aesthetic(aes_params),
-            **other_params
-            )
-        )
-        return self
-
-    def add_density_2d(self, x_column, y_column, color = None, alpha = None):
-        """add a kernel estimated density plot - gauss kernel and bw.SJ estimation of bandwith"""
-        aes_params = {'x': x_column}
-        aes_params['y'] =  y_column
-        other_params = {}
-        if not color is None:
-            if color in self.old_names:
-                aes_params['colour'] = color
-            else:
-                other_params['colour'] = color
-        if not alpha is None:
-            if type(alpha) == int or type(alpha) == float:
-                other_params['alpha'] = alpha
-            else:
-                aes_params['alpha'] = str(alpha)
-        self._other_adds.append(robjects.r('geom_density2d')(
-            self._build_aesthetic(aes_params), **other_params
-            )
-        )
-        return self
-
-    def add_stat_sum_color(self, x_column, y_column, size = 0.5):
-        """A scatter plat that's colored by no of overlapping points"""
-        aes_params = {'x': x_column}
-        aes_params['y'] =  y_column
-        aes_params['color'] = '..n..'
-        self._other_adds.append(robjects.r('stat_sum')(self._build_aesthetic(aes_params), size = size))
-        return self
-
-    def add_rect(self, x_min, x_max, y_min, y_max, color=None, fill = None, data = None, alpha = None):
-        aes_params = {}
-        other_params = {}
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
-
-        if x_min in self.old_names or (data and x_min in data.columns_ordered):
-            aes_params['xmin'] = x_min
-        else:
-            other_params['xmin'] = x_min
-        if y_min in self.old_names or (data and y_min in data.columns_ordered):
-            aes_params['ymin'] = y_min
-        else:
-            other_params['ymin'] = y_min
-        if x_max in self.old_names or (data and x_max in data.columns_ordered):
-            aes_params['xmax'] = x_max
-        else:
-            other_params['xmax'] = x_max
-        if y_max in self.old_names or (data and y_max in data.columns_ordered):
-            aes_params['ymax'] = y_max
-        else:
-            other_params['ymax'] = y_max
-
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
-
-        if color:
-            if color in self.old_names:
-                aes_params['colour'] = color
-            else:
-                other_params['colour'] = color      
-        if fill:
-            if fill in self.old_names:
-                aes_params['fill'] = fill
-            else:
-                other_params['fill'] = fill      
-
-        if alpha:
-            if type(alpha) == int or type(alpha) == float:
-                other_params['alpha'] = alpha
-            else:
-                aes_params['alpha'] = str(alpha)
-        #print 'other', other_params
-
-        obj = robjects.r('geom_rect')(self._build_aesthetic(aes_params), **other_params)
-        self._other_adds.append(obj)
-        return self
-
-    def add_tile(self, x, y, color = None, fill = None, size = None, linetype = None, alpha = None, data = None):
-        aes_params = {}
-        other_params = {}
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
-        if x in self.old_names:
-            aes_params['x'] = x
-        else:
-            other_params['x'] = x
-        if y in self.old_names:
-            aes_params['y'] = y
-        else:
-            other_params['y'] = y
-        if color:
-            if color in self.old_names:
-                aes_params['colour'] = color
-            else:
-                other_params['colour'] = color      
-        if fill:
-            if fill in self.old_names:
-                aes_params['fill'] = fill
-            else:
-                other_params['fill'] = fill      
-        if alpha:
-            if type(alpha) == int or type(alpha) == float:
-                other_params['alpha'] = alpha
-            else:
-                aes_params['alpha'] = str(alpha)
-        if linetype:
-            if linetype in self.old_names:
-                aes_params['linetype'] = fill
-            else:
-                other_params['linetype'] = fill   
-        obj = robjects.r('geom_tile')(self._build_aesthetic(aes_params), **other_params)
-        self._other_adds.append(obj)
-        return self
 
 
-    def add_stat_smooth(self, method='lm', se=True, x_column = None, y_column = None):
-        """
-        http://had.co.nz/ggplot2/stat_smooth.html
-        """
-        aes_params = {}
-        if x_column is not None:
-            aes_params['x'] = x_column
-        if y_column is not None:
-            aes_params['y'] = y_column
-        other_params = {'method': method, 
-                'se': se}
-        self._other_adds.append(robjects.r('stat_smooth')(self._build_aesthetic(aes_params), **other_params))
-        return self
+
+
+
+
+
+
+
+
 
     def set_title(self, title):
         self._other_adds.append(robjects.r('opts(title = "%s")' %  title))
 
-    def add_vertical_bar(self, xpos, alpha=0.5, color='black', size=1):
-        self._other_adds.append(
-            robjects.r('geom_vline(aes(xintercept = %s),  alpha=%f, color="%s", size=%f)' % (xpos, alpha, color, size))
-        )
-        return self
 
-    def add_horizontal_bar(self, ypos, alpha=0.5, color='black', size=1):
-        self._other_adds.append(
-            robjects.r('geom_hline(aes(yintercept = %f),  alpha=%f, color="%s", size=%f)' % (ypos, alpha,color, size))
-        )
-        return self
 
-    def add_segment(self, xstart, xend, ystart, yend, color = None, alpha = 1.0, size=0.5, data=None):
-        aes_params = { }
-        other_params = {}
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
-        if xstart in self.old_names:
-            aes_params['x'] = xstart
-        else:
-            other_params['x'] = xstart
-        if xend in self.old_names:
-            aes_params['xend'] = xend
-        else:
-            other_params['xend'] = xend
-        if ystart in self.old_names:
-            aes_params['y'] = ystart
-        else:
-            other_params['y'] = ystart
-        if yend in self.old_names:
-            aes_params['yend'] = yend
-        else:
-            other_params['yend'] = yend
-        if color:
-            if color in self.old_names:
-                aes_params['colour'] = color
-            else:
-                other_params['colour'] = color
-        if alpha:
-            if alpha in self.old_names:
-                aes_params['alpha'] = alpha
-            else:
-                other_params['alpha'] = alpha
-        if size:
-            if size in self.old_names:
-                aes_params['size'] = size
-            else:
-                other_params['size'] = size
-        print 'aes', aes_params
-        print 'other', other_params
-        self._other_adds.append(
-            robjects.r('geom_segment')
-            (
-                self._build_aesthetic(aes_params), 
-                **other_params
-            )
-        )
-        return self
-    
-    def add_text(self, x, y, label, data = None, angle=None, alpha=None, size=None, hjust=None, vjust=None, fontface = None, color=None):
-        aes_params = {
-            'x': x,
-            'y': y,
-            'label': label
-        }
-        other_params = {}
-        if not data is None:
-            other_params['data'] = self._prep_dataframe(data)
-        if not angle is None:
-            if type(angle) == int or type(angle) == float:
-                other_params['angle'] = angle
-            else:
-                aes_params['angle'] = str(angle)
-        if not alpha is None:
-            if type(alpha) == int or type(alpha) == float:
-                other_params['alpha'] = alpha
-            else:
-                aes_params['alpha'] = str(alpha)
-        if not size is None:
-            if type(size) == int or type(size) == float:
-                other_params['size'] = size
-            else:
-                aes_params['size'] = str(size)
-        if not vjust is None:
-            if type(vjust) == int or type(vjust) == float:
-                other_params['vjust'] = vjust
-            else:
-                aes_params['vjust'] = str(vjust)
-        if not hjust is None:
-            if type(hjust) == int or type(hjust) == float:
-                other_params['hjust'] = hjust
-            else:
-                aes_params['hjust'] = str(hjust)
-        if not color is None:
-            if color in self.old_names:
-                aes_params['colour'] = color
-            else:
-                other_params['colour'] = color
 
-        if not fontface is None:
-            other_params['fontface'] = fontface
-        self._other_adds.append(
-            robjects.r('geom_text')(self._build_aesthetic(aes_params), **other_params)
-        )
-        return self
 
+
+ 
     def facet(self, column_one, column_two = None, fixed_x = True, fixed_y = True, ncol=None):
         facet_wrap = robjects.r['facet_wrap']
         if fixed_x and not fixed_y:
