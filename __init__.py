@@ -202,6 +202,7 @@ class Plot:
             self.parse_param(param, mappings[param])
 
         self._other_adds.append(robjects.r(geom_name)(self._build_aesthetic(self.aes_collection), **self.other_collection))
+        return self
 
     def _add_geom_methods(self):
         """add add_xyz methods for all geoms in ggplot.
@@ -237,13 +238,16 @@ class Plot:
                 ('stat_sum_color', 'stat_sum', ['x','y'], ['size'], {'color': '..n..', 'size': 0.5}),
                 ('stat_smooth', 'stat_smooth', [], ['method', 'se', 'x', 'y'], {"method": 'lm', 'se': True}),
 
-                ('stacked_bar_plot', ['x','y','fill'], []), #do we still need this?
+                ('stacked_bar_plot','geom_bar', ['x','y','fill'], [], {'position': 'stack'}), #do we still need this?
                 #"""A scatter plat that's colored by no of overlapping points"""
                 )
 
         for (name, geom, required, optional, defaults) in methods:
-            setattr(self, 'add_' + name, 
-                    lambda *args, **kwargs: self._add(name, geom, required, optional, defaults, args, kwargs))
+            def define(name, geom, required , optional, defaults): #we need to capture the variables...
+                def do_add(*args, **kwargs):
+                    return self._add(name, geom, required, optional, defaults, args, kwargs)
+                return do_add
+            setattr(self, 'add_' + name, define(name, geom, required, optional, defaults))
 
 
     def add_histogram(self, x_column, y_column = "..count..", color=None, group = None, fill=None, position="dodge", add_text = False, bin_width = None, alpha = None):
