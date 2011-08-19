@@ -172,21 +172,22 @@ class Plot:
         for this particular geom
         """
         mappings = {}
-        for a, b in zip(required_mappings, args):
+        all_defined_mappings = required_mappings + optional_mappings
+        for a, b in zip(all_defined_mappings, args): #so that you could in thery also pass the optional_mappings by position...required_mappings
             mappings[a] = b
         mappings.update(kwargs)
 
+        if 'data' in mappings:
+            data = mappings['data']
+            del mappings['data']
+        else:
+            data = None
         for mapping in mappings:
             if not mapping in required_mappings and not mapping in optional_mappings:
                 raise ValueError("add_%s / %s does not take parameter %s" % (name, geom_name, mapping))
         for mapping in required_mappings:
             if not mapping in mappings:
                 raise ValueError("Missing required mapping in add_%s / %s: %s" % (name, geom_name, mapping))
-        if 'data' in mappings:
-            data = mappings['data']
-            del mappings['data']
-        else:
-            data = None
         for mapping in optional_mappings:
             if not mapping in mappings:
                 if mapping in defaults:
@@ -212,8 +213,8 @@ class Plot:
         #python method name (add_ + name), geom (R) name, required attributes, optional attributes
         methods = (
                 #geoms
-                ('scatter', 'geom_point', ['x','y'], ('color', 'group', 'shape', 'size', 'alpha'), {}),
-                ('jitter', 'geom_jitter', ['x','y'], ('color', 'group', 'shape', 'size', 'alpha', 'jitter_x', 'jitter_y'), {}),
+                ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha'], {}),
+                ('jitter', 'geom_jitter', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'jitter_x', 'jitter_y'], {}),
                 ('bar', 'geom_bar', ['x','y'], ['color','group', 'fill','position', 'stat'], {'position': 'dodge', 'stat': 'identity'}),
                 ('box_plot', 'geom_boxplot', ['x','y'], ['color','group','fill'], {}),
                 ('line', 'geom_line', ['x','y'], ['color', 'group', 'shape', 'alpha', 'size'], {}),
