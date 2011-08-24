@@ -191,7 +191,7 @@ class Plot:
         for mapping in optional_mappings:
             if not mapping in mappings:
                 if mapping in defaults:
-                    if hasattr('__call__', defaults[mapping]):
+                    if hasattr(defaults[mapping], '__call__',):
                         mappings[mapping] = defaults[mapping](mappings)
                     else:
                         mappings[mapping] = defaults[mapping]
