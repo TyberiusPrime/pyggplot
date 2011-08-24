@@ -230,7 +230,7 @@ class Plot:
                 ('tile', 'geom_tile', ['x','y'], ['color', 'fill', 'size', 'linetype', 'alpha'], {}),
                 ('vertical_bar', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
                 ('horizontal_bar', 'geom_hline', ['yintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
-                ('segment', 'geom_segment', ['xstart', 'xend', 'ystart', 'yend'], ['color', 'alpha', 'size'], {'size': 0.5}),
+                ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['color', 'alpha', 'size'], {'size': 0.5}),
                 ('text', 'geom_text', ['x','y','label'], ['angle','alpha', 'size', 'hjust', 'vjust', 'fontface', 'color'], {}),
 
 
@@ -290,7 +290,7 @@ class Plot:
         return self
 
 
-        return self.add_bar_plot(*args, **kwargs)
+        return self.add_bar(*args, **kwargs)
 
 
     def add_heatmap(self, x_column, y_column, fill, low="red", mid=None, high="blue", midpoint=0):
@@ -862,7 +862,7 @@ def PlotPiechartHistogram(df, column_name, include_counts = True, include_percen
         'y': positions
     })
     plot = Plot(plot_df, 'Dummy')
-    plot.add_bar_plot("Dummy", 'Counts', fill="Values", position="stack")
+    plot.add_bar("Dummy", 'Counts', fill="Values", position="stack")
     if include_percentage or include_counts:
         plot.add_text('Label_positions','y', 'Labels', color="Values")
         #plot.add_segment(0, 'Label_positions', 1, 'y', color="Values")
