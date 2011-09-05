@@ -263,14 +263,14 @@ class Plot:
             aes_params['group'] = group
             #x = x_column, y = y_column)
         if bin_width:
-            stat_params['bin_width'] = bin_width
+            other_params['binwidth'] = bin_width
         if not alpha is None:
             if alpha in self.old_names:
                 aes_params['alpha'] = alpha
             else:
                 other_params['alpha'] = alpha
         if stat_params:
-            other_params['stat'] = robjects.r('stat_bin')(**stat_params)
+            #other_params.update(stat_params)
             other_params['position'] = position
             #print 'a', other_params
             self._other_adds.append(
@@ -281,7 +281,7 @@ class Plot:
             other_params['position'] = position
             #print 'b', other_params
             self._other_adds.append(
-                robjects.r('geom_bar')(self._build_aesthetic(aes_params), **other_params)
+                robjects.r('geom_histogram')(self._build_aesthetic(aes_params), **other_params)
             )
         if add_text:
             self._other_adds.append(
