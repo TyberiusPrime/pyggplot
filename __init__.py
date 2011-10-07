@@ -448,13 +448,15 @@ class Plot:
     def set_base_size(self, base_size = 10):
         self.theme_bw(base_size = base_size)
         
-    def add_label(self, text, xpos, ypos, size=8, color=None):
+    def add_label(self, text, xpos, ypos, size=8, color=None, alpha = None):
         import pydataframe
         data = pydataframe.DataFrame({'x': [xpos], 'y': [ypos], 'text': [text]})
         aes_params = OrderedDict({'x': 'x', 'y': 'y', 'label': 'text'})
         other_params = {'data': data}
         if color:
             other_params['colour'] = color
+        if alpha:
+            other_params['alpha'] = alpha
         self._other_adds.append(robjects.r('geom_text')(self._build_aesthetic(aes_params), **other_params))
         return self
         self._other_adds.append(
