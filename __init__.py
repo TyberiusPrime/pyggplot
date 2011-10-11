@@ -1,4 +1,5 @@
 import exptools
+import itertools
 from ordereddict import OrderedDict
 import pydataframe
 import sys
@@ -289,8 +290,25 @@ class Plot:
                     self._build_aesthetic({'x': x_column, 'y':'..count..', 'label':'..count..'}),stat='bin' ))
         return self
 
+    def add_cummulative(self, x_column, ascending = True):
+        """Add a line showing cumulative % of data <= x"""
+        total = 0
+        current = 0
+        try:
+            column_name = 'dat_%s'  % self.old_names.index(x_column)
+        except ValueError:
+            raise ValueError("Could not find column %s, available: %s" % (x_column, self.old_names))
+        column_data = self.dataframe.get_column(column_name) #explicit copy!
+        column_data .sort()
+        x_values = []
+        y_values = []
+        for value, group in itertools.groupby(column_data):
+            x_values.append(value)
+            y_values.append(len(list(group)))
+        data = pydataframe.DataFrame({x_column: x_values, '% <=': y_values})
+        return self.add_line(x_column, '% <=', data=data)
 
-        return self.add_bar(*args, **kwargs)
+
 
 
     def add_heatmap(self, x_column, y_column, fill, low="red", mid=None, high="blue", midpoint=0):
