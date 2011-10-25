@@ -586,14 +586,18 @@ class Plot:
             'axis.text.x': robjects.r('theme_text')(angle = angle, hjust=hjust, size=size, vjust=0)
         }
         self._other_adds.append( robjects.r('opts')(**kargs))
+        return self
+
     def turn_y_axis_labels(self,  angle=75, hjust=1, size=8, vjust=0):
         kargs = {
             'axis.text.y': robjects.r('theme_text')(angle = angle, hjust=hjust, size=size, vjust=0)
         }
         self._other_adds.append( robjects.r('opts')(**kargs))
+        return self
 
     def hide_background(self):
         self._other_adds.append(robjects.r('opts')(**{'panel.background': robjects.r('theme_blank()')}))
+        return self
 
     def hide_y_axis_labels(self):
         self._other_adds.append(robjects.r('opts')(**{"axis.text.y": robjects.r('theme_blank()')}))
@@ -641,6 +645,23 @@ class Plot:
         if not direction is None:
             other_params['direction'] = direction
         self._other_adds.append(robjects.r('scale_fill_hue')(**other_params))
+
+
+    def scale_fill_gradient(self, low, high, name = None, space = 'rgb', breaks = None, labels = None, limits = None, trans = None):
+        other_params = {}
+        other_params['low'] = low
+        other_params['high'] = high
+        if name is not None:
+            other_params['name'] = name
+        if space is not None:
+            other_params['space'] = space
+        if breaks is not None:
+            other_params['breaks'] = breaks
+        if limits is not None:
+            other_params['limits'] = limits
+        if trans is not None:
+            other_params['trans'] = trans
+        self._other_adds.append(robjects.r('scale_fill_gradient')(**other_params))
 
 
 
@@ -705,6 +726,9 @@ class Plot:
     def scale_color_identity(self):
         self._other_adds.append(robjects.r('scale_colour_identity')())
 
+    def scale_color_hue(self):
+        self._other_adds.append(robjects.r('scale_colour_hue')())
+
     def scale_color_brewer(self, name = None, palette = 'Set1'):
         other_params = {}
         if not name is None:
@@ -716,6 +740,9 @@ class Plot:
 
     def scale_colour_grey(self):
         self._other_adds.append(robjects.r('scale_colour_grey')())
+
+    def scale_fill_grey(self):
+        self._other_adds.append(robjects.r('scale_fill_grey')())
 
 def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
     if exptools.output_file_exists(output_filename):
