@@ -492,7 +492,7 @@ class Plot:
         self.scale_x_continuous(trans = 'log10')
         return self
 
-    def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None, formatter = None):
+    def scale_x_continuous(self, breaks = None, minor_breaks = None, trans = None, limits=None, labels=None, expand=None, formatter = None, name = None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -513,6 +513,8 @@ class Plot:
                     raise ValueError("len(breaks) != len(labels)")
         if not formatter is None:
             other_params['formatter'] = formatter
+        if not name is None:
+            other_params['name'] = name
 
         self._other_adds.append(
             robjects.r('scale_x_continuous')(**other_params)
@@ -572,7 +574,6 @@ class Plot:
         )
         return self
 
-        return self
     def scale_x_reverse(self):
         self._other_adds.append(robjects.r('scale_x_reverse()'))
         return self
@@ -647,10 +648,16 @@ class Plot:
         self._other_adds.append(robjects.r('scale_fill_hue')(**other_params))
 
 
-    def scale_fill_gradient(self, low, high, name = None, space = 'rgb', breaks = None, labels = None, limits = None, trans = None):
+    def scale_fill_gradient(self, low, high, mid = None,midpoint = None, name = None, space = 'rgb', breaks = None, labels = None, limits = None, trans = None):
         other_params = {}
         other_params['low'] = low
         other_params['high'] = high
+        if midpoint is not None and mid is None:
+            raise ValueError("If you pass in a midpoint, you also need to set a value for mid")
+        if mid is not None:
+            other_params['mid'] = mid
+        if midpoint is not None:
+            other_params['midpoint'] = midpoint
         if name is not None:
             other_params['name'] = name
         if space is not None:
@@ -661,7 +668,12 @@ class Plot:
             other_params['limits'] = limits
         if trans is not None:
             other_params['trans'] = trans
-        self._other_adds.append(robjects.r('scale_fill_gradient')(**other_params))
+        if mid is not None:
+            self._other_adds.append(robjects.r('scale_fill_gradient2')(**other_params))
+        else:
+            raise ValueError("Gradient 1")
+            self._other_adds.append(robjects.r('scale_fill_gradient')(**other_params))
+        return self
 
 
 
