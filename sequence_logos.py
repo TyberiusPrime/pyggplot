@@ -3,6 +3,7 @@ import re
 import cairo
 
 def plot_sequence_alignment(name_sequence_pairs, output_filename, is_dna = True):
+    """Plot a color full list of name, sequences tuples"""
     no_of_lines = len(name_sequence_pairs)
     no_of_letters = max((len(a[0]) + len(a[1]) for a in name_sequence_pairs))
     print no_of_letters
@@ -62,9 +63,8 @@ def plot_sequence_alignment(name_sequence_pairs, output_filename, is_dna = True)
     surface.finish()
 
 
-
-
 def plot_sequences(sequences, output_filename, is_dna = True, width=7, height=2):
+    """Plot a sequence logo ('weblogo') from a list of (aligned) sequences"""
     sequences = [s.upper() for s in sequences]
     if output_filename.endswith('.png'):
         sft = 'image'
