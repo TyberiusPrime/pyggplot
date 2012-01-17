@@ -213,11 +213,11 @@ class Plot:
         #python method name (add_ + name), geom (R) name, required attributes, optional attributes
         methods = (
                 #geoms
-                ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha'], {}),
+                ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}),
                 ('jitter', 'geom_jitter', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'jitter_x', 'jitter_y'], {}),
                 ('bar', 'geom_bar', ['x','y'], ['color','group', 'fill','position', 'stat'], {'position': 'dodge', 'stat': 'identity'}),
                 ('box_plot', 'geom_boxplot', ['x','y'], ['color','group','fill', 'alpha'], {}),
-                ('line', 'geom_line', ['x','y'], ['color', 'group', 'shape', 'alpha', 'size'], {}),
+                ('line', 'geom_line', ['x','y'], ['color', 'group', 'shape', 'alpha', 'size', 'stat', 'fun.y'], {}),
                 ('area', 'geom_area', ['x','y'], ['color','fill', 'linetype', 'alpha', 'size', 'position'], {}),
                 ('ribbon', 'geom_ribbon', ['x', 'ymin', 'ymax'], ['color', 'fill', 'size', 'linetype', 'alpha', 'position'], {}),
                 ('error_bars', 'geom_errorbar', ['x','ymin', 'ymax'], ['color', 'group', 'width', 'alpha'], {'width': 0.25}),
