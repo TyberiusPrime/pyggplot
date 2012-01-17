@@ -1,22 +1,45 @@
-import exptools
+## Copyright (c) 2009-2011, Florian Finkernagel. All rights reserved.
+
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted provided that the following conditions are
+## met:
+
+##     * Redistributions of source code must retain the above copyright
+##       notice, this list of conditions and the following disclaimer.
+
+##     * Redistributions in binary form must reproduce the above
+##       copyright notice, this list of conditions and the following
+##       disclaimer in the documentation and/or other materials provided
+##       with the distribution.
+
+##     * Neither the name of the Andrew Straw nor the names of its
+##       contributors may be used to endorse or promote products derived
+##       from this software without specific prior written permission.
+
+## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+"""A wrapper around ggplot2 ( http://had.co.nz/ggplot2/ )
+"""
+
 import itertools
 from ordereddict import OrderedDict
 import pydataframe
-import sys
-from hilbert import hilbert_plot, hilbert_to_image
 import rpy2.robjects as robjects
-exptools.load_software('pyvenn')
-import pyvenn
-from square_euler import SquareEuler
-import re
-from sequence_logos import plot_sequences, plot_sequence_alignment
-try:
-    from pwmlocationplotter import PWMLocationPlotter
-except ImportError:
-    pass
+import numpy
 
 _r_loaded = False
 def load_r():
+    """Lazy R loader"""
     global _r_loaded
     if not _r_loaded:
         robjects.r('library(ggplot2)')
@@ -39,9 +62,6 @@ TransInvNegLog10b <- Trans$new("InvNegLog10b",
             labels = function(x) bquote(10^.(-x)))
 
 """)
-
-import numpy
-
 
 def r_expression(expr):
     return robjects.r('expression(%s)' % expr)
@@ -66,20 +86,15 @@ class Plot:
         self.dataframe = self._prep_dataframe(dataframe)
         self._other_adds = []
         self.to_rename = {}
-
         self._add_geom_methods()
 
-
     def render(self, output_filename, width=8, height=6, dpi=300):
-        #print self.dataframe
         try:
             plot = self.r['ggplot'](self.dataframe)
             for obj in self._other_adds:
                 plot = self.r['add'](plot, obj)
             for name, value in self.lab_rename.items():
                 plot = self.r['add'](plot, robjects.r('labs(%s = "%s")' % (name, value)))
-            #plot = self.r['add'](plot, self.r['layer'](geom="point"))
-            #robjects.r('options( error=recover )')
             self.r['ggsave'](filename=output_filename,plot=plot, width=width, height=height, dpi=dpi)
         except ValueError:
             print 'old names', self.old_names
@@ -134,7 +149,6 @@ class Plot:
             which_legend = 'size'
         if which_legend:
             self.lab_rename[which_legend] = real_name
-
 
     def _build_aesthetic(self, params):
         """Tarnsform a pythhon list of aesthetics to the R aes() object"""
@@ -252,7 +266,6 @@ class Plot:
                 return do_add
             setattr(self, 'add_' + name, define(name, geom, required, optional, defaults))
 
-
     def add_histogram(self, x_column, y_column = "..count..", color=None, group = None, fill=None, position="dodge", add_text = False, bin_width = None, alpha = None):
         aes_params = {'x': x_column}
         other_params = {}
@@ -331,24 +344,8 @@ class Plot:
             )
         return self
 
-
-
-
-
-
-
-
-
-
-
     def set_title(self, title):
         self._other_adds.append(robjects.r('opts(title = "%s")' %  title))
-
-
-
-
-
-
  
     def facet(self, column_one, column_two = None, fixed_x = True, fixed_y = True, ncol=None):
         facet_wrap = robjects.r['facet_wrap']
@@ -398,8 +395,6 @@ class Plot:
             params['ncol'] = ncol
         self._other_adds.append(robjects.r('facet_grid')(robjects.r(facet_specification), **params))
 
-
-
     def greyscale(self):
         self._other_adds.append( robjects.r('scale_colour_grey()'))
         self._other_adds.append( robjects.r('scale_fill_grey()'))
@@ -409,7 +404,6 @@ class Plot:
         if base_size:
             kwargs['base_size'] = float(base_size)
         self._other_adds.append(robjects.r('theme_bw')(**kwargs))
-
 
     def theme_darktalk(self, base_size = None):
         kwargs = {}
@@ -607,7 +601,6 @@ class Plot:
     def hide_x_axis_labels(self):
         self._other_adds.append(robjects.r('opts')(**{"axis.text.x": robjects.r('theme_blank()')}))
 
-
     def hide_axis_ticks(self):
         self._other_adds.append(robjects.r('opts')(**{"axis.ticks": robjects.r('theme_blank()')}))
 
@@ -648,7 +641,6 @@ class Plot:
             other_params['direction'] = direction
         self._other_adds.append(robjects.r('scale_fill_hue')(**other_params))
 
-
     def scale_fill_gradient(self, low, high, mid = None,midpoint = None, name = None, space = 'rgb', breaks = None, labels = None, limits = None, trans = None):
         other_params = {}
         other_params['low'] = low
@@ -676,8 +668,6 @@ class Plot:
             self._other_adds.append(robjects.r('scale_fill_gradient')(**other_params))
         return self
 
-
-
     def coord_flip(self):
         self._other_adds.append(robjects.r('coord_flip()'))
         return self
@@ -689,7 +679,6 @@ class Plot:
             direction = direction,
             expand = expand))
         return self
-
 
     def legend_position(self, value):
         if type(value) is tuple:
@@ -723,13 +712,12 @@ class Plot:
         self._other_adds.append(robjects.r('opts(axis.ticks.margin = unit(0.0, "cm"))'))
         self.plot_margin(0,0,0,0)
 
-
     def plot_margin(self, top, left, bottom, right):
         self._other_adds.append(robjects.r('opts(plot.margin = unit(c(%i,%i,%i,%i), "lines"))' % (top, left, bottom, right)))
 
-
     def scale_shape_manual(self, values):
         self._other_adds.append(robjects.r('scale_shape_manual')(values=values))
+
     def scale_shape(self, solid = True):
         self._other_adds.append(robjects.r('scale_shape')(solid=solid))
 
@@ -757,35 +745,6 @@ class Plot:
     def scale_fill_grey(self):
         self._other_adds.append(robjects.r('scale_fill_grey')())
 
-def plot_top_k_overlap(lists, output_filename, until_which_k = sys.maxint):
-    if exptools.output_file_exists(output_filename):
-        return
-    for s in lists:
-        until_which_k = min(len(s), until_which_k)
-    max_k = until_which_k
-    first = lists[0]
-    lists = lists[1:]
-    plot_data = {"k": [], 'overlap': []}
-    tr = exptools.TimeRemainingGuestimator(max_k)
-    for k in xrange(1, max_k + 1):
-        plot_data['k'].append(k)
-        my_set = set(first[:k])
-        for l in lists:
-            my_set = my_set.intersection(set(l[:k]))
-        plot_data['overlap'].append(len(my_set) / float(k))
-        tr.step()
-    tr.finished()
-    plot = Plot(exptools.DF.DataFrame(plot_data), 'k', 'overlap')
-    plot.add_line('k','overlap')
-    plot.render(output_filename)
-
-def plot_venn(sets, output_filename, width=8, height=8, proportional = False):
-    df = pyvenn.VennDiagram(sets)
-    if proportional:
-        df.plot_proportional(output_filename, width)
-    else:
-        df.plot_normal(output_filename, width)
-
 def powerset(seq):
     """
     Returns all the subsets of this set. This is a generator.
@@ -798,6 +757,7 @@ def powerset(seq):
             yield [seq[0]]+item
             yield item
 
+
 def intersection(list_of_sects):
     if not list_of_sects:
         return set() 
@@ -805,6 +765,7 @@ def intersection(list_of_sects):
     for k in list_of_sects[1:]:
         final_set = final_set.intersection(k)
     return final_set
+
 
 def union(list_of_sects):
     if not list_of_sects:
@@ -817,276 +778,9 @@ def union(list_of_sects):
 def _no_annotation(set_name, set_entries):
     return { set_name: set_entries}
 
-def venn_to_dataframes(sets, annotator = None, ordered = None):
-    if annotator is None:
-        annotator = _no_annotation
-    dfs = {}
-    if ordered is None:
-        ordered = sets.keys()
-        ordered.sort()
-    sets = dict((k,set(v)) for (k, v) in sets.items())
-    one_letter_names = []
-    current_letter = 'A'
-    for name in ordered:
-        one_letter_names.append(current_letter)
-        current_letter = chr(ord(current_letter) + 1)
+from square_euler import SquareEuler
+from hilbert import hilbert_plot, hilbert_to_image
+from sequence_logos import plot_sequences, plot_sequence_alignment
 
-    for subset in powerset(sets.keys()):
-        if not subset:
-            continue
-        not_in_set = [x for x in sets.keys() if not x in subset]
-        name_of_subset = [] 
-        long_name = []
-        for one_letter, name in zip(one_letter_names, ordered):
-            if name in subset:
-                name_of_subset.append(one_letter)
-                long_name.append(name)
-            else:
-                name_of_subset.append("~%s" % one_letter)
-                long_name.append("(NOT %s)" % name)
-        name_of_subset = "".join(name_of_subset)
-        long_name = " AND ".join(long_name)
-        #print 'name_of_subset', name_of_subset
-        actual_set = intersection([sets[x] for x in subset]).difference(union([sets[x] for x in not_in_set]))
-        data = annotator(long_name, actual_set)
-        df = exptools.DF.DataFrame(data, [long_name])
-        dfs[name_of_subset] = df
-    overview = {"Short name": [], 'Set name': []} 
-    for one_letter, name in zip(one_letter_names, ordered):
-        overview["Short name"].append(one_letter)
-        overview["Set name"].append(name)
-    dfs['Overview'] = exptools.DF.DataFrame(overview)
-    return dfs
-
-def dataframes_to_venn(dfs):
-    sets = OrderedDict()
-    lookup = {}
-    for row in dfs['Overview'].iter_rows():
-        lookup[row['Short name']] = row['Set name']
-    for set_name in dfs:
-        if set_name == 'Overview':
-            continue
-        goes_where = re.sub("~[A-Z]", '', set_name)
-        to_add = set(dfs[set_name].get_column_view(0)) 
-        for letter in goes_where:
-            if not lookup[letter] in sets:
-                sets[lookup[letter]] = set()
-            sets[lookup[letter]].update(to_add)
-    return sets
-
-def dump_venn(sets, output_filename, annotator = None):
-    dfs = venn_to_dataframes(sets, annotator)
-    exptools.DF.DF2Excel().write(dfs, output_filename)
-
-
-def PlotPiechartHistogram(df, column_name, include_counts = True, include_percentage = False):
-    df = df.copy()
-    column = df.get_column_view(column_name)
-    if isinstance(column, exptools.DF.factors.Factor):
-        ordered = column.levels
-    else:
-        ordered = list(sorted(df.get_column_unique(column_name)))
-    positions = []
-    counts = []
-    current = 0
-    for value in ordered:
-        cc = numpy.sum([column == value])
-        counts.append(cc)
-        positions.append(current + cc / 2.0)
-        current += cc
-    total = current
-    labels = []
-    label_positions = []
-    for ii, cc in enumerate(counts):
-        if include_counts and include_percentage:
-            l = "%i (%.2f%%)" % (cc, float(cc) / total * 100)
-        elif include_counts:
-            l = "%i" % cc
-        elif include_percentage:
-            l = "%.2f%%" % (float(cc) / total * 100,)
-        else:
-            l = ""
-        labels.append(l)
-        label_positions.append([2, 2.25, 2.5][ii % 3])
-
-
-    count_column = 'count'
-    while count_column in df.columns_ordered:
-        count_column += 'c'
-    plot_df = exptools.DF.DataFrame({
-        'Dummy': [1] * len(counts), 
-        'Counts': counts,
-        'Values': [str(x) for x in ordered],
-        'Labels': labels,
-        'Label_positions': label_positions,
-        'y': positions
-    })
-    plot = Plot(plot_df, 'Dummy')
-    plot.add_bar("Dummy", 'Counts', fill="Values", position="stack")
-    if include_percentage or include_counts:
-        plot.add_text('Label_positions','y', 'Labels', color="Values")
-        #plot.add_segment(0, 'Label_positions', 1, 'y', color="Values")
-    plot.coord_polar(theta='y')
-    plot.hide_x_axis_labels()
-    plot.hide_x_axis_title()
-    plot.hide_axis_ticks()
-    plot.hide_y_axis_labels()
-    plot.hide_y_axis_title()
-    return plot
-
-
-
- 
-
-def doGGBarPlot(dataframe,title, xaxis, yaxis, color, facet, output_filename):
-    load_r()
-    robjects.r('library(ggplot2)')
-    ggplot = robjects.r['ggplot']
-    aes = robjects.r['aes']
-    add = robjects.r('ggplot2:::"+.ggplot"')
-    layer = robjects.r['layer']
-    facet_wrap = robjects.r['facet_wrap']
-    ggsave = robjects.r['ggsave']
-    plot = ggplot(dataframe, robjects.r('aes(%s, %s,fill=%s)' % (xaxis, yaxis, color )))
-    plot = add(plot, robjects.r('theme_bw()'))
-    plot = add(plot, layer(geom="bar",stat='identity', position='dodge'))
-    plot = add(plot, facet_wrap(robjects.r('~ %s'% facet), scale='free_x'))
-    plot = add(plot, robjects.r('scale_x_discrete()'))
-    plot = add(plot, robjects.r('scale_fill_brewer("Set1")'))
-    #plot = add(plot, robjects.r('scale_fill_grey()'))
-    #robjects.r('grob = ggplotGrob(%s)' % plot)
-    plot = add(plot, robjects.r('opts(axis.ticks.x = theme_blank())'))
-    plot = add(plot, robjects.r('opts(axis.text.x = theme_blank())'))
-    #robjects.r('grid.gedit(gPath("xaxis", "labels"), gp=gpar(fontsize=6))')
-    plot = add(plot, robjects.r('opts(title = "%s")' %  title))
-    ggsave(filename=output_filename,plot=plot, width=10, height=10)
-
-
-def doHistogramPlot(dataframe,title, xaxis, color= None,group=None,  facet = None,position='dodge',  output_filename = False):
-    load_r()
-    if not output_filename:
-        raise ValueError("You have to specify an output_filename")
-    robjects.r('library(ggplot2)')
-    ggplot = robjects.r['ggplot']
-    aes = robjects.r['aes']
-    add = robjects.r('ggplot2:::"+.ggplot"')
-    layer = robjects.r['layer']
-    facet_wrap = robjects.r['facet_wrap']
-    ggsave = robjects.r['ggsave']
-
-    aes_params = []
-    aes_params.append('%s' % xaxis)
-
-
-    if color:
-        aes_params.append('fill=%s'  % color)
-    if group:
-        aes_params.append('group=%s' % group)
-    aes_params = ", ".join(aes_params)
-    plot = ggplot(dataframe, robjects.r('aes(%s)' % (aes_params, )))
-    #plot = add(plot, robjects.r('theme_bw()'))
-    #plot = add(plot, robjects.r('scale_x_discrete()'))
-    plot = add(plot, layer(geom="bar", stat='bin', position=position))
-    if (facet):
-        plot = add(plot, facet_wrap(robjects.r('~ %s'% facet), scale='free_x'))
-    #plot = add(plot, robjects.r('scale_fill_brewer("Set1")'))
-    #plot = add(plot, robjects.r('scale_fill_grey()'))
-    #robjects.r('grob = ggplotGrob(%s)' % plot)
-    #plot = add(plot, robjects.r('opts(axis.ticks.x = theme_blank())'))
-    #plot = add(plot, robjects.r('opts(axis.text.x = theme_blank())'))
-    #robjects.r('grid.gedit(gPath("xaxis", "labels"), gp=gpar(fontsize=6))')
-    plot = add(plot, robjects.r('opts(title = "%s")' %  title))
-    ggsave(filename=output_filename,plot=plot, width=8, height=6)
-
-def doScatterPlot(dataframe, title, xaxis, yaxis, color=None, output_filename = False):
-    load_r()
-    if not output_filename:
-        raise ValueError("You have to specify an output_filename")
-    robjects.r('library(ggplot2)')
-    ggplot = robjects.r['ggplot']
-    aes = robjects.r['aes']
-    add = robjects.r('ggplot2:::"+.ggplot"')
-    layer = robjects.r['layer']
-    facet_wrap = robjects.r['facet_wrap']
-    ggsave = robjects.r['ggsave']
-
-    aes_params = []
-    aes_params.append('x=%s' % xaxis)
-    aes_params.append('y=%s' % yaxis)
-    if color:
-        aes_params.append('color=%s'  % color)
-    aes_params = ", ".join(aes_params)
-
-    plot = ggplot(dataframe, robjects.r('aes(%s)' % (aes_params, )))
-    plot = add(plot, layer(geom="point"))
-    if color:
-        plot = add(plot, robjects.r('scale_colour_gradient()'))
-    #plot = add(plot, robjects.r('scale_fill_brewer("Set1")'))
-    #plot = add(plot, robjects.r('opts(title = "%s")' %  title))
-    ggsave(filename=output_filename,plot=plot, width=8, height=6)
-
-def plotArray(numpy_array, title, xaxis_name = 'x', yaxis_name = 'y', xaxis_offset = 0, color=None,  output_filename = False):
-    load_r()
-    if not output_filename:
-        raise ValueError("You have to specify an output_filename")
-    xs = []
-    ys = []
-    for (x, y) in enumerate(numpy_array):
-        xs.append(x + xaxis_offset)
-        ys.append(y)
-    df = pydataframe.DataFrame({xaxis_name: xs, yaxis_name: ys})
-    robjects.r('library(ggplot2)')
-    ggplot = robjects.r['ggplot']
-    aes = robjects.r['aes']
-    add = robjects.r('ggplot2:::"+.ggplot"')
-    layer = robjects.r['layer']
-    facet_wrap = robjects.r['facet_wrap']
-    ggsave = robjects.r['ggsave']
-
-    aes_params = []
-    aes_params.append('x=%s' % xaxis_name)
-    aes_params.append('y=%s' % yaxis_name)
-    if color:
-        aes_params.append('color=%s'  % color)
-    aes_params = ", ".join(aes_params)
-    plot = ggplot(dataframe, robjects.r('aes(%s)' % (aes_params, )))
-    plot = add(plot, layer(geom="point"))
-    if color:
-        plot = add(plot, robjects.r('scale_colour_gradient()'))
-    ggsave(filename=output_filename)
-
-def doJitterPlot(dataframe, title, xaxis, yaxis, group=None, color=None, size=None,shape=None, output_filename = False):
-    load_r()
-    if not output_filename:
-        raise ValueError("You have to specify an output_filename")
-    robjects.r('library(ggplot2)')
-    ggplot = robjects.r['ggplot']
-    aes = robjects.r['aes']
-    add = robjects.r('ggplot2:::"+.ggplot"')
-    layer = robjects.r['layer']
-    facet_wrap = robjects.r['facet_wrap']
-    position_jitter = robjects.r['position_jitter']
-    ggsave = robjects.r['ggsave']
-
-    aes_params = []
-    aes_params.append('x=%s' % xaxis)
-    aes_params.append('y=%s' % yaxis)
-    if color:
-        aes_params.append('color=%s'  % color)
-    if group:
-        aes_params.append('group=%s' % group)
-    if size:
-        aes_params.append('size=%s' % size)
-    if shape:
-        aes_params.append('shape=%s' % shape)
-        
-    aes_params = ", ".join(aes_params)
-
-    plot = ggplot(dataframe, robjects.r('aes(%s)' % (aes_params, )))
-    plot = add(plot, layer(geom="jitter", position=position_jitter(width=0.5)))
- #   if color:
-  #      plot = add(plot, robjects.r('scale_colour_gradient()'))
-    #plot = add(plot, robjects.r('scale_fill_brewer("Set1")'))
-    #plot = add(plot, robjects.r('opts(title = "%s")' %  title))
-    ggsave(filename=output_filename,plot=plot, width=8, height=6)
+all = [Plot, SquareEuler, hilbert_plot, hilbert_to_image, plot_sequence_alignment, plot_sequences ]
 
