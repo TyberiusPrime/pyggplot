@@ -1,5 +1,5 @@
 """An implementation of hilbert plots
-( Anders: “Visualisation of genomic data with the Hilbert curve”,
+( Anders: "Visualisation of genomic data with the Hilbert curve",
      Bioinformatics, Vol. 25 (2009) pp. 1231-1235 (open access)
      http://dx.doi.org/10.1093/bioinformatics/btp152
      )
