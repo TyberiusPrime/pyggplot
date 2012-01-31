@@ -56,12 +56,27 @@ def load_r():
     }
     df
 }
+""")
+        if robjects.r("exists('Trans')")[0]:  # pre ggplot 0.9 style
+            robjects.r("""
 TransInvNegLog10 <- Trans$new("InvNegLog10", f = function(x) 10^(-x),
 inverse = function(x) -log10(x), labels = function(x) x)
 TransInvNegLog10b <- Trans$new("InvNegLog10b",
             f = function(x) -log10(x),
             inverse = function(x) 10^-x,
             labels = function(x) bquote(10^.(-x)))
+
+""")
+        else:  # post ggplot 0.9 style
+            robjects.r(""" 
+TransInvNegLog10 <- scales::trans_new(name="InvNegLog10", 
+                transform = function(x) 10^(-x), 
+                inverse = function(x) -log10(x), 
+                format = function(x) x)
+TransInvNegLog10b <- scales::trans_new(name="InvNegLog10b",
+            transform = function(x) -log10(x),
+            inverse = function(x) 10^-x,
+            format = function(x) bquote(10^.(-x)))
 
 """)
 
