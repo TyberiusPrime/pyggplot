@@ -70,7 +70,7 @@ def plot_sequences(sequences, output_filename, is_dna = True, width=7, height=2)
         sft = 'image'
         width *= 150
         height *= 150
-        surface = cairo.ImageSurface(cairo.FORMAT_RGB24, width, height)
+        surface = cairo.ImageSurface(cairo.FORMAT_RGB24, int(width), int(height))
     elif output_filename.endswith('.pdf'):
         width *= 72
         height *= 72
