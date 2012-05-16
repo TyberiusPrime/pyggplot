@@ -44,6 +44,7 @@ def load_r():
     """Lazy R loader"""
     global _r_loaded
     if not _r_loaded:
+        robjects.r('library(grid)')
         robjects.r('library(ggplot2)')
         #apperantly, as_df is missing in some downloaded versions of plyr
         robjects.r("""as_df = function (output)
@@ -691,12 +692,13 @@ class Plot:
         self._other_adds.append(robjects.r('coord_flip()'))
         return self
 
-    def coord_polar(self, theta="x", start=0, direction=1, expand=False):
+    def coord_polar(self, theta="x", start=0, direction=1):
         self._other_adds.append(robjects.r('coord_polar')(
             theta=theta,
             start=start,
             direction=direction,
-            expand=expand))
+           # expand=expand
+            ))
         return self
 
     def legend_position(self, value):
