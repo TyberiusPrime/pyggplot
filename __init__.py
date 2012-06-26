@@ -448,7 +448,7 @@ class Plot:
         legend.background = theme_rect(colour = "black"),
         legend.key = theme_rect(fill = "grey5", colour = "black"),
         legend.key.size = unit(2.2, "lines"),
-            legend.text = theme_text(size = base_size * 1, colour="white"),
+            legend.text = theme_text(size = base_size * 1, colour="white"),"
             legend.title = theme_text(size = base_size * 1, face = "bold", hjust = 0),
             legend.position = "right",
 
@@ -710,6 +710,33 @@ class Plot:
     def hide_legend(self):
         self.legend_position('none')
 
+    def guide_legend(self,**kwargs):
+        r_args = {}
+        for arg_name in [
+            "title",
+            "title_position",
+            "title_theme",
+            "title_hjust",
+            "title_vjust",
+            "label",
+            "label_position",
+            "label_theme",
+            "label_hjust",
+            "label_vjust",
+            "keywidth",
+            "keyheight",
+            "direction",
+            "default_unit",
+            "override_aes",
+            "nrow",
+            "ncol",
+            "byrow",
+            "reverse", ]:
+            if arg_name in kwargs and kwargs[arg_name] is not None: 
+                r_args[arg_name.replace('_','.')] = kwargs[arg_name]
+        return robjects.r('guide_legend')(**kwargs)
+        
+
     def hide_panel_border(self):
         self._other_adds.append(robjects.r('opts(panel.border=theme_rect(fill=NA, colour=NA))'))
 
@@ -742,28 +769,45 @@ class Plot:
     def scale_shape(self, solid=True):
         self._other_adds.append(robjects.r('scale_shape')(solid=solid))
 
-    def scale_colour_manual(self, values):
-        self._other_adds.append(robjects.r('scale_colour_manual')(values=numpy.array(values)))
+    def scale_colour_manual(self, values, guide = None):
+        kwargs = {}
+        if guide is not None:
+            kwargs['guide'] = guide
+        self._other_adds.append(robjects.r('scale_colour_manual')(values=numpy.array(values), **kwargs))
 
-    def scale_color_identity(self):
-        self._other_adds.append(robjects.r('scale_colour_identity')())
+    def scale_color_identity(self, guide = None):
+        kwargs = {}
+        if guide is not None:
+            kwargs['guide'] = guide
+        self._other_adds.append(robjects.r('scale_colour_identity')(**kwargs))
 
-    def scale_color_hue(self):
-        self._other_adds.append(robjects.r('scale_colour_hue')())
+    def scale_color_hue(self, guide = None):
+        kwargs = {}
+        if guide is not None:
+            kwargs['guide'] = guide
+        self._other_adds.append(robjects.r('scale_colour_hue')(**kwargs))
 
-    def scale_color_brewer(self, name=None, palette='Set1'):
+    def scale_color_brewer(self, name=None, palette='Set1', guide = None):
         other_params = {}
         if not name is None:
             other_params['name'] = name
         if not palette is None:
             other_params['palette'] = palette
+        if guide is not None:
+            other_params['guide'] = guide
         self._other_adds.append(robjects.r('scale_colour_brewer')(**other_params))
 
-    def scale_colour_grey(self):
-        self._other_adds.append(robjects.r('scale_colour_grey')())
+    def scale_colour_grey(self, guide = None):
+        kwargs = {}
+        if guide is not None:
+            kwargs['guide'] = guide
+        self._other_adds.append(robjects.r('scale_colour_grey')(**kwargs))
 
-    def scale_fill_grey(self):
-        self._other_adds.append(robjects.r('scale_fill_grey')())
+    def scale_fill_grey(self, guide = None):
+        kwargs = {}
+        if guide is not None:
+            kwargs['guide'] = guide
+        self._other_adds.append(robjects.r('scale_fill_grey')(**kwargs))
 
 
 def powerset(seq):
