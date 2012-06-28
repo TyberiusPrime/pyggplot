@@ -362,7 +362,7 @@ class Plot:
         return self
 
     def set_title(self, title):
-        self._other_adds.append(robjects.r('opts(title = "%s")' % title))
+        self._other_adds.append(robjects.r('opts')(title = title))
 
     def facet(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
         facet_wrap = robjects.r['facet_wrap']
@@ -630,18 +630,24 @@ class Plot:
     def hide_x_axis_title(self):
         self._other_adds.append(robjects.r('opts')(**{"axis.title.x": robjects.r('theme_blank()')}))
 
-    def scale_fill_manual(self, list_of_colors):
-        self._other_adds.append(robjects.r('scale_fill_manual')(values=numpy.array(list_of_colors)))
+    def scale_fill_manual(self, list_of_colors, guide = None):
+        kwargs = {}
+        if guide is not None: 
+            kwargs['guide'] = guide
+        kwargs['values'] = numpy.array(list_of_colors) 
+        self._other_adds.append(robjects.r('scale_fill_manual')(**kwargs))
 
-    def scale_fill_brewer(self, name=None, palette='Set1'):
+    def scale_fill_brewer(self, name=None, palette='Set1', guide = None):
         other_params = {}
         if not name is None:
             other_params['name'] = name
         if not palette is None:
             other_params['palette'] = palette
+        if guide is not None:
+            other_params['guide'] = guide
         self._other_adds.append(robjects.r('scale_fill_brewer')(**other_params))
 
-    def scale_fill_hue(self, h=None, l=None, c=None, limits=None, breaks=None, labels=None, h_start=None, direction=None):
+    def scale_fill_hue(self, h=None, l=None, c=None, limits=None, breaks=None, labels=None, h_start=None, direction=None, guide = None):
         other_params = {}
         if not h is None:
             other_params['h'] = h
@@ -659,9 +665,11 @@ class Plot:
             other_params['h.start'] = h_start
         if not direction is None:
             other_params['direction'] = direction
+        if guide is not None:
+            other_params['guide'] = guide
         self._other_adds.append(robjects.r('scale_fill_hue')(**other_params))
 
-    def scale_fill_gradient(self, low, high, mid=None, midpoint=None, name=None, space='rgb', breaks=None, labels=None, limits=None, trans=None):
+    def scale_fill_gradient(self, low, high, mid=None, midpoint=None, name=None, space='rgb', breaks=None, labels=None, limits=None, trans=None, guide = None):
         other_params = {}
         other_params['low'] = low
         other_params['high'] = high
@@ -681,6 +689,9 @@ class Plot:
             other_params['limits'] = limits
         if trans is not None:
             other_params['trans'] = trans
+        if guide is not None:
+            other_params['guide'] = guide
+        
         if mid is not None:
             self._other_adds.append(robjects.r('scale_fill_gradient2')(**other_params))
         else:
