@@ -695,9 +695,12 @@ class Plot:
         if mid is not None:
             self._other_adds.append(robjects.r('scale_fill_gradient2')(**other_params))
         else:
-            raise ValueError("Gradient 1")
             self._other_adds.append(robjects.r('scale_fill_gradient')(**other_params))
         return self
+
+    def scale_fill_rainbow(self, number_of_steps = 7):
+        self._other_adds.append(robjects.r('scale_fill_gradientn')(colours = robjects.r('rainbow')(number_of_steps)))
+
 
     def coord_flip(self):
         self._other_adds.append(robjects.r('coord_flip()'))
