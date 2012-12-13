@@ -814,6 +814,36 @@ class Plot:
             kwargs['guide'] = guide
         self._other_adds.append(robjects.r('scale_colour_grey')(**kwargs))
 
+    def scale_color_gradient(self, low, high, mid=None, midpoint=None, name=None, space='rgb', breaks=None, labels=None, limits=None, trans=None, guide = None):
+        other_params = {}
+        other_params['low'] = low
+        other_params['high'] = high
+        if midpoint is not None and mid is None:
+            raise ValueError("If you pass in a midpoint, you also need to set a value for mid")
+        if mid is not None:
+            other_params['mid'] = mid
+        if midpoint is not None:
+            other_params['midpoint'] = midpoint
+        if name is not None:
+            other_params['name'] = name
+        if space is not None:
+            other_params['space'] = space
+        if breaks is not None:
+            other_params['breaks'] = breaks
+        if limits is not None:
+            other_params['limits'] = limits
+        if trans is not None:
+            other_params['trans'] = trans
+        if guide is not None:
+            other_params['guide'] = guide
+        
+        if mid is not None:
+            self._other_adds.append(robjects.r('scale_colour_gradient2')(**other_params))
+        else:
+            raise ValueError("Gradient 1")
+            self._other_adds.append(robjects.r('scale_colour_gradient')(**other_params))
+        return self
+
     def scale_fill_grey(self, guide = None):
         kwargs = {}
         if guide is not None:
