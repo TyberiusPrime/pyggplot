@@ -246,7 +246,10 @@ class Plot:
         for param in mappings:
             self.parse_param(param, mappings[param])
 
-        self._other_adds.append(robjects.r(geom_name)(self._build_aesthetic(self.aes_collection), **self.other_collection))
+        if geom_name.startswith('annotation'):
+            self._other_adds.append(robjects.r(geom_name)( **self.other_collection))
+        else:
+            self._other_adds.append(robjects.r(geom_name)(self._build_aesthetic(self.aes_collection), **self.other_collection))
         return self
 
     def _add_geom_methods(self):
@@ -286,6 +289,8 @@ class Plot:
 
                 ('stacked_bar_plot', 'geom_bar', ['x', 'y', 'fill'], [], {'position': 'stack'}),  # do we still need this?
                 # """A scatter plat that's colored by no of overlapping points"""
+                #annotations
+                ('annotation_logticks', 'annotation_logticks', [], ['base','sides','scaled', 'short','mid', 'long',],  { 'base' : 10, 'sides' : "bl", 'scaled' : True, 'short' : robjects.r('unit')(0.1, "cm"), 'mid' : robjects.r('unit')(0.2, "cm"), 'long' : robjects.r('unit')(0.3, "cm"), }),
                 )
 
         for (name, geom, required, optional, defaults) in methods:
@@ -294,6 +299,8 @@ class Plot:
                     return self._add(name, geom, required, optional, defaults, args, kwargs)
                 return do_add
             setattr(self, 'add_' + name, define(name, geom, required, optional, defaults))
+
+
 
     def add_histogram(self, x_column, y_column="..count..", color=None, group=None, fill=None, position="dodge", add_text=False, bin_width=None, alpha=None):
         aes_params = {'x': x_column}
