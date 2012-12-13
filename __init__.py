@@ -262,7 +262,7 @@ class Plot:
                 #geoms
                 ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}),
                 ('jitter', 'geom_jitter', ['x', 'y'], ['color', 'group', 'shape', 'size', 'alpha', 'jitter_x', 'jitter_y'], {}),
-                ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order'], {'position': 'dodge', 'stat': 'identity'}),
+                ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha'], {'position': 'dodge', 'stat': 'identity'}),
                 ('box_plot', 'geom_boxplot', ['x', 'y'], ['color', 'group', 'fill', 'alpha'], {}),
                 ('box_plot2', 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['color','group','fill', 'alpha', 'stat'], {'stat': 'identity'}),
                 ('line', 'geom_line', ['x','y'], ['color', 'group', 'shape', 'alpha', 'size', 'stat', 'fun.y'], {}),
@@ -553,7 +553,7 @@ class Plot:
         )
         return self
 
-    def scale_x_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None):
+    def scale_x_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name = None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -569,12 +569,43 @@ class Plot:
             other_params['labels'] = numpy.array(labels)
         if not expand is None:
             other_params['expand'] = numpy.array(expand)
+        if not name is None:
+            other_params['name'] = name
+
         if not breaks is None and not labels is None:
                 if len(breaks) != len(labels):
                     raise ValueError("len(breaks) != len(labels)")
 
         self._other_adds.append(
             robjects.r('scale_x_discrete')(**other_params)
+        )
+        return self
+
+    def scale_y_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name = None):
+        other_params = {}
+        if not breaks is None:
+            other_params['breaks'] = numpy.array(breaks)
+        if not minor_breaks is None:
+            other_params['minor_breaks'] = numpy.array(minor_breaks)
+        if trans:
+            other_params['trans'] = str(trans)
+        if not limits is None:
+            other_params['limits'] = numpy.array(limits)
+        if not limits is None:
+            other_params['limits'] = numpy.array(limits)
+        if not labels is None:
+            other_params['labels'] = numpy.array(labels)
+        if not expand is None:
+            other_params['expand'] = numpy.array(expand)
+        if not name is None:
+            other_params['name'] = name
+
+        if not breaks is None and not labels is None:
+                if len(breaks) != len(labels):
+                    raise ValueError("len(breaks) != len(labels)")
+
+        self._other_adds.append(
+            robjects.r('scale_y_discrete')(**other_params)
         )
         return self
 
