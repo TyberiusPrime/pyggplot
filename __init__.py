@@ -264,6 +264,7 @@ class Plot:
                 ('density_2d', 'geom_density2d', ['x', 'y'], ['color', 'alpha'], {}),
                 ('rect', 'geom_rect', ['xmin', 'xmax', 'ymin', 'ymax'], ['color', 'fill', 'alpha'], {}),
                 ('tile', 'geom_tile', ['x', 'y'], ['color', 'fill', 'size', 'linetype', 'alpha'], {}),
+                ('raster', 'geom_raster', ['x', 'y'], ['fill', 'alpha'], {}),
                 ('vertical_bar', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
                 ('horizontal_bar', 'geom_hline', ['yintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
                 ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['color', 'alpha', 'size'], {'size': 0.5}),
