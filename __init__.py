@@ -95,7 +95,16 @@ class Plot:
         self.r = {}
         self.r['ggplot'] = robjects.r['ggplot']
         self.r['aes'] = robjects.r['aes']
-        self.r['add'] = robjects.r('ggplot2:::"+.ggplot"')
+        try:
+            self.r['add'] = robjects.r('ggplot2:::"+.ggplot"')
+        except Exception, e:
+            print str(e)
+            if 'not found' in str(e):
+                self.r['add'] = robjects.r('ggplot2::"%+%"')
+            else:
+                raise
+
+
         self.r['layer'] = robjects.r['layer']
         self.r['facet_wrap'] = robjects.r['facet_wrap']
         self.r['geom_text'] = robjects.r['geom_text']
@@ -250,7 +259,7 @@ class Plot:
                 #geoms
                 ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}),
                 ('jitter', 'geom_jitter', ['x', 'y'], ['color', 'group', 'shape', 'size', 'alpha', 'jitter_x', 'jitter_y'], {}),
-                ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat'], {'position': 'dodge', 'stat': 'identity'}),
+                ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order'], {'position': 'dodge', 'stat': 'identity'}),
                 ('box_plot', 'geom_boxplot', ['x', 'y'], ['color', 'group', 'fill', 'alpha'], {}),
                 ('box_plot2', 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['color','group','fill', 'alpha', 'stat'], {'stat': 'identity'}),
                 ('line', 'geom_line', ['x','y'], ['color', 'group', 'shape', 'alpha', 'size', 'stat', 'fun.y'], {}),
@@ -267,7 +276,7 @@ class Plot:
                 ('vertical_bar', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
                 ('horizontal_bar', 'geom_hline', ['yintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
                 ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['color', 'alpha', 'size'], {'size': 0.5}),
-                ('text', 'geom_text', ['x', 'y', 'label'], ['angle', 'alpha', 'size', 'hjust', 'vjust', 'fontface', 'color'], {}),
+                ('text', 'geom_text', ['x', 'y', 'label'], ['angle', 'alpha', 'size', 'hjust', 'vjust', 'fontface', 'color', 'position', 'ymax'], {'position': 'identity'}),
 
 
 
