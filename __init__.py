@@ -775,8 +775,8 @@ class Plot:
             self._other_adds.append(robjects.r('opts(axis.line = theme_segment(colour = "%s"))' % color))
 
     def hide_grid(self):
-        self._other_adds.append(robjects.r('opts(panel.grid.major = theme_line(colour = NA))'))
-        self._other_adds.append(robjects.r('opts(panel.grid.minor = theme_line(colour = NA))'))
+        self._other_adds.append(robjects.r('opts(panel.grid.major = theme_blank())'))
+        self._other_adds.append(robjects.r('opts(panel.grid.minor = theme_blank())'))
 
     def hide_grid_minor(self):
         #self._other_adds.append(robjects.r('opts(panel.grid.major = theme_line(colour = NA))'))
