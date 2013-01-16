@@ -31,6 +31,13 @@
 """A wrapper around ggplot2 ( http://had.co.nz/ggplot2/ )
 """
 
+try:
+    import exptools
+    exptools.load_software('ggplot2')
+    import ggplot2
+    ggplot2.load_r()
+except ImportError:
+    pass
 import itertools
 from ordereddict import OrderedDict
 import pydataframe
