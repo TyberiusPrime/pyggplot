@@ -253,7 +253,10 @@ class Plot:
         for param in mappings:
             self.parse_param(param, mappings[param])
 
-        self._other_adds.append(robjects.r(geom_name)(self._build_aesthetic(self.aes_collection), **self.other_collection))
+        if geom_name.startswith('annotation'):
+            self._other_adds.append(robjects.r(geom_name)( **self.other_collection))
+        else:
+            self._other_adds.append(robjects.r(geom_name)(self._build_aesthetic(self.aes_collection), **self.other_collection))
         return self
 
     def _add_geom_methods(self):
@@ -266,7 +269,7 @@ class Plot:
                 #geoms
                 ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}),
                 ('jitter', 'geom_jitter', ['x', 'y'], ['color', 'group', 'shape', 'size', 'alpha', 'jitter_x', 'jitter_y'], {}),
-                ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order'], {'position': 'dodge', 'stat': 'identity'}),
+                ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha'], {'position': 'dodge', 'stat': 'identity'}),
                 ('box_plot', 'geom_boxplot', ['x', 'y'], ['color', 'group', 'fill', 'alpha'], {}),
                 ('box_plot2', 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['color','group','fill', 'alpha', 'stat'], {'stat': 'identity'}),
                 ('line', 'geom_line', ['x','y'], ['color', 'group', 'shape', 'alpha', 'size', 'stat', 'fun.y'], {}),
@@ -280,6 +283,7 @@ class Plot:
                 ('density_2d', 'geom_density2d', ['x', 'y'], ['color', 'alpha'], {}),
                 ('rect', 'geom_rect', ['xmin', 'xmax', 'ymin', 'ymax'], ['color', 'fill', 'alpha'], {}),
                 ('tile', 'geom_tile', ['x', 'y'], ['color', 'fill', 'size', 'linetype', 'alpha'], {}),
+                ('raster', 'geom_raster', ['x', 'y'], ['fill', 'alpha'], {}),
                 ('vertical_bar', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
                 ('horizontal_bar', 'geom_hline', ['yintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
                 ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['color', 'alpha', 'size'], {'size': 0.5}),
@@ -293,6 +297,8 @@ class Plot:
 
                 ('stacked_bar_plot', 'geom_bar', ['x', 'y', 'fill'], [], {'position': 'stack'}),  # do we still need this?
                 # """A scatter plat that's colored by no of overlapping points"""
+                #annotations
+                ('annotation_logticks', 'annotation_logticks', [], ['base','sides','scaled', 'short','mid', 'long',],  { 'base' : 10, 'sides' : "bl", 'scaled' : True, 'short' : robjects.r('unit')(0.1, "cm"), 'mid' : robjects.r('unit')(0.2, "cm"), 'long' : robjects.r('unit')(0.3, "cm"), }),
                 )
 
         for (name, geom, required, optional, defaults) in methods:
@@ -301,6 +307,8 @@ class Plot:
                     return self._add(name, geom, required, optional, defaults, args, kwargs)
                 return do_add
             setattr(self, 'add_' + name, define(name, geom, required, optional, defaults))
+
+
 
     def add_histogram(self, x_column, y_column="..count..", color=None, group=None, fill=None, position="dodge", add_text=False, bin_width=None, alpha=None):
         aes_params = {'x': x_column}
@@ -552,7 +560,7 @@ class Plot:
         )
         return self
 
-    def scale_x_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None):
+    def scale_x_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name = None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -568,12 +576,43 @@ class Plot:
             other_params['labels'] = numpy.array(labels)
         if not expand is None:
             other_params['expand'] = numpy.array(expand)
+        if not name is None:
+            other_params['name'] = name
+
         if not breaks is None and not labels is None:
                 if len(breaks) != len(labels):
                     raise ValueError("len(breaks) != len(labels)")
 
         self._other_adds.append(
             robjects.r('scale_x_discrete')(**other_params)
+        )
+        return self
+
+    def scale_y_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name = None):
+        other_params = {}
+        if not breaks is None:
+            other_params['breaks'] = numpy.array(breaks)
+        if not minor_breaks is None:
+            other_params['minor_breaks'] = numpy.array(minor_breaks)
+        if trans:
+            other_params['trans'] = str(trans)
+        if not limits is None:
+            other_params['limits'] = numpy.array(limits)
+        if not limits is None:
+            other_params['limits'] = numpy.array(limits)
+        if not labels is None:
+            other_params['labels'] = numpy.array(labels)
+        if not expand is None:
+            other_params['expand'] = numpy.array(expand)
+        if not name is None:
+            other_params['name'] = name
+
+        if not breaks is None and not labels is None:
+                if len(breaks) != len(labels):
+                    raise ValueError("len(breaks) != len(labels)")
+
+        self._other_adds.append(
+            robjects.r('scale_y_discrete')(**other_params)
         )
         return self
 
@@ -777,8 +816,8 @@ class Plot:
             self._other_adds.append(robjects.r('opts(axis.line = theme_segment(colour = "%s"))' % color))
 
     def hide_grid(self):
-        self._other_adds.append(robjects.r('opts(panel.grid.major = theme_line(colour = NA))'))
-        self._other_adds.append(robjects.r('opts(panel.grid.minor = theme_line(colour = NA))'))
+        self._other_adds.append(robjects.r('opts(panel.grid.major = theme_blank())'))
+        self._other_adds.append(robjects.r('opts(panel.grid.minor = theme_blank())'))
 
     def hide_grid_minor(self):
         #self._other_adds.append(robjects.r('opts(panel.grid.major = theme_line(colour = NA))'))
@@ -832,6 +871,36 @@ class Plot:
         if guide is not None:
             kwargs['guide'] = guide
         self._other_adds.append(robjects.r('scale_colour_grey')(**kwargs))
+
+    def scale_color_gradient(self, low, high, mid=None, midpoint=None, name=None, space='rgb', breaks=None, labels=None, limits=None, trans=None, guide = None):
+        other_params = {}
+        other_params['low'] = low
+        other_params['high'] = high
+        if midpoint is not None and mid is None:
+            raise ValueError("If you pass in a midpoint, you also need to set a value for mid")
+        if mid is not None:
+            other_params['mid'] = mid
+        if midpoint is not None:
+            other_params['midpoint'] = midpoint
+        if name is not None:
+            other_params['name'] = name
+        if space is not None:
+            other_params['space'] = space
+        if breaks is not None:
+            other_params['breaks'] = breaks
+        if limits is not None:
+            other_params['limits'] = limits
+        if trans is not None:
+            other_params['trans'] = trans
+        if guide is not None:
+            other_params['guide'] = guide
+        
+        if mid is not None:
+            self._other_adds.append(robjects.r('scale_colour_gradient2')(**other_params))
+        else:
+            raise ValueError("Gradient 1")
+            self._other_adds.append(robjects.r('scale_colour_gradient')(**other_params))
+        return self
 
     def scale_fill_grey(self, guide = None):
         kwargs = {}
