@@ -283,6 +283,7 @@ class Plot:
                 ('raster', 'geom_raster', ['x', 'y'], ['fill', 'alpha'], {}),
                 ('rect', 'geom_rect', ['xmin', 'xmax', 'ymin', 'ymax'], ['color', 'fill', 'alpha'], {}),
                 ('ribbon', 'geom_ribbon', ['x', 'ymin', 'ymax'], ['color', 'fill', 'size', 'linetype', 'alpha', 'position'], {}),
+                ('rug', 'geom_rug', [], ['sides'], {'sides': 'bl'}),
                 ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}),
                 ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['color', 'alpha', 'size'], {'size': 0.5}),
                 ('text', 'geom_text', ['x', 'y', 'label'], ['angle', 'alpha', 'size', 'hjust', 'vjust', 'fontface', 'color', 'position', 'ymax'], {'position': 'identity'}),
@@ -842,6 +843,9 @@ class Plot:
         if guide is not None:
             kwargs['guide'] = guide
         self._other_adds.append(robjects.r('scale_colour_manual')(values=numpy.array(values), **kwargs))
+
+    def scale_color_manual(self, *args, **kwargs):
+        return self.scale_colour_manual(*args, **kwargs)
 
     def scale_color_identity(self, guide = None):
         kwargs = {}
