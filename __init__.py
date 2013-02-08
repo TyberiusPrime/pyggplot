@@ -390,6 +390,7 @@ class Plot:
         if ncol:
             params['ncol'] = ncol
         self._other_adds.append(facet_wrap(robjects.r(facet_specification), **params))
+        return self
 
     def facet_grid(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
         facet_wrap = robjects.r['facet_wrap']
@@ -414,6 +415,7 @@ class Plot:
         if ncol:
             params['ncol'] = ncol
         self._other_adds.append(robjects.r('facet_grid')(robjects.r(facet_specification), **params))
+        return self
 
     def greyscale(self):
         self._other_adds.append(robjects.r('scale_colour_grey()'))
