@@ -310,14 +310,17 @@ class Plot:
 
 
 
-    def add_histogram(self, x_column, y_column="..count..", color=None, group=None, fill=None, position="dodge", add_text=False, bin_width=None, alpha=None):
+    def add_histogram(self, x_column, y_column="..count..", color=None, group=None, fill=None, position="dodge", add_text=False, bin_width=None, alpha=None, size=None):
         aes_params = {'x': x_column}
         other_params = {}
         stat_params = {}
         if fill:
             aes_params['fill'] = fill
         if color:
-            aes_params['colour'] = color
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color
         if group:
             aes_params['group'] = group
             #x = x_column, y = y_column)
@@ -328,6 +331,8 @@ class Plot:
                 aes_params['alpha'] = alpha
             else:
                 other_params['alpha'] = alpha
+        if size:
+            other_params['size'] = size
         if stat_params:
             #other_params.update(stat_params)
             other_params['position'] = position
