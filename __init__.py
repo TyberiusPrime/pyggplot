@@ -53,6 +53,7 @@ def load_r():
     if not _r_loaded:
         robjects.r('library(grid)')
         robjects.r('library(ggplot2)')
+        robjects.r('library(scales)')
         #apperantly, as_df is missing in some downloaded versions of plyr
         robjects.r("""as_df = function (output)
 {
@@ -456,6 +457,12 @@ class Plot:
             kwargs['base_size'] = float(base_size)
         self._other_adds.append(robjects.r('theme_bw')(**kwargs))
 
+    def theme_grey(self, base_size=None):
+        kwargs = {}
+        if base_size:
+            kwargs['base_size'] = float(base_size)
+        self._other_adds.append(robjects.r('theme_grey')(**kwargs))
+    
     def theme_darktalk(self, base_size=None):
         kwargs = {}
         if base_size:
@@ -510,7 +517,7 @@ class Plot:
         self._other_adds.append(robjects.r('theme_talk')(**kwargs))
 
     def set_base_size(self, base_size=10):
-        self.theme_bw(base_size=base_size)
+        self.theme_grey(base_size=base_size)
 
     def add_label(self, text, xpos, ypos, size=8, color=None, alpha=None):
         import pydataframe
@@ -539,31 +546,50 @@ class Plot:
         return self
 
     def scale_x_continuous(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, formatter=None, name=None):
+        return self.scale_continuous('x', breaks, minor_breaks, trans, limits, labels, expand, name)
+
+    def scale_y_continuous(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
+        return self.scale_continuous('y', breaks, minor_breaks, trans, limits,  labels, expand, name)
+
+    def scale_continuous(self, scale = 'x', breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
         other_params = {}
         if not breaks is None:
-            other_params['breaks'] = numpy.array(breaks)
+            if breaks in ('date', 'log', 'pretty', 'trans'):
+                other_params['breaks'] = robjects.r('%s_breaks' % breaks)()
+                breaks = None
+            else:
+                other_params['breaks'] = numpy.array(breaks)
         if not minor_breaks is None:
-            other_params['minor_breaks'] = numpy.array(minor_breaks)
+            if minor_breaks == 'waiver()':
+                other_params['minor_breaks'] = robjects.r('waiver()')
+            else:
+                other_params['minor_breaks'] = numpy.array(minor_breaks)
         if trans:
             other_params['trans'] = str(trans)
         if not limits is None:
             other_params['limits'] = numpy.array(limits)
-        if not limits is None:
-            other_params['limits'] = numpy.array(limits)
         if not labels is None:
-            other_params['labels'] = numpy.array(labels)
+            if labels in ( 'comma', 'dollar', 'percent', 'scientific', 'date', 'parse', 'format', ):
+                other_params['labels'] = robjects.r("%s_format" %labels)()
+                labels = None
+            #elif labels.startswith('math_format') or labels.startswith('trans_format'):
+                #other_params['labels'] = robjects.r(labels)
+                #labels = None
+            elif hasattr(labels, '__iter__'):
+                other_params['labels'] = numpy.array(labels)
+            else:
+                other_params['labels'] = robjects.r(labels)
+                labels = None
         if not expand is None:
             other_params['expand'] = numpy.array(expand)
         if not breaks is None and not labels is None:
-                if len(breaks) != len(labels):
-                    raise ValueError("len(breaks) != len(labels)")
-        if not formatter is None:
-            other_params['formatter'] = formatter
+            if len(breaks) != len(labels):
+                raise ValueError("len(breaks) != len(labels)")
         if not name is None:
             other_params['name'] = name
 
         self._other_adds.append(
-            robjects.r('scale_x_continuous')(**other_params)
+            robjects.r('scale_%s_continuous' % scale)(**other_params)
         )
         return self
 
@@ -575,8 +601,6 @@ class Plot:
             other_params['minor_breaks'] = numpy.array(minor_breaks)
         if trans:
             other_params['trans'] = str(trans)
-        if not limits is None:
-            other_params['limits'] = numpy.array(limits)
         if not limits is None:
             other_params['limits'] = numpy.array(limits)
         if not labels is None:
@@ -605,8 +629,6 @@ class Plot:
             other_params['trans'] = str(trans)
         if not limits is None:
             other_params['limits'] = numpy.array(limits)
-        if not limits is None:
-            other_params['limits'] = numpy.array(limits)
         if not labels is None:
             other_params['labels'] = numpy.array(labels)
         if not expand is None:
@@ -623,33 +645,6 @@ class Plot:
         )
         return self
 
-    def scale_y_continuous(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
-        other_params = {}
-        if not breaks is None:
-            if breaks != 'NA':
-                other_params['breaks'] = numpy.array(breaks)
-            else:
-                other_params['breaks'] = robjects.r("NA")
-        if not minor_breaks is None:
-            other_params['minor_breaks'] = numpy.array(minor_breaks)
-        if not trans is None:
-            other_params['trans'] = str(trans)
-        if not limits is None:
-            other_params['limits'] = numpy.array(limits)
-        if not labels is None:
-            other_params['labels'] = numpy.array(labels)
-        if not expand is None:
-            other_params['expand'] = numpy.array(expand)
-        if not name is None:
-            other_params['name'] = name
-        if not breaks is None and not labels is None:
-                if len(breaks) != len(labels):
-                    raise ValueError("len(breaks) != len(labels)")
-
-        self._other_adds.append(
-            robjects.r('scale_y_continuous')(**other_params)
-        )
-        return self
 
     def scale_x_reverse(self):
         self._other_adds.append(robjects.r('scale_x_reverse()'))
