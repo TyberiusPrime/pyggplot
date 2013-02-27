@@ -948,9 +948,130 @@ def union(list_of_sects):
 def _no_annotation(set_name, set_entries):
     return {set_name: set_entries}
 
+def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='red', high = 'blue', mid='white', hide_genes = True ):
+    """This code plots a heatmap + dendrogram.
+    (unlike add_heatmap, which just does the squares on an existing plot)
+    @data is a df of {'gene':, 'condition':, 'expression(change)'}
+    nan, is translated to 0, infinity to infinity_replacement_value (or -1 for negative infinity).
+
+    Clustering is performed using the cosine distance - on the genes.
+
+    @low, high, mid allow you to modify the colors
+
+    It's using ggplot and ggdendro... very neat, but not easy to graps"""
+    df = data
+    #R's scale NaNs everything on any of these values...
+    df[numpy.isnan(df.get_column_view('expression_change')), 'expression_change'] = 0
+    df[numpy.isposinf(df.get_column_view('expression_change')), 'expression_change'] = infinity_replacement_value
+    df[numpy.isneginf(df.get_column_view('expression_change')), 'expression_change'] = -1 * infinity_replacement_value
+    robjects.r("""
+    normvec<-function(x) 
+    {
+       sqrt(x%*%x)
+    }
+    cosine_distance = function(a, b)
+    {
+       1 - ((a %*% b) / ( normvec(a) * normvec(b)))[1]
+    }
+
+    dist_cosine = function(x)
+    {
+       x = as.matrix(x)
+       N = nrow(x)
+       res = matrix(0, nrow = N, ncol= N)
+       for (i in 1:N)
+       {
+           for (t in 1:N)
+           {
+              res[i,t] = cosine_distance(x[i,], x[t,])
+           }
+       }
+       as.dist(res)
+    }
+    """)
+    robjects.r("""
+    library(ggplot2)
+    library(reshape)
+    library(ggdendro) 
+    library(grid) 
+
+    do_tha_funky_heatmap = function(outputfilename, df, low, mid, high, hide_genes, width, height)
+    {
+        df_cast = cast(df, gene ~ condition, value='expression_change') 
+        df_scaled = as.matrix(scale(df_cast, FALSE, FALSE))
+        dd.col <- as.dendrogram(hclust(dist_cosine(df_scaled)))
+        col.ord <- order.dendrogram(dd.col)
+
+        dd.row <- as.dendrogram(hclust(dist_cosine(t(df_scaled))))
+        row.ord <- order.dendrogram(dd.row)
+
+        xx <- scale(df_cast, FALSE, FALSE)[col.ord, row.ord]
+        xx_names <- attr(xx, 'dimnames')
+        df <- as.data.frame(xx)
+        colnames(df) <- xx_names[[2]]
+        df$gene <- xx_names[[1]]
+        df$gene <- with(df, factor(gene, levels=gene, ordered=TRUE))
+        mdf <- melt(df, id.vars="gene")
+        print(mdf)
+
+        ddata_x <- dendro_data(dd.row)
+        ddata_y <- dendro_data(dd.col)
+
+        ### Set up a blank theme
+        theme_none <- opts(
+            panel.grid.major = theme_blank(),
+            panel.grid.minor = theme_blank(),
+            panel.background = theme_blank(),
+            axis.title.x = theme_text(colour=NA),
+            axis.title.y = theme_blank(),
+            axis.text.x = theme_blank(),
+            axis.text.y = theme_blank(),
+            axis.line = theme_blank()
+            #axis.ticks.length = theme_blank()
+            )
+
+        ### Create plot components ###    
+        # Heatmap
+        p1 <- ggplot(mdf, aes(x=variable, y=gene)) + 
+            geom_tile(aes(fill=value)) + scale_fill_gradient2(low=low,mid=mid, high=high) + 
+            opts(axis.text.x = theme_text(angle=90, size=8, hjust=0, vjust=0))
+        if (hide_genes)
+            p1 = p1 + opts(axis.text.y = theme_blank())
+
+        # Dendrogram 1
+        print (ddata_x)
+        p2 <- ggplot(segment(ddata_x)) + 
+            geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) + 
+            theme_none + opts(axis.title.x=theme_blank())
+
+        # Dendrogram 2
+        p3 <- ggplot(segment(ddata_y)) + 
+            geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) + 
+            coord_flip() + theme_none
+        if (grepl('png$', outputfilename))
+            png(outputfilename, width=width * 72, height=height * 72)
+        else if (grepl('pdf$', outputfilename))
+            pdf(outputfilename, width=width, height=height)
+        else
+            error("Don't know that file format")
+        grid.newpage()
+        print(p1, vp=viewport(0.8, 0.8, x=0.4, y=0.4))
+        print(p2, vp=viewport(0.52, 0.2, x=0.45, y=0.9))
+        print(p3, vp=viewport(0.2, 0.8, x=0.9, y=0.4))
+        dev.off()
+    }
+    """)
+    width = len(df.get_column_unique('condition')) * 0.4 + 5
+    height = len(df.get_column_unique('gene')) * 0.15 + 3
+    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, hide_genes, width, height)
+
+
+
 
 from square_euler import SquareEuler
 from hilbert import hilbert_plot, hilbert_to_image
 from sequence_logos import plot_sequences, plot_sequence_alignment
 
-all = [Plot, SquareEuler, hilbert_plot, hilbert_to_image, plot_sequence_alignment, plot_sequences]
+
+all = [Plot, SquareEuler, hilbert_plot, hilbert_to_image, plot_sequence_alignment, plot_sequences, plot_heatmap]
+
