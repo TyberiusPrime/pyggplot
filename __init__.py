@@ -948,17 +948,21 @@ def union(list_of_sects):
 def _no_annotation(set_name, set_entries):
     return {set_name: set_entries}
 
-def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='red', high = 'blue', mid='white', hide_genes = True ):
+def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='red', high = 'blue', mid='white', hide_genes = True, array_cluster = 'cosine',
+        x_label = 'Condition', y_label = 'Gene'):
     """This code plots a heatmap + dendrogram.
     (unlike add_heatmap, which just does the squares on an existing plot)
     @data is a df of {'gene':, 'condition':, 'expression(change)'}
-    nan, is translated to 0, infinity to infinity_replacement_value (or -1 for negative infinity).
+    nan, is translated to 0, infinity to infinity_replacement_value (or -1 * infinity_replacement_value for negative infinity).
 
     Clustering is performed using the cosine distance - on the genes.
 
     @low, high, mid allow you to modify the colors
 
     It's using ggplot and ggdendro... very neat, but not easy to graps"""
+    valid_array_cluster = 'hamming_on_0', 'cosine'
+    if not array_cluster in valid_array_cluster:
+        raise ValueError("only accepts array_cluster methods %s" % valid_array_cluster)
     df = data
     #R's scale NaNs everything on any of these values...
     df[numpy.isnan(df.get_column_view('expression_change')), 'expression_change'] = 0
@@ -988,6 +992,26 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
        }
        as.dist(res)
     }
+
+    hamming_distance = function(a, b)
+    {
+        sum(a != b)
+    }
+
+    dist_hamming = function(x)
+    {
+       x = as.matrix(x)
+       N = nrow(x)
+       res = matrix(0, nrow = N, ncol= N)
+       for (i in 1:N)
+       {
+           for (t in 1:N)
+           {
+              res[i,t] = hamming_distance(x[i,], x[t,])
+           }
+       }
+       as.dist(res)
+    }
     """)
     robjects.r("""
     library(ggplot2)
@@ -995,14 +1019,25 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
     library(ggdendro) 
     library(grid) 
 
-    do_tha_funky_heatmap = function(outputfilename, df, low, mid, high, hide_genes, width, height)
+    do_tha_funky_heatmap = function(outputfilename, df, low, mid, high, hide_genes, width, height, array_cluster)
     {
         df_cast = cast(df, gene ~ condition, value='expression_change') 
-        df_scaled = as.matrix(scale(df_cast, FALSE, FALSE))
+        df_scaled = as.matrix(scale(df_cast))
+
         dd.col <- as.dendrogram(hclust(dist_cosine(df_scaled)))
         col.ord <- order.dendrogram(dd.col)
+    
+        if (array_cluster == 'cosine')
+        {
+            dd.row <- as.dendrogram(hclust(dist_cosine(t(df_scaled))))
+        }
+        else if (array_cluster == 'hamming_on_0') 
+        {
+            df_hamming = as.matrix(df_cast) > 0
+            dd.row <- as.dendrogram(hclust(dist_hamming(t(df_hamming))))
+        }
 
-        dd.row <- as.dendrogram(hclust(dist_cosine(t(df_scaled))))
+        col.ord <- order.dendrogram(dd.col) 
         row.ord <- order.dendrogram(dd.row)
 
         xx <- scale(df_cast, FALSE, FALSE)[col.ord, row.ord]
@@ -1033,8 +1068,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
         ### Create plot components ###    
         # Heatmap
         p1 <- ggplot(mdf, aes(x=variable, y=gene)) + 
-            geom_tile(aes(fill=value)) + scale_fill_gradient2(low=low,mid=mid, high=high) + 
-            opts(axis.text.x = theme_text(angle=90, size=8, hjust=0, vjust=0))
+            geom_tile(aes(fill=value)) + scale_fill_gradient2(low=low,mid=mid, high=high) + opts(axis.text.x = theme_text(angle=90, size=8, hjust=0, vjust=0))
         if (hide_genes)
             p1 = p1 + opts(axis.text.y = theme_blank())
 
@@ -1056,14 +1090,14 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
             error("Don't know that file format")
         grid.newpage()
         print(p1, vp=viewport(0.8, 0.8, x=0.4, y=0.4))
-        print(p2, vp=viewport(0.52, 0.2, x=0.45, y=0.9))
-        print(p3, vp=viewport(0.2, 0.8, x=0.9, y=0.4))
+        print(p2, vp=viewport(0.60, 0.2, x=0.4, y=0.9))
+        print(p3, vp=viewport(0.2, 0.86, x=0.9, y=0.4))
         dev.off()
     }
     """)
     width = len(df.get_column_unique('condition')) * 0.4 + 5
     height = len(df.get_column_unique('gene')) * 0.15 + 3
-    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, hide_genes, width, height)
+    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, hide_genes, width, height, array_cluster)
 
 
 
