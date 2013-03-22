@@ -968,6 +968,12 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
     df[numpy.isnan(df.get_column_view('expression_change')), 'expression_change'] = 0
     df[numpy.isposinf(df.get_column_view('expression_change')), 'expression_change'] = infinity_replacement_value
     df[numpy.isneginf(df.get_column_view('expression_change')), 'expression_change'] = -1 * infinity_replacement_value
+    if len(output_filename) < 3:
+        output_filename = output_filename+'.pdf'
+    else:
+        file_extension = output_filename[-3:].lower()
+        if ~(file_extension == 'pdf' or file_extension == 'png'):
+            output_filename = output_filename+'.pdf'
     robjects.r("""
     normvec<-function(x) 
     {
