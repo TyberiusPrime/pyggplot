@@ -949,7 +949,7 @@ def _no_annotation(set_name, set_entries):
     return {set_name: set_entries}
 
 def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='red', high = 'blue', mid='white', hide_genes = True, array_cluster = 'cosine',
-        x_label = 'Condition', y_label = 'Gene'):
+        x_label = 'Condition', y_label = 'Gene', keep_column_order = False, keep_row_order = False, colors = None):
     """This code plots a heatmap + dendrogram.
     (unlike add_heatmap, which just does the squares on an existing plot)
     @data is a df of {'gene':, 'condition':, 'expression(change)'}
@@ -964,16 +964,19 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
     if not array_cluster in valid_array_cluster:
         raise ValueError("only accepts array_cluster methods %s" % valid_array_cluster)
     df = data
+    if colors == None:
+        colors = ['grey' for x in range(len(data))]
+    colors = robjects.StrVector(colors)
     #R's scale NaNs everything on any of these values...
     df[numpy.isnan(df.get_column_view('expression_change')), 'expression_change'] = 0
     df[numpy.isposinf(df.get_column_view('expression_change')), 'expression_change'] = infinity_replacement_value
     df[numpy.isneginf(df.get_column_view('expression_change')), 'expression_change'] = -1 * infinity_replacement_value
-    if len(output_filename) < 3:
-        output_filename = output_filename+'.pdf'
-    else:
-        file_extension = output_filename[-3:].lower()
-        if ~(file_extension == 'pdf' or file_extension == 'png'):
-            output_filename = output_filename+'.pdf'
+    #if len(output_filename) < 3:
+    #    raise ValueError('File extension must be .pdf or .png, outfile was '+output_filename)
+    #else:
+    #    file_extension = output_filename[-3:].lower()
+    #    if not (file_extension == 'pdf' or file_extension == 'png'):
+    #        raise ValueError('File extension must be .pdf or .png, outfile was '+output_filename)
     robjects.r("""
     normvec<-function(x) 
     {
@@ -1025,14 +1028,13 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
     library(ggdendro) 
     library(grid) 
 
-    do_tha_funky_heatmap = function(outputfilename, df, low, mid, high, hide_genes, width, height, array_cluster)
+    do_tha_funky_heatmap = function(outputfilename, df, low, mid, high, hide_genes, width, height, array_cluster, keep_column_order, keep_row_order, colors)
     {
         df_cast = cast(df, gene ~ condition, value='expression_change') 
         df_scaled = as.matrix(scale(df_cast))
 
+        print(df_cast)
         dd.col <- as.dendrogram(hclust(dist_cosine(df_scaled)))
-        col.ord <- order.dendrogram(dd.col)
-    
         if (array_cluster == 'cosine')
         {
             dd.row <- as.dendrogram(hclust(dist_cosine(t(df_scaled))))
@@ -1042,9 +1044,25 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
             df_hamming = as.matrix(df_cast) > 0
             dd.row <- as.dendrogram(hclust(dist_hamming(t(df_hamming))))
         }
-
-        col.ord <- order.dendrogram(dd.col) 
-        row.ord <- order.dendrogram(dd.row)
+        
+        if (keep_column_order)
+        {
+            col.ord <- 1:attr(dd.col, "members")
+        }
+        else
+        {
+            col.ord <- order.dendrogram(dd.col) 
+            print(col.ord)
+        }
+        
+        if (keep_row_order)
+        {
+            row.ord <- 1:attr(dd.row, "members")
+        }
+        else
+        {
+            row.ord <- order.dendrogram(dd.row)
+        }
 
         xx <- scale(df_cast, FALSE, FALSE)[col.ord, row.ord]
         xx_names <- attr(xx, 'dimnames')
@@ -1070,24 +1088,33 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
             axis.line = theme_blank()
             #axis.ticks.length = theme_blank()
             )
-
+        print("Create plot")
         ### Create plot components ###    
         # Heatmap
         p1 <- ggplot(mdf, aes(x=variable, y=gene)) + 
             geom_tile(aes(fill=value)) + scale_fill_gradient2(low=low,mid=mid, high=high) + opts(axis.text.x = theme_text(angle=90, size=8, hjust=0, vjust=0))
         if (hide_genes)
             p1 = p1 + opts(axis.text.y = theme_blank())
+        else
+        {
+            p1 = p1 + opts(strip.background = theme_rect(colour = 'NA', fill = 'NA'), axis.text.y = theme_text(colour=colors))
+        }
+        if (!keep_column_order)
+        {
+            # Dendrogram 1
+            print (ddata_x)
+            p2 <- ggplot(segment(ddata_x)) + 
+                geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) + 
+                theme_none + opts(axis.title.x=theme_blank())
+        }
 
-        # Dendrogram 1
-        print (ddata_x)
-        p2 <- ggplot(segment(ddata_x)) + 
-            geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) + 
-            theme_none + opts(axis.title.x=theme_blank())
-
-        # Dendrogram 2
-        p3 <- ggplot(segment(ddata_y)) + 
-            geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) + 
-            coord_flip() + theme_none
+        if(!keep_row_order)
+        {
+            # Dendrogram 2
+            p3 <- ggplot(segment(ddata_y)) + 
+                geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) + 
+                coord_flip() + theme_none
+        }
         if (grepl('png$', outputfilename))
             png(outputfilename, width=width * 72, height=height * 72)
         else if (grepl('pdf$', outputfilename))
@@ -1096,14 +1123,21 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
             error("Don't know that file format")
         grid.newpage()
         print(p1, vp=viewport(0.8, 0.8, x=0.4, y=0.4))
-        print(p2, vp=viewport(0.60, 0.2, x=0.4, y=0.9))
-        print(p3, vp=viewport(0.2, 0.86, x=0.9, y=0.4))
+         print("1123")
+        if (!keep_column_order)
+        {
+            print(p2, vp=viewport(0.60, 0.2, x=0.4, y=0.9))
+        }
+        if (!keep_row_order)
+        {
+            print(p3, vp=viewport(0.2, 0.86, x=0.9, y=0.4))
+        }
         dev.off()
     }
     """)
     width = len(df.get_column_unique('condition')) * 0.4 + 5
     height = len(df.get_column_unique('gene')) * 0.15 + 3
-    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, hide_genes, width, height, array_cluster)
+    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, hide_genes, width, height, array_cluster, keep_row_order, keep_column_order, colors)
 
 
 
