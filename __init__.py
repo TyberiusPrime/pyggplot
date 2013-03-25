@@ -1034,36 +1034,36 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
         df_scaled = as.matrix(scale(df_cast))
 
         print(df_cast)
-        dd.col <- as.dendrogram(hclust(dist_cosine(df_scaled)))
+        dd.row <- as.dendrogram(hclust(dist_cosine(df_scaled)))
         if (array_cluster == 'cosine')
         {
-            dd.row <- as.dendrogram(hclust(dist_cosine(t(df_scaled))))
+            dd.col <- as.dendrogram(hclust(dist_cosine(t(df_scaled))))
         }
         else if (array_cluster == 'hamming_on_0') 
         {
             df_hamming = as.matrix(df_cast) > 0
-            dd.row <- as.dendrogram(hclust(dist_hamming(t(df_hamming))))
+            dd.col <- as.dendrogram(hclust(dist_hamming(t(df_hamming))))
         }
         if (keep_row_order)
-        {
-            col.ord <- 1:attr(dd.col, "members")
-        }
-        else
-        {
-            col.ord <- order.dendrogram(dd.col) 
-        }
-        
-        
-        if (keep_column_order)
         {
             row.ord <- 1:attr(dd.row, "members")
         }
         else
         {
-            row.ord <- order.dendrogram(dd.row)
+            row.ord <- order.dendrogram(dd.row) 
         }
         
-        xx <- scale(df_cast, FALSE, FALSE)[col.ord, row.ord]
+        
+        if (keep_column_order)
+        {
+            col.ord <- 1:attr(dd.col, "members")
+        }
+        else
+        {
+            col.ord <- order.dendrogram(dd.col)
+        }
+        
+        xx <- scale(df_cast, FALSE, FALSE)[row.ord, col.ord]
         xx_names <- attr(xx, 'dimnames')
         df <- as.data.frame(xx)
         colnames(df) <- xx_names[[2]]
@@ -1082,8 +1082,8 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
             i = i +1    
         }
         colors = tmp
-        ddata_x <- dendro_data(dd.row)
-        ddata_y <- dendro_data(dd.col)
+        ddata_x <- dendro_data(dd.col)
+        ddata_y <- dendro_data(dd.row)
 
         ### Set up a blank theme
         theme_none <- opts(
