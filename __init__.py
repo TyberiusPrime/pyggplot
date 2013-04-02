@@ -41,7 +41,6 @@ except ImportError:
 import itertools
 from ordereddict import OrderedDict
 import pydataframe
-import rpy2.robjects as robjects
 import numpy
 
 _r_loaded = False
@@ -51,6 +50,10 @@ def load_r():
     """Lazy R loader"""
     global _r_loaded
     if not _r_loaded:
+        global NA
+        global robjects
+        import rpy2.robjects as robjects
+        NA = robjects.r("NA")
         robjects.r('library(grid)')
         robjects.r('library(ggplot2)')
         robjects.r('library(scales)')
@@ -93,7 +96,6 @@ TransInvNegLog10b <- scales::trans_new(name="InvNegLog10b",
 def r_expression(expr):
     return robjects.r('expression(%s)' % expr)
 
-NA = robjects.r("NA")
 
 
 class Plot:
