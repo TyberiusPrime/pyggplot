@@ -1147,6 +1147,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
 from square_euler import SquareEuler
 from hilbert import hilbert_plot, hilbert_to_image
 from sequence_logos import plot_sequences, plot_sequence_alignment
+from kaplan_meier improt plot_kaplan_meier
 
 
 all = [Plot, SquareEuler, hilbert_plot, hilbert_to_image, plot_sequence_alignment, plot_sequences, plot_heatmap]
