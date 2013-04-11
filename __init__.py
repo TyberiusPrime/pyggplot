@@ -948,11 +948,11 @@ def union(list_of_sects):
 def _no_annotation(set_name, set_entries):
     return {set_name: set_entries}
 
-def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='red', high = 'blue', mid='white', hide_genes = True, array_cluster = 'cosine',
+def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='blue', high = 'red', mid='white', hide_genes = True, array_cluster = 'cosine',
         x_label = 'Condition', y_label = 'Gene'):
     """This code plots a heatmap + dendrogram.
     (unlike add_heatmap, which just does the squares on an existing plot)
-    @data is a df of {'gene':, 'condition':, 'expression(change)'}
+    @data is a df of {'gene':, 'condition':, 'expression_change'}
     nan, is translated to 0, infinity to infinity_replacement_value (or -1 * infinity_replacement_value for negative infinity).
 
     Clustering is performed using the cosine distance - on the genes.
@@ -1021,6 +1021,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
 
     do_tha_funky_heatmap = function(outputfilename, df, low, mid, high, hide_genes, width, height, array_cluster)
     {
+        options(expressions = 50000)
         df_cast = cast(df, gene ~ condition, value='expression_change') 
         df_scaled = as.matrix(scale(df_cast))
 
