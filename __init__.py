@@ -953,7 +953,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
         x_label = 'Condition', y_label = 'Gene', keep_column_order = False, keep_row_order = False, colors = None, hide_tree = False):
     """This code plots a heatmap + dendrogram.
     (unlike add_heatmap, which just does the squares on an existing plot)
-    @data is a df of {'gene':, 'condition':, 'expression(change)'}
+    @data is a df of {'gene':, 'condition':, 'expression_change'}
     nan, is translated to 0, infinity to infinity_replacement_value (or -1 * infinity_replacement_value for negative infinity).
 
     Clustering is performed using the cosine distance - on the genes.
@@ -1032,6 +1032,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
 
     do_tha_funky_heatmap = function(outputfilename, df, low, mid, high, hide_genes, width, height, array_cluster, keep_column_order, keep_row_order, colors, hide_tree)
     {
+        options(expressions = 50000)
         df_cast = cast(df, gene ~ condition, value='expression_change') 
         df_scaled = as.matrix(scale(df_cast))
 
