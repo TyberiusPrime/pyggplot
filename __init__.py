@@ -961,12 +961,13 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
     @low, high, mid allow you to modify the colors
 
     It's using ggplot and ggdendro... very neat, but not easy to graps"""
+    load_r()
     valid_array_cluster = 'hamming_on_0', 'cosine'
     if not array_cluster in valid_array_cluster:
         raise ValueError("only accepts array_cluster methods %s" % valid_array_cluster)
     df = data
-    #if colors == None:
-    #    colors = ['grey' for x in range(len(data))]
+    if colors == None:
+        colors = ['grey' for x in range(len(data))]
     
    
     #R's scale NaNs everything on any of these values...
@@ -1104,7 +1105,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
         ### Create plot components ###    
         # Heatmap
         p1 <- ggplot(mdf, aes(x=variable, y=gene)) + 
-            geom_tile(aes(fill=value)) + scale_fill_gradient2(low=low,mid=mid, high=high) + opts(axis.text.x = theme_text(colour = "black", angle=0, size=8, hjust=0.5, vjust=0))
+            geom_tile(aes(fill=value)) + scale_fill_gradient2(low=low,mid=mid, high=high) + opts(axis.text.x = theme_text(colour = "black", angle=90, size=8, hjust=0.5, vjust=0))
         if (hide_genes)
             p1 = p1 + opts(axis.text.y = theme_blank())
         else
