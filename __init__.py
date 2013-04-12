@@ -948,8 +948,8 @@ def union(list_of_sects):
 def _no_annotation(set_name, set_entries):
     return {set_name: set_entries}
 
-def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='red', high = 'blue', mid='white', hide_genes = True, array_cluster = 'cosine',
-        x_label = 'Condition', y_label = 'Gene'):
+def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='blue', high = 'red', mid='white', nan_color = 'grey50', hide_genes = True, array_cluster = 'cosine',
+        x_label = 'Condition', y_label = 'Gene', exclude_those_with_too_many_nans_in_y_clustering = False):
     """This code plots a heatmap + dendrogram.
     (unlike add_heatmap, which just does the squares on an existing plot)
     @data is a df of {'gene':, 'condition':, 'expression(change)'}
@@ -965,7 +965,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
         raise ValueError("only accepts array_cluster methods %s" % valid_array_cluster)
     df = data
     #R's scale NaNs everything on any of these values...
-    df[numpy.isnan(df.get_column_view('expression_change')), 'expression_change'] = 0
+    #df[numpy.isnan(df.get_column_view('expression_change')), 'expression_change'] = 0
     df[numpy.isposinf(df.get_column_view('expression_change')), 'expression_change'] = infinity_replacement_value
     df[numpy.isneginf(df.get_column_view('expression_change')), 'expression_change'] = -1 * infinity_replacement_value
     robjects.r("""
@@ -1019,12 +1019,33 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
     library(ggdendro) 
     library(grid) 
 
-    do_tha_funky_heatmap = function(outputfilename, df, low, mid, high, hide_genes, width, height, array_cluster)
+    do_tha_funky_heatmap = function(outputfilename, df, low, mid, high, nan_color, hide_genes, width, height, array_cluster, exclude_those_with_too_many_nans_in_y_clustering)
     {
         df_cast = cast(df, gene ~ condition, value='expression_change') 
+        print(df_cast)
         df_scaled = as.matrix(scale(df_cast))
+        print( df_scaled)
 
-        dd.col <- as.dendrogram(hclust(dist_cosine(df_scaled)))
+        df_scaled[is.nan(df_scaled)] = 0
+        df_scaled[is.na(df_scaled)] = 0
+
+        #print(is.nan(df_scaled))
+        #print( df_scaled)
+        #print(dist_cosine(df_scaled))
+        if (exclude_those_with_too_many_nans_in_y_clustering)
+        {
+            df_scaled_with_nans = as.matrix(scale(df_cast)) #we need it a new, with nans
+            nan_count_per_column = colSums(is.na(df_scaled_with_nans))
+            too_much = dim(df_scaled_with_nans)[1] / 4.0
+            exclude = nan_count_per_column >= too_much
+            keep = !exclude
+            df_scaled_with_nans = df_scaled_with_nans[, keep]
+            df_scaled_with_nans[is.nan(df_scaled_with_nans)] = 0
+            df_scaled_with_nans[is.na(df_scaled_with_nans)] = 0
+            dd.col <- as.dendrogram(hclust(dist_cosine(df_scaled_with_nans)))
+        }
+        else
+            dd.col <- as.dendrogram(hclust(dist_cosine(df_scaled)))
         col.ord <- order.dendrogram(dd.col)
     
         if (array_cluster == 'cosine')
@@ -1034,10 +1055,11 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
         else if (array_cluster == 'hamming_on_0') 
         {
             df_hamming = as.matrix(df_cast) > 0
+            df_hamming[is.nan(df_hamming)] = 0
+            df_hamming[is.na(df_hamming)] = 0
             dd.row <- as.dendrogram(hclust(dist_hamming(t(df_hamming))))
         }
 
-        col.ord <- order.dendrogram(dd.col) 
         row.ord <- order.dendrogram(dd.row)
 
         xx <- scale(df_cast, FALSE, FALSE)[col.ord, row.ord]
@@ -1061,19 +1083,20 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
             axis.title.y = theme_blank(),
             axis.text.x = theme_blank(),
             axis.text.y = theme_blank(),
-            axis.line = theme_blank()
-            #axis.ticks.length = theme_blank()
+            axis.line = theme_blank(),
+            axis.ticks = theme_blank()
             )
 
         ### Create plot components ###    
         # Heatmap
         p1 <- ggplot(mdf, aes(x=variable, y=gene)) + 
-            geom_tile(aes(fill=value)) + scale_fill_gradient2(low=low,mid=mid, high=high) + opts(axis.text.x = theme_text(angle=90, size=8, hjust=0, vjust=0))
+            geom_tile(aes(fill=value)) + scale_fill_gradient2(low=low,mid=mid, high=high, na.value=nan_color) + opts(axis.text.x = theme_text(angle=90, size=8, hjust=0, vjust=0, colour="black"),
+            axis.title.y = theme_blank(), axis.title.x = theme_blank(),
+            axis.text.y = theme_text(colour="black"))
         if (hide_genes)
             p1 = p1 + opts(axis.text.y = theme_blank())
 
         # Dendrogram 1
-        print (ddata_x)
         p2 <- ggplot(segment(ddata_x)) + 
             geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) + 
             theme_none + opts(axis.title.x=theme_blank())
@@ -1097,7 +1120,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='re
     """)
     width = len(df.get_column_unique('condition')) * 0.4 + 5
     height = len(df.get_column_unique('gene')) * 0.15 + 3
-    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, hide_genes, width, height, array_cluster)
+    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, nan_color, hide_genes, width, height, array_cluster, exclude_those_with_too_many_nans_in_y_clustering)
 
 
 
