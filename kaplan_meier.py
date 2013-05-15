@@ -1,12 +1,14 @@
 import exptools
-from __init__ import Plot
+import scipy.stats
 
+robjects = None
 def load_r():
     #exptools.load_software('survival')
     global robjects
-    import rpy2.robjects as robjects
-    import survival
-    robjects.r("library(survival)")
+    if robjects is None:
+        import rpy2.robjects as robjects
+        import survival
+        robjects.r("library(survival)")
    
 def plot_kaplan_meier(df, output_filename, timeby = 100, fill='color', xlabel='Time', ylabel='RSF',title='', show_table=False):
     """Do a kaplan meier style plot, complete with p-value (logrank test) if there are two ore more groups
@@ -20,17 +22,52 @@ def plot_kaplan_meier(df, output_filename, timeby = 100, fill='color', xlabel='T
     @time_by decides how often the x-axis ticks are drawn
 """
     load_r()
+    data = _check_kaplan_meier_df(df)
+    if fill not in ('color','group'):
+        raise ValueError("fill needs to be either color or group (dashed lines)")
+    form = robjects.Formula('Surv(time=event_time, event=event_type) ~ cls')
+    kp_data = robjects.r('survfit')(form, data = data)
+    _r_kaplan_meier_ggplot(kp_data, output_filename, timeby, fill=fill, xlabel=xlabel,ylabel=ylabel, title=title, show_table=show_table)
+
+def _check_kaplan_meier_df(df):
     for col_to_check in ['event_time', 'event_type', 'cls']:
         if not col_to_check in df.columns_ordered:
             raise ValueError("DF is missing %s" % col_to_check)
-    if fill not in ('color','group'):
-        raise ValueError("fill needs to be either color or group (dashed lines)")
-
+    data = df[:,('cls', 'event_type','event_time')].copy()
+    data.convert_type('event_type', int)
+    return data
+     
+def kaplan_meier_p_value(df):
+    """Calculate the p-value using survdiff from R's survival package 
+    @df see plot_kaplan_meier for details
+    returns:
+        p-value
+    """
+    load_r()
+    data = _check_kaplan_meier_df(df)
     form = robjects.Formula('Surv(time=event_time, event=event_type) ~ cls')
-    data = df[:,('cls', 'event_type','event_time')]
-    print data
-    kp_data = robjects.r('survfit')(form, data = data)
-    _r_kaplan_meier_ggplot(kp_data, output_filename, timeby, fill=fill, xlabel=xlabel,ylabel=ylabel, title=title, show_table=show_table)
+    sdiff = robjects.r('survdiff')(form, data = data)
+    chisquared = exptools.common.r_list_to_dict(sdiff)['chisq']
+    degrees_of_freedom = len(data.get_column_unique('cls')) - 1
+    p_value = scipy.stats.chi2.sf(chisquared, degrees_of_freedom)
+    return p_value
+    
+def kaplan_meier_p_value_quick(df, no_of_classes):
+    """Calculate the p-value using survdiff from R's survival package 
+    @df see plot_kaplan_meier for details
+    This does not do any error checking! your data better already be correct ;)
+    returns:
+        p-value
+    """
+    load_r()
+    #data = _check_kaplan_meier_df(df)
+    form = robjects.Formula('Surv(time=event_time, event=event_type) ~ cls')
+    sdiff = robjects.r('survdiff')(form, data = df)
+    chisquared = exptools.common.r_list_to_dict(sdiff)['chisq']
+    degrees_of_freedom = no_of_classes - 1
+    p_value = scipy.stats.chi2.sf(chisquared, degrees_of_freedom)
+    return p_value
+    
 
 
 def _r_kaplan_meier_ggplot(sfit, output_filename, timeby, fill, xlabel, ylabel, title, show_table):
@@ -76,6 +113,15 @@ if(is.null(ystratalabs)) {
 m <- max(nchar(ystratalabs))
 if(is.null(ystrataname)) ystrataname <- "Strata"
 times <- seq(0, max(sfit$time), by = timeby)
+print(length(sfit$time))
+print(length(sfit$n.risk))
+print(length(sfit$n.event))
+print(length(sfit$surv))
+print(length(sfit$surv))
+print(length(summary(sfit, censored = T)$strata))
+print(length(sfit$upper))
+print(length(sfit$lower))
+
 .df <- data.frame(time = sfit$time, n.risk = sfit$n.risk,
     n.event = sfit$n.event, surv = sfit$surv, strata = summary(sfit, censored = T)$strata,
     upper = sfit$upper, lower = sfit$lower)
@@ -116,7 +162,8 @@ blank.pic <- ggplot(.df, aes(time, surv)) +
 if(pval) {
     sdiff <- survdiff(eval(sfit$call$formula), data = eval(sfit$call$data))
     pval <- pchisq(sdiff$chisq, length(sdiff$n) - 1, lower.tail = FALSE)
-    pvaltxt <- ifelse(pval < 0.0001, "p < 0.0001", paste("p =", signif(pval, 3)))
+    ## pvaltxt <- ifelse(pval < 0.0001, "p < 0.0001", paste("p =", signif(pval, 3)))
+    pvaltxt = sprintf("%.2e", pval)
     p <- p + annotate("text", x = 0.6 * max(sfit$time), y = 0.1, label = pvaltxt)
 }
 if(table) {
