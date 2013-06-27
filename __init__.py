@@ -904,7 +904,6 @@ class Plot:
         if mid is not None:
             self._other_adds.append(robjects.r('scale_colour_gradient2')(**other_params))
         else:
-            raise ValueError("Gradient 1")
             self._other_adds.append(robjects.r('scale_colour_gradient')(**other_params))
         return self
 
