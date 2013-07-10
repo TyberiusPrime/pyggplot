@@ -43,6 +43,7 @@ from ordereddict import OrderedDict
 import pydataframe
 import rpy2.robjects as robjects
 import numpy
+import math
 
 _r_loaded = False
 
@@ -913,6 +914,93 @@ class Plot:
             kwargs['guide'] = guide
         self._other_adds.append(robjects.r('scale_fill_grey')(**kwargs))
 
+class MultiPagePlot(Plot):
+    """A plot job that splits faceted variables over mutiple pages"""
+    def __init__(self, dataframe, facet_variable_x, facet_variable_y = None, ncol_per_page = 3, n_rows_per_page = 5, fixed_x = False, fixed_y = True, facet_style = 'wrap'):
+        Plot.__init__(self, dataframe)
+        self.facet_variable_x = facet_variable_x
+        self.facet_variable_y = facet_variable_y
+        if facet_variable_x not in dataframe.columns_ordered:
+            raise ValueError("facet_variable_x %s not in dataframe.columns_ordered" % facet_variable_x)
+        if facet_variable_y and facet_variable_y not in dataframe.columns_ordered:
+            raise ValueError("facet_variable_y %s not in dataframe.columns_ordered" % facet_variable_y)
+        if facet_style not in ('wrap', 'grid'):
+            raise ValueError("facet_style must be one of wrap, grid")
+        self.facet_style = facet_style
+        self.fixed_x = fixed_x
+        self.fixed_y = fixed_y
+        self.ncol_per_page = ncol_per_page
+        no_of_x_variables = len(dataframe.get_column_unique(self.facet_variable_x))
+        if self.facet_variable_y:
+            no_of_y_variables = len(dataframe.get_column_unique(self.facet_variable_y))
+            no_of_plots = no_of_x_variables * no_of_y_variables
+        else:
+            no_of_plots = no_of_x_variables
+        self.plots_per_page = ncol_per_page * n_rows_per_page
+        pages_needed = math.ceil(no_of_plots / float(self.plots_per_page))
+        self.width = 8.26772
+        self.height = 11.6929
+        self.no_of_pages = pages_needed
+
+    def _iter_by_pages(self):
+        def grouper(iterable, n, fillvalue=None):
+            "Collect data into fixed-length chunks or blocks"
+            # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
+            args = [iter(iterable)] * n
+            return itertools.izip_longest(fillvalue=fillvalue, *args)
+        if self.facet_variable_y:
+            raise NotImplemented("The splitting into two variable sub_dfs is not implemented yet")
+        else:
+            x_column = 'dat_%s' % self.old_names.index(self.facet_variable_x)
+            x_values = self.dataframe.get_column_unique(x_column)
+            for group in grouper(sorted(x_values), self.plots_per_page):
+                keep = numpy.zeros((len(self.dataframe)), dtype=numpy.bool)
+                for value in group:
+                    if value:
+                        keep[self.dataframe.get_column_view(x_column) == value] = True
+                yield self.dataframe[keep, :]
+
+    def render(self, output_filename, width=8, height=6, dpi=300):
+        if not output_filename.endswith('.pdf'):
+            raise ValueError("MultiPagePlots only for pdfs")
+        if self.facet_variable_y:
+               new_one = 'dat_%s' % self.old_names.index(self.facet_variable_x)
+               new_two = 'dat_%s' % self.old_names.index(self.facet_variable_y)
+               facet_specification = '%s ~ %s' % (new_one, new_two)
+        else:
+               params = self._translate_params({"": self.facet_variable_x})[0]
+               facet_specification = params.replace('=', '~')
+        
+        if self.fixed_x and not self.fixed_y:
+            scale = 'free_y'
+        elif not self.fixed_x and self.fixed_y:
+            scale = 'free_x'
+        elif not self.fixed_x and not self.fixed_y:
+            scale = 'free'
+        else:
+            scale = 'fixed'
+        if self.facet_style == 'grid':
+            self._other_adds.append(robjects.r('facet_grid')(robjects.r(facet_specification), scale = scale, ncol=self.ncol_per_page))
+        elif self.facet_style == 'wrap':
+            self._other_adds.append(robjects.r('facet_wrap')(robjects.r(facet_specification), scale = scale, ncol=self.ncol_per_page))
+
+        robjects.r('pdf')(output_filename, width = 8.26, height = 11.69)
+        for sub_df in self._iter_by_pages():
+            plot = self.r['ggplot'](sub_df)
+            for obj in self._other_adds:
+                plot = self.r['add'](plot, obj)
+            for name, value in self.lab_rename.items():
+                plot = self.r['add'](
+                        plot, robjects.r('labs(%s = "%s")' % (name, value)))
+            robjects.r('print')(plot)
+        robjects.r('dev.off')()
+
+    def facet_grid(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
+        raise ValueError("MultiPagePlots specify faceting on construction")
+
+    def facet(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
+        raise ValueError("MultiPagePlots specify faceting on construction")
+
 
 def powerset(seq):
     """
@@ -968,6 +1056,11 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
     #df[numpy.isnan(df.get_column_view('expression_change')), 'expression_change'] = 0
     df[numpy.isposinf(df.get_column_view('expression_change')), 'expression_change'] = infinity_replacement_value
     df[numpy.isneginf(df.get_column_view('expression_change')), 'expression_change'] = -1 * infinity_replacement_value
+    if len(df.get_column_unique('condition')) < 2 or len(df.get_column_unique('gene')) < 2:
+        op = open(output_filename,'wb')
+        op.write("not enough dimensions\n")
+        op.close()
+        return
     robjects.r("""
     normvec<-function(x) 
     {
