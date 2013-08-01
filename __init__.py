@@ -385,11 +385,12 @@ class Plot:
             current = total
         for value, group in itertools.groupby(column_data):
             x_values.append(value)
+            y_values.append(current)
             if percent:
                 current -= (len(list(group)) / total)
             else:
                 current -=(len(list(group)))
-            y_values.append(current)
+            #y_values.append(current)
         data = pydataframe.DataFrame({x_column: x_values, ("%" if percent else '#') + ' <=': y_values})
         return self.add_line(x_column, ("%" if percent else '#') + ' <=', data=data)
 
