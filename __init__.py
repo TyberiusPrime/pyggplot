@@ -211,7 +211,10 @@ class Plot:
             if value in self.old_names:
                 self.aes_collection[name] = value
             else:
-                self.other_collection[name] = value
+                if value == '..level..':
+                    self.aes_collection[name] = '..level..'#robjects.r('expression(..level..)')
+                else:
+                    self.other_collection[name] = value
 
     def reset_params(self, data):
         self.aes_collection = {}
@@ -260,6 +263,8 @@ class Plot:
         if geom_name.startswith('annotation'):
             self._other_adds.append(robjects.r(geom_name)( **self.other_collection))
         else:
+            print self.aes_collection
+            print self._build_aesthetic(self.aes_collection)
             self._other_adds.append(robjects.r(geom_name)(self._build_aesthetic(self.aes_collection), **self.other_collection))
         return self
 
@@ -277,7 +282,7 @@ class Plot:
                 ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha'], {'position': 'dodge', 'stat': 'identity'}),
                 ('box_plot2', 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['color','group','fill', 'alpha', 'stat'], {'stat': 'identity'}),
                 ('box_plot', 'geom_boxplot', ['x', 'y'], ['color', 'group', 'fill', 'alpha'], {}),
-                ('density_2d', 'geom_density2d', ['x', 'y'], ['color', 'alpha'], {}),
+                ('density_2d', 'geom_density2d', ['x', 'y'], ['color', 'alpha','fill', 'contour'], {}),
                 ('density', 'geom_density', ['x'], ['y', 'color'], {'bw': lambda mappings: robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(mappings['x'])))}),
                 ('error_bars', 'geom_errorbar', ['x', 'ymin', 'ymax'], ['color', 'group', 'width', 'alpha'], {'width': 0.25}),
                 ('error_barsh', 'geom_errorbarh', ['y', 'xmin', 'xmax'], ['color', 'group', 'width', 'alpha'], {'width': 0.25}),
@@ -291,13 +296,14 @@ class Plot:
                 ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}),
                 ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['color', 'alpha', 'size'], {'size': 0.5}),
                 ('text', 'geom_text', ['x', 'y', 'label'], ['angle', 'alpha', 'size', 'hjust', 'vjust', 'fontface', 'color', 'position', 'ymax'], {'position': 'identity'}),
-                ('tile', 'geom_tile', ['x', 'y'], ['color', 'fill', 'size', 'linetype', 'alpha'], {}),
+                ('tile', 'geom_tile', ['x', 'y'], ['color', 'fill', 'size', 'linetype', 'alpha','stat'], {}),
                 ('vertical_bar', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
 
 
                 # stats
                 ('stat_sum_color', 'stat_sum', ['x', 'y'], ['size'], {'color': '..n..', 'size': 0.5}),
                 ('stat_smooth', 'stat_smooth', [], ['method', 'se', 'x', 'y'], {"method": 'lm', 'se': True}),
+                ('stat_density_2d', 'stat_density', ['x','y'], ['geom','contour'], {}),
 
                 ('stacked_bar_plot', 'geom_bar', ['x', 'y', 'fill'], [], {'position': 'stack'}),  # do we still need this?
                 # """A scatter plat that's colored by no of overlapping points"""
@@ -357,7 +363,7 @@ class Plot:
                     self._build_aesthetic({'x': x_column, 'y': '..count..', 'label': '..count..'}), stat='bin'))
         return self
 
-    def add_cummulative(self, x_column, ascending=True):
+    def add_cummulative(self, x_column, ascending=True, percent = False):
         """Add a line showing cumulative % of data <= x"""
         total = 0
         current = 0
@@ -366,14 +372,26 @@ class Plot:
         except ValueError:
             raise ValueError("Could not find column %s, available: %s" % (x_column, self.old_names))
         column_data = self.dataframe.get_column(column_name)  # explicit copy!
-        column_data .sort()
+        column_data = column_data[~numpy.isnan(column_data)]
+        column_data = numpy.sort(column_data)
+        total = float(len(column_data))
+        if not ascending:
+            column_data = numpy.reverse(column_data)
         x_values = []
         y_values = []
+        if percent:
+            current = 100.0
+        else:
+            current = total
         for value, group in itertools.groupby(column_data):
             x_values.append(value)
-            y_values.append(len(list(group)))
-        data = pydataframe.DataFrame({x_column: x_values, '% <=': y_values})
-        return self.add_line(x_column, '% <=', data=data)
+            if percent:
+                current -= (len(list(group)) / total)
+            else:
+                current -=(len(list(group)))
+            y_values.append(current)
+        data = pydataframe.DataFrame({x_column: x_values, ("%" if percent else '#') + ' <=': y_values})
+        return self.add_line(x_column, ("%" if percent else '#') + ' <=', data=data)
 
     def add_heatmap(self, x_column, y_column, fill, low="red", mid=None, high="blue", midpoint=0):
         aes_params = {'x': x_column, 'y': y_column}
@@ -756,6 +774,9 @@ class Plot:
         else:
             self._other_adds.append(robjects.r('scale_fill_gradient')(**other_params))
         return self
+    def scale_fill_gradientn(self, *args):
+        self._other_adds.append(robjects.r('scale_fill_gradientn')(colours = list(args)))
+
 
     def scale_fill_rainbow(self, number_of_steps = 7):
         self._other_adds.append(robjects.r('scale_fill_gradientn')(colours = robjects.r('rainbow')(number_of_steps)))
