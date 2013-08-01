@@ -385,6 +385,7 @@ class Plot:
             current = total
         for value, group in itertools.groupby(column_data):
             x_values.append(value)
+            y_values.append(current)
             if percent:
                 current -= (len(list(group)) / total)
             else:
