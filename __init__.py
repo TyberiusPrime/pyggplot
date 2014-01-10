@@ -936,6 +936,7 @@ class Plot:
             kwargs['guide'] = guide
         self._other_adds.append(robjects.r('scale_fill_grey')(**kwargs))
 
+
 class MultiPagePlot(Plot):
     """A plot job that splits faceted variables over mutiple pages"""
     def __init__(self, dataframe, facet_variable_x, facet_variable_y = None, ncol_per_page = 3, n_rows_per_page = 5, fixed_x = False, fixed_y = True, facet_style = 'wrap'):
@@ -1057,6 +1058,7 @@ def union(list_of_sects):
 
 def _no_annotation(set_name, set_entries):
     return {set_name: set_entries}
+
 
 def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='blue', high = 'red', mid='white', nan_color='grey', hide_genes = True, array_cluster_method = 'cosine',
         x_label = 'Condition', y_label = 'Gene', keep_column_order = False, keep_row_order = False, colors = None, hide_tree = False, exclude_those_with_too_many_nans_in_y_clustering = False, width = None):
@@ -1304,6 +1306,11 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
     height = len(df.get_column_unique('gene')) * 0.15 + 3
     robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, nan_color, hide_genes, width, height, array_cluster_method, keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering)
 
+
+def EmptyPlot(text_to_display = 'No data'):
+    p = Plot(pydataframe.DataFrame({'x': [0], 'y': [0], 'text': [text_to_display]}))
+    p.add_text('x', 'y', 'text')
+    return p
 
 
 
