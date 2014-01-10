@@ -42,6 +42,7 @@ import itertools
 from ordereddict import OrderedDict
 import pydataframe
 import numpy
+import math
 
 _r_loaded = False
 
@@ -210,7 +211,10 @@ class Plot:
             if value in self.old_names:
                 self.aes_collection[name] = value
             else:
-                self.other_collection[name] = value
+                if value == '..level..':
+                    self.aes_collection[name] = '..level..'#robjects.r('expression(..level..)')
+                else:
+                    self.other_collection[name] = value
 
     def reset_params(self, data):
         self.aes_collection = {}
@@ -259,6 +263,8 @@ class Plot:
         if geom_name.startswith('annotation'):
             self._other_adds.append(robjects.r(geom_name)( **self.other_collection))
         else:
+            print self.aes_collection
+            print self._build_aesthetic(self.aes_collection)
             self._other_adds.append(robjects.r(geom_name)(self._build_aesthetic(self.aes_collection), **self.other_collection))
         return self
 
@@ -276,7 +282,7 @@ class Plot:
                 ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha'], {'position': 'dodge', 'stat': 'identity'}),
                 ('box_plot2', 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['color','group','fill', 'alpha', 'stat'], {'stat': 'identity'}),
                 ('box_plot', 'geom_boxplot', ['x', 'y'], ['color', 'group', 'fill', 'alpha'], {}),
-                ('density_2d', 'geom_density2d', ['x', 'y'], ['color', 'alpha'], {}),
+                ('density_2d', 'geom_density2d', ['x', 'y'], ['color', 'alpha','fill', 'contour'], {}),
                 ('density', 'geom_density', ['x'], ['y', 'color'], {'bw': lambda mappings: robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(mappings['x'])))}),
                 ('error_bars', 'geom_errorbar', ['x', 'ymin', 'ymax'], ['color', 'group', 'width', 'alpha'], {'width': 0.25}),
                 ('error_barsh', 'geom_errorbarh', ['y', 'xmin', 'xmax'], ['color', 'group', 'width', 'alpha'], {'width': 0.25}),
@@ -290,13 +296,14 @@ class Plot:
                 ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}),
                 ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['color', 'alpha', 'size'], {'size': 0.5}),
                 ('text', 'geom_text', ['x', 'y', 'label'], ['angle', 'alpha', 'size', 'hjust', 'vjust', 'fontface', 'color', 'position', 'ymax'], {'position': 'identity'}),
-                ('tile', 'geom_tile', ['x', 'y'], ['color', 'fill', 'size', 'linetype', 'alpha'], {}),
+                ('tile', 'geom_tile', ['x', 'y'], ['color', 'fill', 'size', 'linetype', 'alpha','stat'], {}),
                 ('vertical_bar', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
 
 
                 # stats
                 ('stat_sum_color', 'stat_sum', ['x', 'y'], ['size'], {'color': '..n..', 'size': 0.5}),
                 ('stat_smooth', 'stat_smooth', [], ['method', 'se', 'x', 'y'], {"method": 'lm', 'se': True}),
+                ('stat_density_2d', 'stat_density', ['x','y'], ['geom','contour'], {}),
 
                 ('stacked_bar_plot', 'geom_bar', ['x', 'y', 'fill'], [], {'position': 'stack'}),  # do we still need this?
                 # """A scatter plat that's colored by no of overlapping points"""
@@ -356,7 +363,7 @@ class Plot:
                     self._build_aesthetic({'x': x_column, 'y': '..count..', 'label': '..count..'}), stat='bin'))
         return self
 
-    def add_cummulative(self, x_column, ascending=True):
+    def add_cummulative(self, x_column, ascending=True, percent = False):
         """Add a line showing cumulative % of data <= x"""
         total = 0
         current = 0
@@ -365,14 +372,27 @@ class Plot:
         except ValueError:
             raise ValueError("Could not find column %s, available: %s" % (x_column, self.old_names))
         column_data = self.dataframe.get_column(column_name)  # explicit copy!
-        column_data .sort()
+        column_data = column_data[~numpy.isnan(column_data)]
+        column_data = numpy.sort(column_data)
+        total = float(len(column_data))
+        if not ascending:
+            column_data = numpy.reverse(column_data)
         x_values = []
         y_values = []
+        if percent:
+            current = 100.0
+        else:
+            current = total
         for value, group in itertools.groupby(column_data):
             x_values.append(value)
-            y_values.append(len(list(group)))
-        data = pydataframe.DataFrame({x_column: x_values, '% <=': y_values})
-        return self.add_line(x_column, '% <=', data=data)
+            y_values.append(current)
+            if percent:
+                current -= (len(list(group)) / total)
+            else:
+                current -=(len(list(group)))
+            #y_values.append(current)
+        data = pydataframe.DataFrame({x_column: x_values, ("%" if percent else '#') + ' <=': y_values})
+        return self.add_line(x_column, ("%" if percent else '#') + ' <=', data=data)
 
     def add_heatmap(self, x_column, y_column, fill, low="red", mid=None, high="blue", midpoint=0):
         aes_params = {'x': x_column, 'y': y_column}
@@ -756,6 +776,9 @@ class Plot:
         else:
             self._other_adds.append(robjects.r('scale_fill_gradient')(**other_params))
         return self
+    def scale_fill_gradientn(self, *args):
+        self._other_adds.append(robjects.r('scale_fill_gradientn')(colours = list(args)))
+
 
     def scale_fill_rainbow(self, number_of_steps = 7):
         self._other_adds.append(robjects.r('scale_fill_gradientn')(colours = robjects.r('rainbow')(number_of_steps)))
@@ -905,7 +928,6 @@ class Plot:
         if mid is not None:
             self._other_adds.append(robjects.r('scale_colour_gradient2')(**other_params))
         else:
-            raise ValueError("Gradient 1")
             self._other_adds.append(robjects.r('scale_colour_gradient')(**other_params))
         return self
 
@@ -914,6 +936,94 @@ class Plot:
         if guide is not None:
             kwargs['guide'] = guide
         self._other_adds.append(robjects.r('scale_fill_grey')(**kwargs))
+
+
+class MultiPagePlot(Plot):
+    """A plot job that splits faceted variables over mutiple pages"""
+    def __init__(self, dataframe, facet_variable_x, facet_variable_y = None, ncol_per_page = 3, n_rows_per_page = 5, fixed_x = False, fixed_y = True, facet_style = 'wrap'):
+        Plot.__init__(self, dataframe)
+        self.facet_variable_x = facet_variable_x
+        self.facet_variable_y = facet_variable_y
+        if facet_variable_x not in dataframe.columns_ordered:
+            raise ValueError("facet_variable_x %s not in dataframe.columns_ordered" % facet_variable_x)
+        if facet_variable_y and facet_variable_y not in dataframe.columns_ordered:
+            raise ValueError("facet_variable_y %s not in dataframe.columns_ordered" % facet_variable_y)
+        if facet_style not in ('wrap', 'grid'):
+            raise ValueError("facet_style must be one of wrap, grid")
+        self.facet_style = facet_style
+        self.fixed_x = fixed_x
+        self.fixed_y = fixed_y
+        self.ncol_per_page = ncol_per_page
+        no_of_x_variables = len(dataframe.get_column_unique(self.facet_variable_x))
+        if self.facet_variable_y:
+            no_of_y_variables = len(dataframe.get_column_unique(self.facet_variable_y))
+            no_of_plots = no_of_x_variables * no_of_y_variables
+        else:
+            no_of_plots = no_of_x_variables
+        self.plots_per_page = ncol_per_page * n_rows_per_page
+        pages_needed = math.ceil(no_of_plots / float(self.plots_per_page))
+        self.width = 8.26772
+        self.height = 11.6929
+        self.no_of_pages = pages_needed
+
+    def _iter_by_pages(self):
+        def grouper(iterable, n, fillvalue=None):
+            "Collect data into fixed-length chunks or blocks"
+            # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
+            args = [iter(iterable)] * n
+            return itertools.izip_longest(fillvalue=fillvalue, *args)
+        if self.facet_variable_y:
+            raise NotImplemented("The splitting into two variable sub_dfs is not implemented yet")
+        else:
+            x_column = 'dat_%s' % self.old_names.index(self.facet_variable_x)
+            x_values = self.dataframe.get_column_unique(x_column)
+            for group in grouper(sorted(x_values), self.plots_per_page):
+                keep = numpy.zeros((len(self.dataframe)), dtype=numpy.bool)
+                for value in group:
+                    if value:
+                        keep[self.dataframe.get_column_view(x_column) == value] = True
+                yield self.dataframe[keep, :]
+
+    def render(self, output_filename, width=8, height=6, dpi=300):
+        if not output_filename.endswith('.pdf'):
+            raise ValueError("MultiPagePlots only for pdfs")
+        if self.facet_variable_y:
+               new_one = 'dat_%s' % self.old_names.index(self.facet_variable_x)
+               new_two = 'dat_%s' % self.old_names.index(self.facet_variable_y)
+               facet_specification = '%s ~ %s' % (new_one, new_two)
+        else:
+               params = self._translate_params({"": self.facet_variable_x})[0]
+               facet_specification = params.replace('=', '~')
+        
+        if self.fixed_x and not self.fixed_y:
+            scale = 'free_y'
+        elif not self.fixed_x and self.fixed_y:
+            scale = 'free_x'
+        elif not self.fixed_x and not self.fixed_y:
+            scale = 'free'
+        else:
+            scale = 'fixed'
+        if self.facet_style == 'grid':
+            self._other_adds.append(robjects.r('facet_grid')(robjects.r(facet_specification), scale = scale, ncol=self.ncol_per_page))
+        elif self.facet_style == 'wrap':
+            self._other_adds.append(robjects.r('facet_wrap')(robjects.r(facet_specification), scale = scale, ncol=self.ncol_per_page))
+
+        robjects.r('pdf')(output_filename, width = 8.26, height = 11.69)
+        for sub_df in self._iter_by_pages():
+            plot = self.r['ggplot'](sub_df)
+            for obj in self._other_adds:
+                plot = self.r['add'](plot, obj)
+            for name, value in self.lab_rename.items():
+                plot = self.r['add'](
+                        plot, robjects.r('labs(%s = "%s")' % (name, value)))
+            robjects.r('print')(plot)
+        robjects.r('dev.off')()
+
+    def facet_grid(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
+        raise ValueError("MultiPagePlots specify faceting on construction")
+
+    def facet(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
+        raise ValueError("MultiPagePlots specify faceting on construction")
 
 
 def powerset(seq):
@@ -950,36 +1060,50 @@ def union(list_of_sects):
 def _no_annotation(set_name, set_entries):
     return {set_name: set_entries}
 
-def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='blue', high = 'red', mid='white', hide_genes = True, array_cluster = 'cosine',
-        x_label = 'Condition', y_label = 'Gene', keep_column_order = False, keep_row_order = False, colors = None, hide_tree = False):
+
+def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='blue', high = 'red', mid='white', nan_color='grey', hide_genes = True, array_cluster_method = 'cosine',
+        x_label = 'Condition', y_label = 'Gene', keep_column_order = False, keep_row_order = False, colors = None, hide_tree = False, exclude_those_with_too_many_nans_in_y_clustering = False, width = None):
     """This code plots a heatmap + dendrogram.
     (unlike add_heatmap, which just does the squares on an existing plot)
-    @data is a df of {'gene':, 'condition':, 'expression(change)'}
-    nan, is translated to 0, infinity to infinity_replacement_value (or -1 * infinity_replacement_value for negative infinity).
+    @data is a df of {'gene':, 'condition':, 'expression_change'}
+    nan, is translated to 0 (but plotted grey), infinity to infinity_replacement_value (or -1 * infinity_replacement_value for negative infinity).
 
     Clustering is performed using the cosine distance - on the genes.
 
-    @low, high, mid allow you to modify the colors
+    If there is a gene name occuring twice, we use it's median!
+
+    @low, high, mid, nan_color allow you to modify the colors
+    @hide_genes hides the y-axis labels,
+    @array_cluster_method may be cosine or hamming_on_0 (threshold on 0, then hamming)
+    @x_label and @y_label are the axis labels,
+    keep_column_order enforces the order in the df
+    keep_row_order does the same.
+    @colors let's you supply colors - TODO: What format?
+    @hide_tree hides the tree
+    @exclude_those_with_too_many_nans_in_y_clustering removes elements with more than 25% nans from deciding the order in the y-clustering
 
     It's using ggplot and ggdendro... very neat, but not easy to graps"""
+    load_r()
     valid_array_cluster = 'hamming_on_0', 'cosine'
-    if not array_cluster in valid_array_cluster:
-        raise ValueError("only accepts array_cluster methods %s" % valid_array_cluster)
+    if not array_cluster_method in valid_array_cluster:
+        raise ValueError("only accepts array_cluster_method methods %s" % valid_array_cluster)
     df = data
-    #if colors == None:
-    #    colors = ['grey' for x in range(len(data))]
+    if colors == None:
+        colors = ['grey' for x in range(len(data))]
     
    
     #R's scale NaNs everything on any of these values...
-    df[numpy.isnan(df.get_column_view('expression_change')), 'expression_change'] = 0
+    #df[numpy.isnan(df.get_column_view('expression_change')), 'expression_change'] = 0 #we do this part in R now.
     df[numpy.isposinf(df.get_column_view('expression_change')), 'expression_change'] = infinity_replacement_value
     df[numpy.isneginf(df.get_column_view('expression_change')), 'expression_change'] = -1 * infinity_replacement_value
-    #if len(output_filename) < 3:
-    #    raise ValueError('File extension must be .pdf or .png, outfile was '+output_filename)
-    #else:
-    #    file_extension = output_filename[-3:].lower()
-    #    if not (file_extension == 'pdf' or file_extension == 'png'):
-    #        raise ValueError('File extension must be .pdf or .png, outfile was '+output_filename)
+    if len(df.get_column_unique('condition')) < 2 or len(df.get_column_unique('gene')) < 2:
+        op = open(output_filename,'wb')
+        op.write("not enough dimensions\n")
+        op.close()
+        return
+    file_extension = output_filename[-3:].lower()
+    if not (file_extension == 'pdf' or file_extension == 'png'):
+        raise ValueError('File extension must be .pdf or .png, outfile was '+output_filename)
     robjects.r("""
     normvec<-function(x) 
     {
@@ -1031,22 +1155,49 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
     library(ggdendro) 
     library(grid) 
 
-    do_tha_funky_heatmap = function(outputfilename, df, low, mid, high, hide_genes, width, height, array_cluster, keep_column_order, keep_row_order, colors, hide_tree)
+    do_tha_funky_heatmap = function(outputfilename, df, 
+                        low, mid, high, nan_color, 
+                        hide_genes, width, height, array_cluster_method, 
+                        keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering)
     {
-        df_cast = cast(df, gene ~ condition, value='expression_change') 
+        options(expressions = 50000) #allow more recursion
+        
+        #transform df into a rectangualr format
+        df_cast = cast(df, gene ~ condition, value='expression_change', fun.aggregate=median) 
         df_scaled = as.matrix(scale(df_cast))
 
-        print(df_cast)
-        dd.row <- as.dendrogram(hclust(dist_cosine(df_scaled)))
-        if (array_cluster == 'cosine')
+        df_scaled[is.nan(df_scaled)] = 0
+        df_scaled[is.na(df_scaled)] = 0
+
+        #do the row clustering. TODO: Don't do this if keep_column_order is on
+        if (exclude_those_with_too_many_nans_in_y_clustering) #when clustering genes, leave out those samples with too many nans
+        {
+            df_scaled_with_nans = as.matrix(scale(df_cast)) #we need it a new, with nans
+            nan_count_per_column = colSums(is.na(df_scaled_with_nans))
+            too_much = dim(df_scaled_with_nans)[1] / 4.0
+            exclude = nan_count_per_column >= too_much
+            keep = !exclude
+            df_scaled_with_nans = df_scaled_with_nans[, keep]
+            df_scaled_with_nans[is.nan(df_scaled_with_nans)] = 0
+            df_scaled_with_nans[is.na(df_scaled_with_nans)] = 0
+            dd.row <- as.dendrogram(hclust(dist_cosine(df_scaled_with_nans)))
+        }
+        else
+            dd.row <- as.dendrogram(hclust(dist_cosine(df_scaled)))
+
+        #do the column clustering. TODO: Ski this if keep_row_order is on
+        if (array_cluster_method == 'cosine')
         {
             dd.col <- as.dendrogram(hclust(dist_cosine(t(df_scaled))))
         }
-        else if (array_cluster == 'hamming_on_0') 
+        else if (array_cluster_method == 'hamming_on_0') 
         {
             df_hamming = as.matrix(df_cast) > 0
+            df_hamming[is.nan(df_hamming)] = 0
+            df_hamming[is.na(df_hamming)] = 0
             dd.col <- as.dendrogram(hclust(dist_hamming(t(df_hamming))))
         }
+
         if (keep_row_order)
         {
             row.ord <- 1:attr(dd.row, "members")
@@ -1065,6 +1216,8 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
         {
             col.ord <- order.dendrogram(dd.col)
         }
+
+
         
         xx <- scale(df_cast, FALSE, FALSE)[row.ord, col.ord]
         xx_names <- attr(xx, 'dimnames')
@@ -1073,7 +1226,6 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
         df$gene <- xx_names[[1]]
         df$gene <- with(df, factor(gene, levels=gene, ordered=TRUE))
         mdf <- melt(df, id.vars="gene")
-        print(mdf)
         
         tmp = c()
         i = 1
@@ -1097,30 +1249,30 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
             axis.title.y = theme_blank(),
             axis.text.x = theme_blank(),
             axis.text.y = theme_blank(),
-            axis.line = theme_blank()
-            #axis.ticks.length = theme_blank()
+            axis.line = theme_blank(),
+            axis.ticks = theme_blank()
             )
-        print("Create plot")
         ### Create plot components ###    
         # Heatmap
         p1 <- ggplot(mdf, aes(x=variable, y=gene)) + 
-            geom_tile(aes(fill=value)) + scale_fill_gradient2(low=low,mid=mid, high=high) + opts(axis.text.x = theme_text(colour = "black", angle=0, size=8, hjust=0.5, vjust=0))
+            geom_tile(aes(fill=value)) + scale_fill_gradient2(low=low,mid=mid, high=high, na.value=nan_color) + opts(axis.text.x = theme_text(angle=90, size=8, hjust=0, vjust=0, colour="black"),
+            axis.title.y = theme_blank(), axis.title.x = theme_blank(),
+            axis.text.y = theme_text(colour="black"))
         if (hide_genes)
             p1 = p1 + opts(axis.text.y = theme_blank())
         else
         {
             p1 = p1 + opts(strip.background = theme_rect(colour = 'NA', fill = 'NA'), axis.text.y = theme_text(colour=colors))
         }
-        if (!keep_row_order && !hide_tree)
+        if (!keep_column_order && !hide_tree)
         {
             # Dendrogram 1
-            print (ddata_x)
             p2 <- ggplot(segment(ddata_x)) + 
                 geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) + 
                 theme_none + opts(axis.title.x=theme_blank())
         }
 
-        if(!keep_column_order && !hide_tree)
+        if(!keep_row_order && !hide_tree)
         {
             # Dendrogram 2
             p3 <- ggplot(segment(ddata_y)) + 
@@ -1134,22 +1286,32 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
         else
             error("Don't know that file format")
         grid.newpage()
-        print(p1, vp=viewport(0.8, 0.8, x=0.4, y=0.4))
-         print("1123")
-        if (!keep_row_order && !hide_tree)
+        if (hide_tree)
+            vp = viewport(1, 1, x=0.5, y=0.5)
+        else
+            vp = viewport(0.8, 0.8, x=0.4, y=0.4)
+        print(p1, vp=vp)
+        if (!keep_column_order && !hide_tree)
         {
             print(p2, vp=viewport(0.60, 0.2, x=0.4, y=0.9))
         }
-        if (!keep_column_order && !hide_tree)
+        if (!keep_row_order && !hide_tree)
         {
             print(p3, vp=viewport(0.2, 0.86, x=0.9, y=0.4))
         }
         dev.off()
     }
     """)
-    width = len(df.get_column_unique('condition')) * 0.4 + 5
+    if not width:
+        width = len(df.get_column_unique('condition')) * 0.4 + 5
     height = len(df.get_column_unique('gene')) * 0.15 + 3
-    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, hide_genes, width, height, array_cluster, keep_column_order, keep_row_order, colors, hide_tree)
+    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, nan_color, hide_genes, width, height, array_cluster_method, keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering)
+
+
+def EmptyPlot(text_to_display = 'No data'):
+    p = Plot(pydataframe.DataFrame({'x': [0], 'y': [0], 'text': [text_to_display]}))
+    p.add_text('x', 'y', 'text')
+    return p
 
 
 
@@ -1157,6 +1319,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
 from square_euler import SquareEuler
 from hilbert import hilbert_plot, hilbert_to_image
 from sequence_logos import plot_sequences, plot_sequence_alignment
+from kaplan_meier import plot_kaplan_meier
 
 
 all = [Plot, SquareEuler, hilbert_plot, hilbert_to_image, plot_sequence_alignment, plot_sequences, plot_heatmap]
