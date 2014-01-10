@@ -1059,7 +1059,7 @@ def _no_annotation(set_name, set_entries):
     return {set_name: set_entries}
 
 def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='blue', high = 'red', mid='white', nan_color='grey', hide_genes = True, array_cluster_method = 'cosine',
-        x_label = 'Condition', y_label = 'Gene', keep_column_order = False, keep_row_order = False, colors = None, hide_tree = False,exclude_those_with_too_many_nans_in_y_clustering = False):
+        x_label = 'Condition', y_label = 'Gene', keep_column_order = False, keep_row_order = False, colors = None, hide_tree = False, exclude_those_with_too_many_nans_in_y_clustering = False, width = None):
     """This code plots a heatmap + dendrogram.
     (unlike add_heatmap, which just does the squares on an existing plot)
     @data is a df of {'gene':, 'condition':, 'expression_change'}
@@ -1261,7 +1261,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
         {
             p1 = p1 + opts(strip.background = theme_rect(colour = 'NA', fill = 'NA'), axis.text.y = theme_text(colour=colors))
         }
-        if (!keep_row_order && !hide_tree)
+        if (!keep_column_order && !hide_tree)
         {
             # Dendrogram 1
             p2 <- ggplot(segment(ddata_x)) + 
@@ -1269,7 +1269,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
                 theme_none + opts(axis.title.x=theme_blank())
         }
 
-        if(!keep_column_order && !hide_tree)
+        if(!keep_row_order && !hide_tree)
         {
             # Dendrogram 2
             p3 <- ggplot(segment(ddata_y)) + 
@@ -1283,19 +1283,24 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
         else
             error("Don't know that file format")
         grid.newpage()
-        print(p1, vp=viewport(0.8, 0.8, x=0.4, y=0.4))
-        if (!keep_row_order && !hide_tree)
+        if (hide_tree)
+            vp = viewport(1, 1, x=0.5, y=0.5)
+        else
+            vp = viewport(0.8, 0.8, x=0.4, y=0.4)
+        print(p1, vp=vp)
+        if (!keep_column_order && !hide_tree)
         {
             print(p2, vp=viewport(0.60, 0.2, x=0.4, y=0.9))
         }
-        if (!keep_column_order && !hide_tree)
+        if (!keep_row_order && !hide_tree)
         {
             print(p3, vp=viewport(0.2, 0.86, x=0.9, y=0.4))
         }
         dev.off()
     }
     """)
-    width = len(df.get_column_unique('condition')) * 0.4 + 5
+    if not width:
+        width = len(df.get_column_unique('condition')) * 0.4 + 5
     height = len(df.get_column_unique('gene')) * 0.15 + 3
     robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, nan_color, hide_genes, width, height, array_cluster_method, keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering)
 
