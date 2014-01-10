@@ -696,7 +696,7 @@ class Plot:
         kwargs['values'] = numpy.array(list_of_colors) 
         self._other_adds.append(robjects.r('scale_fill_manual')(**kwargs))
 
-    def scale_fill_brewer(self, name=None, palette='Set1', guide = None):
+    def scale_fill_brewer(self, name=None, palette=0, guide = None, typ='qual'):
         other_params = {}
         if not name is None:
             other_params['name'] = name
@@ -704,6 +704,7 @@ class Plot:
             other_params['palette'] = palette
         if guide is not None:
             other_params['guide'] = guide
+        self._other_adds.append(robjects.r('scale_fill_brewer')(palette = palette, **{'type': typ}))
 
     def scale_fill_hue(self, h=None, l=None, c=None, limits=None, breaks=None, labels=None, h_start=None, direction=None, guide = None):
         other_params = {}
