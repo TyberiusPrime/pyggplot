@@ -414,7 +414,7 @@ class Plot:
         return self
 
     def set_title(self, title):
-        self._other_adds.append(robjects.r('opts')(title = title))
+        self._other_adds.append(robjects.r('ggtitle')(title))
 
     def facet(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
         facet_wrap = robjects.r['facet_wrap']
