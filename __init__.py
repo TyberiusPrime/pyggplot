@@ -1169,34 +1169,16 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
                         keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering, row_number, column_number, row_order, column_order)
     {
         df$condition <- factor(df$condition)
-        #df$gene <- factor(df$gene)
         options(expressions = 50000) #allow more recursion
         
         #transform df into a rectangualr format
 
         df_cast = cast(df, gene ~ condition, value='expression_change', fun.aggregate=median) 
-        #df_cast$gene <- factor(df_cast$gene, levels=row_order) 
-        #fuck=c(0, length(df_cast))
         col_names = names(df_cast)
         row_names = df_cast$gene
-        #print(row_names)
-        #print(x)
-        #column_order = c(column_order)
-        #tmp = 1:length(column_order)
-        #for(i in 1:length(column_order)){
-        #    print(i)
-        #    print(column_order[i])
-        #    index = which(x==column_order[i])
-        #    tmp[i] = index
-        #}
-        
-        #print(tmp)
-        #print('-------------------')
         df_cast = df_cast[do.call(order,df_cast['gene']),]
-        #df_cast = df_cast[column_order]
         print(df_cast)
         df_scaled = as.matrix(scale(df_cast))
-        #print(df_scaled)
         df_scaled[is.nan(df_scaled)] = 0
         df_scaled[is.na(df_scaled)] = 0
         
