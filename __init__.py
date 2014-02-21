@@ -716,7 +716,7 @@ class Plot:
         kwargs['values'] = numpy.array(list_of_colors) 
         self._other_adds.append(robjects.r('scale_fill_manual')(**kwargs))
 
-    def scale_fill_brewer(self, name=None, palette=0, guide = None, typ='qual'):
+    def scale_fill_brewer(self, name=None, palette=1, guide = None, typ='qual'):
         other_params = {}
         if not name is None:
             other_params['name'] = name
@@ -961,7 +961,9 @@ class MultiPagePlot(Plot):
         else:
             no_of_plots = no_of_x_variables
         self.plots_per_page = ncol_per_page * n_rows_per_page
+        print 'we need', no_of_plots, 'plots'
         pages_needed = math.ceil(no_of_plots / float(self.plots_per_page))
+        print 'and those fit on', pages_needed, 'pages with ', ncol_per_page, '*', n_rows_per_page
         self.width = 8.26772
         self.height = 11.6929
         self.no_of_pages = pages_needed
@@ -982,6 +984,7 @@ class MultiPagePlot(Plot):
                 for value in group:
                     if value:
                         keep[self.dataframe.get_column_view(x_column) == value] = True
+                print 'next page', numpy.sum(keep), 'entries'
                 yield self.dataframe[keep, :]
 
     def render(self, output_filename, width=8, height=6, dpi=300):
@@ -1009,13 +1012,19 @@ class MultiPagePlot(Plot):
             self._other_adds.append(robjects.r('facet_wrap')(robjects.r(facet_specification), scale = scale, ncol=self.ncol_per_page))
 
         robjects.r('pdf')(output_filename, width = 8.26, height = 11.69)
+        page_no = 0
         for sub_df in self._iter_by_pages():
+            print page_no, len(sub_df)
+            print sub_df
+            page_no += 1
             plot = self.r['ggplot'](sub_df)
             for obj in self._other_adds:
                 plot = self.r['add'](plot, obj)
             for name, value in self.lab_rename.items():
                 plot = self.r['add'](
                         plot, robjects.r('labs(%s = "%s")' % (name, value)))
+            print 'calling print'
+            print self._other_adds
             robjects.r('print')(plot)
         robjects.r('dev.off')()
 
