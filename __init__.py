@@ -414,7 +414,7 @@ class Plot:
         return self
 
     def set_title(self, title):
-        self._other_adds.append(robjects.r('opts')(title = title))
+        self._other_adds.append(robjects.r('ggtitle')(title))
 
     def facet(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
         facet_wrap = robjects.r['facet_wrap']
@@ -716,7 +716,7 @@ class Plot:
         kwargs['values'] = numpy.array(list_of_colors) 
         self._other_adds.append(robjects.r('scale_fill_manual')(**kwargs))
 
-    def scale_fill_brewer(self, name=None, palette=0, guide = None, typ='qual'):
+    def scale_fill_brewer(self, name=None, palette=1, guide = None, typ='qual'):
         other_params = {}
         if not name is None:
             other_params['name'] = name
@@ -969,7 +969,9 @@ class MultiPagePlot(Plot):
         else:
             no_of_plots = no_of_x_variables
         self.plots_per_page = ncol_per_page * n_rows_per_page
+        print 'we need', no_of_plots, 'plots'
         pages_needed = math.ceil(no_of_plots / float(self.plots_per_page))
+        print 'and those fit on', pages_needed, 'pages with ', ncol_per_page, '*', n_rows_per_page
         self.width = 8.26772
         self.height = 11.6929
         self.no_of_pages = pages_needed
@@ -990,6 +992,7 @@ class MultiPagePlot(Plot):
                 for value in group:
                     if value:
                         keep[self.dataframe.get_column_view(x_column) == value] = True
+                print 'next page', numpy.sum(keep), 'entries'
                 yield self.dataframe[keep, :]
 
     def render(self, output_filename, width=8, height=6, dpi=300):
@@ -1017,13 +1020,19 @@ class MultiPagePlot(Plot):
             self._other_adds.append(robjects.r('facet_wrap')(robjects.r(facet_specification), scale = scale, ncol=self.ncol_per_page))
 
         robjects.r('pdf')(output_filename, width = 8.26, height = 11.69)
+        page_no = 0
         for sub_df in self._iter_by_pages():
+            print page_no, len(sub_df)
+            print sub_df
+            page_no += 1
             plot = self.r['ggplot'](sub_df)
             for obj in self._other_adds:
                 plot = self.r['add'](plot, obj)
             for name, value in self.lab_rename.items():
                 plot = self.r['add'](
                         plot, robjects.r('labs(%s = "%s")' % (name, value)))
+            print 'calling print'
+            print self._other_adds
             robjects.r('print')(plot)
         robjects.r('dev.off')()
 
@@ -1070,7 +1079,7 @@ def _no_annotation(set_name, set_entries):
 
 
 def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='blue', high = 'red', mid='white', nan_color='grey', hide_genes = True, array_cluster_method = 'cosine',
-        x_label = 'Condition', y_label = 'Gene', keep_column_order = False, keep_row_order = False, colors = None, hide_tree = False, exclude_those_with_too_many_nans_in_y_clustering = False, width = None):
+        x_label = 'Condition', y_label = 'Gene', colors = None, hide_tree = False, exclude_those_with_too_many_nans_in_y_clustering = False, width = None, row_order = None, column_order = None):
     """This code plots a heatmap + dendrogram.
     (unlike add_heatmap, which just does the squares on an existing plot)
     @data is a df of {'gene':, 'condition':, 'expression_change'}
@@ -1091,6 +1100,14 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
     @exclude_those_with_too_many_nans_in_y_clustering removes elements with more than 25% nans from deciding the order in the y-clustering
 
     It's using ggplot and ggdendro... very neat, but not easy to graps"""
+    column_number = len(set(data.get_column_view('condition')))
+    row_number = len(data) / column_number
+    keep_column_order = True
+    if column_number == None:
+        keep_column_order = False
+    keep_row_order = True
+    if row_number == None:
+        keep_row_order = False
     load_r()
     valid_array_cluster = 'hamming_on_0', 'cosine'
     if not array_cluster_method in valid_array_cluster:
@@ -1166,67 +1183,82 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
     do_tha_funky_heatmap = function(outputfilename, df, 
                         low, mid, high, nan_color, 
                         hide_genes, width, height, array_cluster_method, 
-                        keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering)
+                        keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering, row_number, column_number, row_order, column_order)
     {
+        df$condition <- factor(df$condition)
         options(expressions = 50000) #allow more recursion
         
         #transform df into a rectangualr format
-        df_cast = cast(df, gene ~ condition, value='expression_change', fun.aggregate=median) 
-        df_scaled = as.matrix(scale(df_cast))
 
+        df_cast = cast(df, gene ~ condition, value='expression_change', fun.aggregate=median) 
+        col_names = names(df_cast)
+        row_names = df_cast$gene
+        df_cast = df_cast[do.call(order,df_cast['gene']),]
+        print(df_cast)
+        df_scaled = as.matrix(scale(df_cast))
         df_scaled[is.nan(df_scaled)] = 0
         df_scaled[is.na(df_scaled)] = 0
-
-        #do the row clustering. TODO: Don't do this if keep_column_order is on
-        if (exclude_those_with_too_many_nans_in_y_clustering) #when clustering genes, leave out those samples with too many nans
+        
+        #do the row clustering
+        if (!keep_row_order)
         {
-            df_scaled_with_nans = as.matrix(scale(df_cast)) #we need it a new, with nans
-            nan_count_per_column = colSums(is.na(df_scaled_with_nans))
-            too_much = dim(df_scaled_with_nans)[1] / 4.0
-            exclude = nan_count_per_column >= too_much
-            keep = !exclude
-            df_scaled_with_nans = df_scaled_with_nans[, keep]
-            df_scaled_with_nans[is.nan(df_scaled_with_nans)] = 0
-            df_scaled_with_nans[is.na(df_scaled_with_nans)] = 0
-            dd.row <- as.dendrogram(hclust(dist_cosine(df_scaled_with_nans)))
+            if (exclude_those_with_too_many_nans_in_y_clustering) #when clustering genes, leave out those samples with too many nans
+            {
+                df_scaled_with_nans = as.matrix(scale(df_cast)) #we need it a new, with nans
+                nan_count_per_column = colSums(is.na(df_scaled_with_nans))
+                too_much = dim(df_scaled_with_nans)[1] / 4.0
+                exclude = nan_count_per_column >= too_much
+                keep = !exclude
+                df_scaled_with_nans = df_scaled_with_nans[, keep]
+                df_scaled_with_nans[is.nan(df_scaled_with_nans)] = 0
+                df_scaled_with_nans[is.na(df_scaled_with_nans)] = 0
+                dd.row <- as.dendrogram(hclust(dist_cosine(df_scaled_with_nans)))
+            }
+            else
+            {
+                dd.row <- as.dendrogram(hclust(dist_cosine(df_scaled)))
+            }
         }
-        else
-            dd.row <- as.dendrogram(hclust(dist_cosine(df_scaled)))
-
-        #do the column clustering. TODO: Ski this if keep_row_order is on
-        if (array_cluster_method == 'cosine')
-        {
-            dd.col <- as.dendrogram(hclust(dist_cosine(t(df_scaled))))
+        #do the column clustering.
+        if(!keep_column_order){
+            if (array_cluster_method == 'cosine')
+            {
+                dd.col <- as.dendrogram(hclust(dist_cosine(t(df_scaled))))
+            }
+            else if (array_cluster_method == 'hamming_on_0') 
+            {
+                df_hamming = as.matrix(df_cast) > 0
+                df_hamming[is.nan(df_hamming)] = 0
+                df_hamming[is.na(df_hamming)] = 0
+                dd.col <- as.dendrogram(hclust(dist_hamming(t(df_hamming))))
+            }
         }
-        else if (array_cluster_method == 'hamming_on_0') 
-        {
-            df_hamming = as.matrix(df_cast) > 0
-            df_hamming[is.nan(df_hamming)] = 0
-            df_hamming[is.na(df_hamming)] = 0
-            dd.col <- as.dendrogram(hclust(dist_hamming(t(df_hamming))))
-        }
-
         if (keep_row_order)
         {
-            row.ord <- 1:attr(dd.row, "members")
+            row.ord = 1:length(row_order)
+            for(i in 1:length(row_order)){
+                row.ord[i] = which(row_names==row_order[i])
+            }
+            row.ord = rev(row.ord)
         }
         else
         {
             row.ord <- order.dendrogram(dd.row) 
         }
-        
-        
         if (keep_column_order)
         {
-            col.ord <- 1:attr(dd.col, "members")
+            tmp = 1:length(column_order)
+            for(i in 1:length(column_order)){
+                tmp[i] = which(col_names==column_order[i])-1
+            }
+            col.ord <- tmp
         }
         else
         {
+            print(keep_column_order)
             col.ord <- order.dendrogram(dd.col)
+            print(col.ord)
         }
-
-
-        
         xx <- scale(df_cast, FALSE, FALSE)[row.ord, col.ord]
         xx_names <- attr(xx, 'dimnames')
         df <- as.data.frame(xx)
@@ -1245,9 +1277,13 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
             i = i +1    
         }
         colors = tmp
-        ddata_x <- dendro_data(dd.col)
-        ddata_y <- dendro_data(dd.row)
-
+        if(!keep_column_order){
+            ddata_x <- dendro_data(dd.col)
+            }
+        if(!keep_row_order)
+        {
+            ddata_y <- dendro_data(dd.row)
+        }
         ### Set up a blank theme
         theme_none <- opts(
             panel.grid.major = theme_blank(),
@@ -1287,6 +1323,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
                 geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) + 
                 coord_flip() + theme_none
         }
+
         if (grepl('png$', outputfilename))
             png(outputfilename, width=width * 72, height=height * 72)
         else if (grepl('pdf$', outputfilename))
@@ -1298,6 +1335,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
             vp = viewport(1, 1, x=0.5, y=0.5)
         else
             vp = viewport(0.8, 0.8, x=0.4, y=0.4)
+
         print(p1, vp=vp)
         if (!keep_column_order && !hide_tree)
         {
@@ -1313,7 +1351,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
     if not width:
         width = len(df.get_column_unique('condition')) * 0.4 + 5
     height = len(df.get_column_unique('gene')) * 0.15 + 3
-    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, nan_color, hide_genes, width, height, array_cluster_method, keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering)
+    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, nan_color, hide_genes, width, height, array_cluster_method, keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering, row_number, column_number, row_order, column_order)
 
 
 def EmptyPlot(text_to_display = 'No data'):
