@@ -298,7 +298,7 @@ class Plot:
                 ('text', 'geom_text', ['x', 'y', 'label'], ['angle', 'alpha', 'size', 'hjust', 'vjust', 'fontface', 'color', 'position', 'ymax'], {'position': 'identity'}),
                 ('tile', 'geom_tile', ['x', 'y'], ['color', 'fill', 'size', 'linetype', 'alpha','stat'], {}),
                 ('vertical_bar', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
-
+                ('smooth', 'geom_smooth', ['x', 'y'], ['method', 'color'], {}),
 
                 # stats
                 ('stat_sum_color', 'stat_sum', ['x', 'y'], ['size'], {'color': '..n..', 'size': 0.5}),
@@ -870,6 +870,14 @@ class Plot:
         if guide is not None:
             kwargs['guide'] = guide
         self._other_adds.append(robjects.r('scale_colour_manual')(values=numpy.array(values), **kwargs))
+
+    def scale_colour_manual_labels(self, vals, labels, guide = None):
+        kwargs = {}
+        if guide is not None:
+            kwargs['guide'] = guide
+        self._other_adds.append(robjects.r("""
+        scale_colour_manual
+        """)(values=numpy.array(vals), labels = numpy.array(labels), **kwargs))
 
     def scale_color_manual(self, *args, **kwargs):
         return self.scale_colour_manual(*args, **kwargs)
