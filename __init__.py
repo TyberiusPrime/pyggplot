@@ -1079,7 +1079,7 @@ def _no_annotation(set_name, set_entries):
 
 
 def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='blue', high = 'red', mid='white', nan_color='grey', hide_genes = True, array_cluster_method = 'cosine',
-        x_label = 'Condition', y_label = 'Gene', colors = None, hide_tree = False, exclude_those_with_too_many_nans_in_y_clustering = False, width = None, row_order = None, column_order = None):
+        x_label = 'Condition', y_label = 'Gene', colors = None, hide_tree = False, exclude_those_with_too_many_nans_in_y_clustering = False, width = None, row_order = False, column_order = False):
     """This code plots a heatmap + dendrogram.
     (unlike add_heatmap, which just does the squares on an existing plot)
     @data is a df of {'gene':, 'condition':, 'expression_change'}
@@ -1102,12 +1102,12 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
     It's using ggplot and ggdendro... very neat, but not easy to graps"""
     column_number = len(set(data.get_column_view('condition')))
     row_number = len(data) / column_number
-    keep_column_order = True
-    if column_number == None:
-        keep_column_order = False
-    keep_row_order = True
-    if row_number == None:
-        keep_row_order = False
+    keep_column_order = False
+    if column_order is not False:
+        keep_column_order = True
+    keep_row_order = False
+    if row_order is not False:
+        keep_row_order = True
     load_r()
     valid_array_cluster = 'hamming_on_0', 'cosine'
     if not array_cluster_method in valid_array_cluster:
@@ -1121,6 +1121,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
     #df[numpy.isnan(df.get_column_view('expression_change')), 'expression_change'] = 0 #we do this part in R now.
     df[numpy.isposinf(df.get_column_view('expression_change')), 'expression_change'] = infinity_replacement_value
     df[numpy.isneginf(df.get_column_view('expression_change')), 'expression_change'] = -1 * infinity_replacement_value
+    
     if len(df.get_column_unique('condition')) < 2 or len(df.get_column_unique('gene')) < 2:
         op = open(output_filename,'wb')
         op.write("not enough dimensions\n")
@@ -1183,7 +1184,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
     do_tha_funky_heatmap = function(outputfilename, df, 
                         low, mid, high, nan_color, 
                         hide_genes, width, height, array_cluster_method, 
-                        keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering, row_number, column_number, row_order, column_order)
+                        keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering, row_order, column_order)
     {
         df$condition <- factor(df$condition)
         options(expressions = 50000) #allow more recursion
@@ -1351,7 +1352,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
     if not width:
         width = len(df.get_column_unique('condition')) * 0.4 + 5
     height = len(df.get_column_unique('gene')) * 0.15 + 3
-    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, nan_color, hide_genes, width, height, array_cluster_method, keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering, row_number, column_number, row_order, column_order)
+    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, nan_color, hide_genes, width, height, array_cluster_method, keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering, row_order, column_order)
 
 
 def EmptyPlot(text_to_display = 'No data'):
