@@ -363,8 +363,12 @@ class Plot:
                     self._build_aesthetic({'x': x_column, 'y': '..count..', 'label': '..count..'}), stat='bin'))
         return self
 
-    def add_cummulative(self, x_column, ascending=True, percent = False):
-        """Add a line showing cumulative % of data <= x"""
+    def add_cummulative(self, x_column, ascending=True, percent = False, percentile = 1.0):
+        """Add a line showing cumulative % of data <= x.
+        if you specify a percentile, all data at the extreme range is dropped
+        
+        
+        """
         total = 0
         current = 0
         try:
@@ -375,8 +379,23 @@ class Plot:
         column_data = column_data[~numpy.isnan(column_data)]
         column_data = numpy.sort(column_data)
         total = float(len(column_data))
+        real_total = total
         if not ascending:
-            column_data = numpy.reverse(column_data)
+            column_data = column_data[::-1]  # numpy.reverse(column_data)
+        if percentile != 1.0:
+            if ascending:
+                maximum = numpy.max(column_data)
+            else:
+                maximum =  numpy.min(column_data)
+            total = float(total * percentile)
+            if total > 0:
+                column_data = column_data[:total]
+                offset = real_total - total
+            else:
+                column_data = column_data[total:]
+                offset = 2* abs(total)
+        else:
+            offset = 0
         x_values = []
         y_values = []
         if percent:
@@ -385,14 +404,19 @@ class Plot:
             current = total
         for value, group in itertools.groupby(column_data):
             x_values.append(value)
-            y_values.append(current)
+            y_values.append(current + offset)
             if percent:
                 current -= (len(list(group)) / total)
             else:
-                current -=(len(list(group)))
+                current -= (len(list(group)))
             #y_values.append(current)
         data = pydataframe.DataFrame({x_column: x_values, ("%" if percent else '#') + ' <=': y_values})
-        return self.add_line(x_column, ("%" if percent else '#') + ' <=', data=data)
+        if percentile > 0:
+            self.scale_y_continuous(limits = [0, real_total])
+        self.add_line(x_column, ("%" if percent else '#') + ' <=', data=data)
+        if percentile != 1.0:
+            self.set_title('showing only %.2f percentile, extreme was %.2f' % (percentile, maximum))
+        return self
 
     def add_heatmap(self, x_column, y_column, fill, low="red", mid=None, high="blue", midpoint=0):
         aes_params = {'x': x_column, 'y': y_column}
