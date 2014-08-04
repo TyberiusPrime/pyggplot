@@ -303,7 +303,7 @@ class Plot:
                 # stats
                 ('stat_sum_color', 'stat_sum', ['x', 'y'], ['size'], {'color': '..n..', 'size': 0.5}),
                 ('stat_smooth', 'stat_smooth', [], ['method', 'se', 'x', 'y'], {"method": 'lm', 'se': True}),
-                ('stat_density_2d', 'stat_density', ['x','y'], ['geom','contour'], {}),
+                ('stat_density_2d', 'stat_density', ['x','y'], ['geom','contour', 'fill'], {}),
 
                 ('stacked_bar_plot', 'geom_bar', ['x', 'y', 'fill'], [], {'position': 'stack'}),  # do we still need this?
                 # """A scatter plat that's colored by no of overlapping points"""
