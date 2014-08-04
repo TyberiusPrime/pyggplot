@@ -290,7 +290,7 @@ class Plot:
                 ('jitter', 'geom_jitter', ['x', 'y'], ['color', 'group', 'shape', 'size', 'alpha', 'jitter_x', 'jitter_y'], {}),
                 ('line', 'geom_line', ['x','y'], ['color', 'group', 'shape', 'alpha', 'size', 'stat', 'fun.y'], {}),
                 ('raster', 'geom_raster', ['x', 'y'], ['fill', 'alpha'], {}),
-                ('rect', 'geom_rect', ['xmin', 'xmax', 'ymin', 'ymax'], ['color', 'fill', 'alpha'], {}),
+                ('rect', 'geom_rect', ['xmin', 'xmax', 'ymin', 'ymax'], ['color', 'fill', 'alpha'], {'alpha': 1}),
                 ('ribbon', 'geom_ribbon', ['x', 'ymin', 'ymax'], ['color', 'fill', 'size', 'linetype', 'alpha', 'position'], {}),
                 ('rug', 'geom_rug', [], ['sides'], {'sides': 'bl'}),
                 ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}),
@@ -885,6 +885,9 @@ class Plot:
 
     def scale_shape_manual(self, values):
         self._other_adds.append(robjects.r('scale_shape_manual')(values=values))
+
+    def scale_shape_identity(self):
+        self._other_adds.append(robjects.r('scale_shape_identity')())
 
     def scale_shape(self, solid=True):
         self._other_adds.append(robjects.r('scale_shape')(solid=solid))
