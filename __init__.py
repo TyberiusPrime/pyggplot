@@ -1222,11 +1222,9 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
         col_names = names(df_cast)
         row_names = df_cast$gene
         df_cast = df_cast[do.call(order,df_cast['gene']),]
-        print(df_cast)
         df_scaled = as.matrix(scale(df_cast))
         df_scaled[is.nan(df_scaled)] = 0
         df_scaled[is.na(df_scaled)] = 0
-        
         #do the row clustering
         if (!keep_row_order)
         {
@@ -1283,9 +1281,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
         }
         else
         {
-            print(keep_column_order)
             col.ord <- order.dendrogram(dd.col)
-            print(col.ord)
         }
         xx <- scale(df_cast, FALSE, FALSE)[row.ord, col.ord]
         xx_names <- attr(xx, 'dimnames')
@@ -1313,35 +1309,37 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
             ddata_y <- dendro_data(dd.row)
         }
         ### Set up a blank theme
-        theme_none <- opts(
-            panel.grid.major = theme_blank(),
-            panel.grid.minor = theme_blank(),
-            panel.background = theme_blank(),
-            axis.title.x = theme_text(colour=NA),
-            axis.title.y = theme_blank(),
-            axis.text.x = theme_blank(),
-            axis.text.y = theme_blank(),
-            axis.line = theme_blank(),
-            axis.ticks = theme_blank()
+        
+        theme_none <- theme(
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(),
+            axis.title.x = element_text(colour=NA),
+            axis.title.y = element_blank(),
+            axis.text.x = element_blank(),
+            axis.text.y = element_blank(),
+            axis.line = element_blank(),
+            axis.ticks = element_blank()
             )
+
         ### Create plot components ###    
         # Heatmap
         p1 <- ggplot(mdf, aes(x=variable, y=gene)) + 
-            geom_tile(aes(fill=value)) + scale_fill_gradient2(low=low,mid=mid, high=high, na.value=nan_color) + opts(axis.text.x = theme_text(angle=90, size=8, hjust=0, vjust=0, colour="black"),
-            axis.title.y = theme_blank(), axis.title.x = theme_blank(),
-            axis.text.y = theme_text(colour="black"))
+            geom_tile(aes(fill=value)) + scale_fill_gradient2(low=low,mid=mid, high=high, na.value=nan_color) + theme(axis.text.x = element_text(angle=90, size=8, hjust=0, vjust=0, colour="black"),
+            axis.title.y = element_blank(), axis.title.x = element_blank(),
+            axis.text.y = element_text(colour="black"))
         if (hide_genes)
-            p1 = p1 + opts(axis.text.y = theme_blank())
+            p1 = p1 + theme(axis.text.y = element_blank())
         else
         {
-            p1 = p1 + opts(strip.background = theme_rect(colour = 'NA', fill = 'NA'), axis.text.y = theme_text(colour=colors))
+            p1 = p1 + theme(strip.background = element_rect(colour = 'NA', fill = 'NA'), axis.text.y = element_text(colour=colors))
         }
         if (!keep_column_order && !hide_tree)
         {
             # Dendrogram 1
             p2 <- ggplot(segment(ddata_x)) + 
                 geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) + 
-                theme_none + opts(axis.title.x=theme_blank())
+                theme_none + theme(axis.title.x=element_blank())
         }
 
         if(!keep_row_order && !hide_tree)
