@@ -279,7 +279,7 @@ class Plot:
 
                 ('ab_line', 'geom_abline', ['intercept', 'slope'], ['alpha', 'size', 'color'], {}),
                 ('area', 'geom_area', ['x', 'y'], ['color', 'fill', 'linetype', 'alpha', 'size', 'position'], {}),
-                ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha'], {'position': 'dodge', 'stat': 'identity'}),
+                ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha', 'width'], {'position': 'dodge', 'stat': 'identity'}),
                 ('box_plot2', 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['color','group','fill', 'alpha', 'stat'], {'stat': 'identity'}),
                 ('box_plot', 'geom_boxplot', ['x', 'y'], ['color', 'group', 'fill', 'alpha'], {}),
                 ('density_2d', 'geom_density2d', ['x', 'y'], ['color', 'alpha','fill', 'contour'], {}),
@@ -418,7 +418,7 @@ class Plot:
             self.set_title('showing only %.2f percentile, extreme was %.2f' % (percentile, maximum))
         return self
 
-    def add_heatmap(self, x_column, y_column, fill, low="red", mid=None, high="blue", midpoint=0):
+    def add_heatmap(self, x_column, y_column, fill, low="red", mid=None, high="blue", midpoint=0, guide_legend = None, scale_args = None):
         aes_params = {'x': x_column, 'y': y_column}
         aes_params['x'] = x_column
         aes_params['y'] = y_column
@@ -426,15 +426,16 @@ class Plot:
         self._other_adds.append(
             robjects.r('geom_tile')(self._build_aesthetic(aes_params), stat="identity")
         )
+        if scale_args is None:
+            scale_args = {}
+        if guide_legend:
+            scale_args['guide'] = guide_legend
         if mid is None:
             self._other_adds.append(
-                    robjects.r('scale_fill_gradient')(low=low, high=high)
+                    robjects.r('scale_fill_gradient')(low=low, high=high, **scale_args)
                     )
         else:
-            self._other_adds.append(
-                robjects.r('scale_fill_gradient2(low="%s", mid="%s", high="%s", midpoint=%.f)' % (
-                low, mid, high, midpoint))
-            )
+            self._other_adds.append( robjects.r('scale_fill_gradient2')(low=low, mid=mid, high=high, midpoint=midpoint, **scale_args))
         return self
 
     def set_title(self, title):
@@ -857,6 +858,34 @@ class Plot:
         return robjects.r('guide_legend')(**kwargs)
         
 
+    def guide_colourbar(self,**kwargs):
+        r_args = {}
+        for arg_name in [
+            "title",
+            "title_position",
+            "title_theme",
+            "title_hjust",
+            "title_vjust",
+            "label",
+            "label_position",
+            "label_theme",
+            "label_hjust",
+            "label_vjust",
+            "keywidth",
+            "keyheight",
+            "direction",
+            "default_unit",
+            "override_aes",
+            "nrow",
+            "ncol",
+            "byrow",
+            "reverse",
+            'nbin'
+            ]:
+            if arg_name in kwargs and kwargs[arg_name] is not None: 
+                r_args[arg_name.replace('_','.')] = kwargs[arg_name]
+        return robjects.r('guide_colourbar')(**kwargs)
+       
     def hide_panel_border(self):
         self._other_adds.append(robjects.r('opts(panel.border=theme_rect(fill=NA, colour=NA))'))
 
