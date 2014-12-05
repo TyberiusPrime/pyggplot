@@ -135,6 +135,7 @@ class Plot:
             for name, value in self.lab_rename.items():
                 plot = self.r['add'](
                         plot, robjects.r('labs(%s = "%s")' % (name, value)))
+            output_filename = output_filename.replace('%', '%%')  # R tries some kind of integer substitution on these, so we need to double the %
             self.r['ggsave'](filename=output_filename, plot=plot, width=width, height=height, dpi=dpi)
         except ValueError:
             print 'old names', self.old_names
