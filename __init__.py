@@ -288,7 +288,6 @@ class Plot:
                 ('error_bars', 'geom_errorbar', ['x', 'ymin', 'ymax'], ['color', 'group', 'width', 'alpha'], {'width': 0.25}),
                 ('error_barsh', 'geom_errorbarh', ['y', 'xmin', 'xmax'], ['color', 'group', 'width', 'alpha'], {'width': 0.25}),
                 ('horizontal_bar', 'geom_hline', ['yintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
-                ('jitter', 'geom_jitter', ['x', 'y'], ['color', 'group', 'shape', 'size', 'alpha', 'jitter_x', 'jitter_y'], {}),
                 ('line', 'geom_line', ['x','y'], ['color', 'group', 'shape', 'alpha', 'size', 'stat', 'fun.y'], {}),
                 ('raster', 'geom_raster', ['x', 'y'], ['fill', 'alpha'], {}),
                 ('rect', 'geom_rect', ['xmin', 'xmax', 'ymin', 'ymax'], ['color', 'fill', 'alpha'], {'alpha': 1}),
@@ -319,7 +318,48 @@ class Plot:
                 return do_add
             setattr(self, 'add_' + name, define(name, geom, required, optional, defaults))
 
-
+    def add_jitter(self, x,y, color=None, group = None, shape=None, size=None, alpha=None, jitter_x = True, jitter_y = True):
+        #an api changed necessitates this - jitter_x and jitter_y have been replaced with position_jitter(width, height)...
+        aes_params = {'x': x, 'y': y}
+        other_params = {}
+        position_jitter_params = {}
+        if color:
+            if color in self.old_names:
+                aes_params['colour'] = color
+            else:
+                other_params['colour'] = color
+        if group:
+            aes_params['group'] = group
+        if not alpha is None:
+            if alpha in self.old_names:
+                aes_params['alpha'] = alpha
+            else:
+                other_params['alpha'] = alpha
+        if not shape is None:
+            if shape in self.old_names:
+                aes_params['shape'] = shape
+            else:
+                other_params['shape'] = shape
+        if size:
+            other_params['size'] = size
+        if jitter_x is True:
+            position_jitter_params['width'] = robjects.r('NULL')
+        elif isinstance(jitter_x, float):
+            position_jitter_params['width'] = jitter_x
+        elif jitter_x is False:
+            position_jitter_params['width'] = 0
+        if jitter_y is True:
+            position_jitter_params['height'] = robjects.r('NULL')
+        elif isinstance(jitter_y, float):
+            position_jitter_params['height'] = jitter_y
+        elif jitter_y is False:
+            position_jitter_params['height'] = 0
+        
+        other_params['position'] = robjects.r('position_jitter')(**position_jitter_params)
+        self._other_adds.append(
+                robjects.r('geom_jitter')(self._build_aesthetic(aes_params), **other_params)
+            )
+        return self
 
     def add_histogram(self, x_column, y_column="..count..", color=None, group=None, fill=None, position="dodge", add_text=False, bin_width=None, alpha=None, size=None):
         aes_params = {'x': x_column}
