@@ -344,17 +344,20 @@ class Plot:
             other_params['size'] = size
         if jitter_x is True:
             position_jitter_params['width'] = robjects.r('NULL')
-        elif isinstance(jitter_x, float):
+        elif isinstance(jitter_x, float) or isinstance(jitter_x, int):
             position_jitter_params['width'] = jitter_x
         elif jitter_x is False:
             position_jitter_params['width'] = 0
+        else:
+            raise ValueError("invalid jitter_x value")
         if jitter_y is True:
             position_jitter_params['height'] = robjects.r('NULL')
-        elif isinstance(jitter_y, float):
+        elif isinstance(jitter_y, float) or isinstance(jitter_y, int):
             position_jitter_params['height'] = jitter_y
         elif jitter_y is False:
             position_jitter_params['height'] = 0
-        
+        else:
+            raise ValueError("invalid jitter_y value")
         other_params['position'] = robjects.r('position_jitter')(**position_jitter_params)
         self._other_adds.append(
                 robjects.r('geom_jitter')(self._build_aesthetic(aes_params), **other_params)
