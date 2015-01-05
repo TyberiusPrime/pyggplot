@@ -156,6 +156,8 @@ class Plot:
         to avoid r-parsing issues"""
 
         aes_params = []
+        import pprint
+        pprint.pprint( self.old_names)
         for aes_name, aes_column in params.items():
             if aes_column in self.old_names:
                 new_name = 'dat_%s' % self.old_names.index(aes_column)
@@ -194,6 +196,7 @@ class Plot:
         """Tarnsform a pythhon list of aesthetics to the R aes() object"""
         aes_params = self._translate_params(params)
         aes_params = ", ".join(aes_params)
+        print(aes_params)
         return robjects.r('aes(%s)' % aes_params)
 
     def parse_param(self, name, value, required=True):
@@ -354,6 +357,7 @@ class Plot:
         else:
             other_params['position'] = position
             #print 'b', other_params
+            print (aes_params)
             self._other_adds.append(
                 robjects.r('geom_histogram')(self._build_aesthetic(aes_params), **other_params)
             )
@@ -676,16 +680,36 @@ class Plot:
         self._other_adds.append(robjects.r('scale_y_reverse()'))
         return self
 
-    def turn_x_axis_labels(self, angle=75, hjust=1, size=8, vjust=0):
+    def turn_x_axis_labels(self, angle=75, hjust=1, size=8, vjust=0, color=None):
+        axis_text_x_args = {
+                'angle': angle,
+                'hjust': hjust,
+                'size': size,
+                'vjust': vjust,
+                'color': color
+                }
+        for key, value in axis_text_x_args.items():
+            if value is None:
+                del axis_text_x_args[key]
         kargs = {
-            'axis.text.x': robjects.r('theme_text')(angle=angle, hjust=hjust, size=size, vjust=0)
+            'axis.text.x': robjects.r('theme_text')(**axis_text_x_args)
         }
         self._other_adds.append(robjects.r('opts')(**kargs))
         return self
 
-    def turn_y_axis_labels(self, angle=75, hjust=1, size=8, vjust=0):
+    def turn_y_axis_labels(self, angle=75, hjust=1, size=8, vjust=0, color=None):
+        axis_text_y_args = {
+                'angle': angle,
+                'hjust': hjust,
+                'size': size,
+                'vjust': vjust,
+                'color': color
+                }
+        for key, value in axis_text_y_args.items():
+            if value is None:
+                del axis_text_y_args[key]
         kargs = {
-            'axis.text.y': robjects.r('theme_text')(angle=angle, hjust=hjust, size=size, vjust=0)
+            'axis.text.y': robjects.r('theme_text')(**axis_text_y_args)
         }
         self._other_adds.append(robjects.r('opts')(**kargs))
         return self
