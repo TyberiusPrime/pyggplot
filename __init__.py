@@ -151,15 +151,15 @@ class Plot:
             print 'old names', self.old_names
             raise
 
-    def render_notebook(self, width=8, height=6):
+    def render_notebook(self, width=800, height=600):
         """Show the plot in the ipython notebook (ie. return svg formated image data)"""
         import tempfile
         from rpy2.robjects.packages import importr 
         from IPython.core.display import Image
         grdevices = importr('grDevices')
-        tf = tempfile.NamedTemporaryFile(suffix='.svg')
+        tf = tempfile.NamedTemporaryFile(suffix='.png')
         fn = tf.name
-        grdevices.svg(fn, width = width, height = height)
+        grdevices.png(fn, width = width, height = height)
         plot = self.r['ggplot'](convert_dataframe_to_r(self.dataframe))
         for obj in self._other_adds:
             plot = self.r['add'](plot, obj)
@@ -173,7 +173,7 @@ class Plot:
         tf.close()
         return result
 
-    def _repr_svg_(self):
+    def _repr_png_(self):
         """Ipython notebook representation callback"""
         return self.render_notebook()
 
