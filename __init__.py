@@ -1,4 +1,4 @@
-## Copyright (c) 2009-2011, Florian Finkernagel. All rights reserved.
+## Copyright (c) 2009-2015, Florian Finkernagel. All rights reserved.
 
 ## Redistribution and use in source and binary forms, with or without
 ## modification, are permitted provided that the following conditions are
@@ -29,6 +29,19 @@
 ## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """A wrapper around ggplot2 ( http://had.co.nz/ggplot2/ )
+
+Takes a pandas.DataFrame object, then add layers with the various add_xyz
+functions (e.g. add_scatter).
+
+You do not need to seperate aesthetics from values - the wrapper
+will treat a parameter as value if and only if it is not a column name.
+(so y = 0 is a value, color = 'blue 'is a value - except if you have a column
+'blue', then it's a column!. And y = 'value' doesn't work, but that seems to be a ggplot issue).
+
+
+
+
+
 """
 
 try:
@@ -40,9 +53,9 @@ except ImportError:
     pass
 import itertools
 from ordereddict import OrderedDict
-import pydataframe
 import numpy
 import math
+import pandas
 
 _r_loaded = False
 
@@ -102,19 +115,15 @@ def r_expression(expr):
 class Plot:
 
     def __init__(self, dataframe, *ignored):
+        """Create a new ggplot2 object from DataFrame"""
         load_r()
         self.r = {}
         self.r['ggplot'] = robjects.r['ggplot']
         self.r['aes'] = robjects.r['aes']
-        try:
+        if robjects.r("exists('ggplot2:::\"+.ggplot\"')")[0]:
             self.r['add'] = robjects.r('ggplot2:::"+.ggplot"')
-        except Exception, e:
-            print str(e)
-            if 'not found' in str(e):
-                self.r['add'] = robjects.r('ggplot2::"%+%"')
-            else:
-                raise
-
+        else:
+            self.r['add'] = robjects.r('ggplot2::"%+%"')
 
         self.r['layer'] = robjects.r['layer']
         self.r['facet_wrap'] = robjects.r['facet_wrap']
@@ -128,8 +137,9 @@ class Plot:
         self._add_geom_methods()
 
     def render(self, output_filename, width=8, height=6, dpi=300):
+        """Save the plot to a file"""
         try:
-            plot = self.r['ggplot'](self.dataframe)
+            plot = self.r['ggplot'](convert_dataframe_to_r(self.dataframe))
             for obj in self._other_adds:
                 plot = self.r['add'](plot, obj)
             for name, value in self.lab_rename.items():
@@ -141,24 +151,63 @@ class Plot:
             print 'old names', self.old_names
             raise
 
-    def _prep_dataframe(self, dataframe):
-        df = dataframe.copy()
+    def render_notebook(self, width=8, height=6):
+        """Show the plot in the ipython notebook (ie. return svg formated image data)"""
+        import tempfile
+        from rpy2.robjects.packages import importr 
+        from IPython.core.display import Image
+        grdevices = importr('grDevices')
+        tf = tempfile.NamedTemporaryFile(suffix='.svg')
+        fn = tf.name
+        grdevices.svg(fn, width = width, height = height)
+        plot = self.r['ggplot'](convert_dataframe_to_r(self.dataframe))
+        for obj in self._other_adds:
+            plot = self.r['add'](plot, obj)
+        for name, value in self.lab_rename.items():
+            plot = self.r['add'](
+                    plot, robjects.r('labs(%s = "%s")' % (name, value)))
+        robjects.r('plot')(plot)
+        grdevices.dev_off()
+        tf.seek(0,0)
+        result = tf.read()
+        tf.close()
+        return result
+
+    def _repr_svg_(self):
+        """Ipython notebook representation callback"""
+        return self.render_notebook()
+
+    def _prep_dataframe(self, df):
+        """prepare the dataframe by renaming all the columns
+        (we use this to get around R naming issues - the axis get labled correctly later on)"""
+        if 'pydataframe.dataframe.DataFrame' in str(type(df)):
+            df = self._convert_pydataframe(df)
+        #df = dataframe.copy()
         new_names = []
-        for name in df.columns_ordered:
+        for name in df.columns:
             if not name in self.old_names:
                 new_names.append(name)
         self.old_names.extend(new_names)
-        for name in df.columns_ordered[:]:
-            df.rename_column(name, 'dat_%s' % self.old_names.index(name))
+        rename = dict([(name, 'dat_%s' % self.old_names.index(name)) for name in df.columns])
+        df = df.rename(columns = rename)
         return df
 
+    def _convert_pydataframe(self, pdf):
+        """Compability shim for still being able to use old pydataframes with the new pandas interface"""
+        d = {}
+        for column in pdf.columns_ordered:
+            o = pdf.gcv(column)
+            if 'pydataframe.factors.Factor' in str(type(o)):
+                d[column] = pandas.Series(pandas.Categorical(o.as_levels(), categories = o.levels))
+            else:
+                d[column] = o
+        return pandas.DataFrame(d)
+
+        #if isinstance(o, Factor):
     def _translate_params(self, params):
         """Translate between the original dataframe names and the numbered ones we assign
         to avoid r-parsing issues"""
-
         aes_params = []
-        import pprint
-        pprint.pprint( self.old_names)
         for aes_name, aes_column in params.items():
             if aes_column in self.old_names:
                 new_name = 'dat_%s' % self.old_names.index(aes_column)
@@ -175,9 +224,6 @@ class Plot:
         """Reapply the correct (or new) labels to the axis, overwriting our dat_%i numbered dataframe
         columns"""
         which_legend = False
-        import pypipegraph
-        logger = pypipegraph.util.start_logging('pyggplot2')
-        logger.info('fixing %s to %s' % (aes_name, real_name))
         if aes_name == 'x':
             which_legend = 'x'
         elif aes_name == 'y':
@@ -194,10 +240,9 @@ class Plot:
             self.lab_rename[which_legend] = real_name
 
     def _build_aesthetic(self, params):
-        """Tarnsform a pythhon list of aesthetics to the R aes() object"""
+        """Transform a python list of aesthetics to the R aes() object"""
         aes_params = self._translate_params(params)
         aes_params = ", ".join(aes_params)
-        print(aes_params)
         return robjects.r('aes(%s)' % aes_params)
 
     def parse_param(self, name, value, required=True):
@@ -208,7 +253,7 @@ class Plot:
 
         """
         if not value is None:
-            if isinstance(value, tuple):
+            if isinstance(value, tuple):  # this  allows renaming columns when plotting - why is this here? Is this actually usefully
                 new_name = value[1]
                 value = value[0]
                 self.to_rename[value] = new_name
@@ -221,10 +266,11 @@ class Plot:
                     self.other_collection[name] = value
 
     def reset_params(self, data):
+        """Prepare the dictionaries used by parse_param"""
         self.aes_collection = {}
         self.other_collection = {}
         if not data is None:
-            self.other_collection['data'] = self._prep_dataframe(data)
+            self.other_collection['data'] = convert_dataframe_to_r(self._prep_dataframe(data))
 
     def _add(self, name, geom_name, required_mappings, optional_mappings, defaults, args, kwargs):
         """The generic method to add a geom to the ggplot.
@@ -235,7 +281,7 @@ class Plot:
         """
         mappings = {}
         all_defined_mappings = required_mappings + optional_mappings
-        for a, b in zip(all_defined_mappings, args):  # so that you could in thery also pass the optional_mappings by position...required_mappings
+        for a, b in zip(all_defined_mappings, args):  # so that you could in theory also pass the optional_mappings by position...required_mappings
             mappings[a] = b
         mappings.update(kwargs)
 
@@ -267,8 +313,6 @@ class Plot:
         if geom_name.startswith('annotation'):
             self._other_adds.append(robjects.r(geom_name)( **self.other_collection))
         else:
-            print self.aes_collection
-            print self._build_aesthetic(self.aes_collection)
             self._other_adds.append(robjects.r(geom_name)(self._build_aesthetic(self.aes_collection), **self.other_collection))
         return self
 
@@ -1071,7 +1115,11 @@ class Plot:
 
 
 class MultiPagePlot(Plot):
-    """A plot job that splits faceted variables over mutiple pages"""
+    """A plot job that splits faceted variables over multiple pages.
+
+    Bug: The last page may get fewer variables and the plots get a different size than the other pages
+    
+    """
     def __init__(self, dataframe, facet_variable_x, facet_variable_y = None, ncol_per_page = 3, n_rows_per_page = 5, fixed_x = False, fixed_y = True, facet_style = 'wrap'):
         Plot.__init__(self, dataframe)
         self.facet_variable_x = facet_variable_x
@@ -1093,9 +1141,7 @@ class MultiPagePlot(Plot):
         else:
             no_of_plots = no_of_x_variables
         self.plots_per_page = ncol_per_page * n_rows_per_page
-        print 'we need', no_of_plots, 'plots'
         pages_needed = math.ceil(no_of_plots / float(self.plots_per_page))
-        print 'and those fit on', pages_needed, 'pages with ', ncol_per_page, '*', n_rows_per_page
         self.width = 8.26772
         self.height = 11.6929
         self.no_of_pages = pages_needed
@@ -1116,7 +1162,6 @@ class MultiPagePlot(Plot):
                 for value in group:
                     if value:
                         keep[self.dataframe.get_column_view(x_column) == value] = True
-                print 'next page', numpy.sum(keep), 'entries'
                 yield self.dataframe[keep, :]
 
     def render(self, output_filename, width=8, height=6, dpi=300):
@@ -1146,8 +1191,6 @@ class MultiPagePlot(Plot):
         robjects.r('pdf')(output_filename, width = 8.26, height = 11.69)
         page_no = 0
         for sub_df in self._iter_by_pages():
-            print page_no, len(sub_df)
-            print sub_df
             page_no += 1
             plot = self.r['ggplot'](sub_df)
             for obj in self._other_adds:
@@ -1155,7 +1198,6 @@ class MultiPagePlot(Plot):
             for name, value in self.lab_rename.items():
                 plot = self.r['add'](
                         plot, robjects.r('labs(%s = "%s")' % (name, value)))
-            print 'calling print'
             print self._other_adds
             robjects.r('print')(plot)
         robjects.r('dev.off')()
@@ -1165,41 +1207,6 @@ class MultiPagePlot(Plot):
 
     def facet(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
         raise ValueError("MultiPagePlots specify faceting on construction")
-
-
-def powerset(seq):
-    """
-    Returns all the subsets of this set. This is a generator.
-    """
-    if len(seq) <= 1:
-        yield seq
-        yield []
-    else:
-        for item in powerset(seq[1:]):
-            yield [seq[0]] + item
-            yield item
-
-
-def intersection(list_of_sects):
-    if not list_of_sects:
-        return set()
-    final_set = list_of_sects[0]
-    for k in list_of_sects[1:]:
-        final_set = final_set.intersection(k)
-    return final_set
-
-
-def union(list_of_sects):
-    if not list_of_sects:
-        return set()
-    final_set = list_of_sects[0]
-    for k in list_of_sects[1:]:
-        final_set = final_set.union(k)
-    return final_set
-
-
-def _no_annotation(set_name, set_entries):
-    return {set_name: set_entries}
 
 
 def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='blue', high = 'red', mid='white', nan_color='grey', hide_genes = True, array_cluster_method = 'cosine',
@@ -1223,7 +1230,7 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
     @hide_tree hides the tree
     @exclude_those_with_too_many_nans_in_y_clustering removes elements with more than 25% nans from deciding the order in the y-clustering
 
-    It's using ggplot and ggdendro... very neat, but not easy to graps"""
+    It's using ggplot and ggdendro... in the end, this code breads insanity"""
     column_number = len(set(data.get_column_view('condition')))
     row_number = len(data) / column_number
     keep_column_order = False
@@ -1459,14 +1466,14 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
         else
             vp = viewport(0.8, 0.8, x=0.4, y=0.4)
 
-        print(p1, vp=vp)
+        #print(p1, vp=vp)
         if (!keep_column_order && !hide_tree)
         {
-            print(p2, vp=viewport(0.60, 0.2, x=0.4, y=0.9))
+            #print(p2, vp=viewport(0.60, 0.2, x=0.4, y=0.9))
         }
         if (!keep_row_order && !hide_tree)
         {
-            print(p3, vp=viewport(0.2, 0.86, x=0.9, y=0.4))
+            #print(p3, vp=viewport(0.2, 0.86, x=0.9, y=0.4))
         }
         dev.off()
     }
@@ -1478,17 +1485,133 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
 
 
 def EmptyPlot(text_to_display = 'No data'):
-    p = Plot(pydataframe.DataFrame({'x': [0], 'y': [0], 'text': [text_to_display]}))
+    p = Plot(pandas.DataFrame({'x': [0], 'y': [0], 'text': [text_to_display]}))
     p.add_text('x', 'y', 'text')
     return p
 
 
+try:
+    import rpy2.robjects as ro
+    import rpy2.robjects.conversion
+    import rpy2.rinterface as rinterface
+    import rpy2.robjects.numpy2ri
+
+    def numpy2ri_vector(o):
+        """Convert a numpy 1d array to an R vector.
+
+        Unlike the original conversion which converts into a list, apperantly."""
+        if len(o.shape) != 1:
+            raise ValueError("Dataframe.numpy2ri_vector can only convert 1d arrays")
+        #if isinstance(o, Factor):
+            #res = ro.r['factor'](o.as_levels(), levels=o.levels, ordered=True)
+        elif isinstance(o, numpy.ndarray):
+            if not o.dtype.isnative:
+                raise(ValueError("Cannot pass numpy arrays with non-native byte orders at the moment."))
+
+            # The possible kind codes are listed at
+            #   http://numpy.scipy.org/array_interface.shtml
+            kinds = {
+                # "t" -> not really supported by numpy
+                "b": rinterface.LGLSXP,
+                "i": rinterface.INTSXP,
+                # "u" -> special-cased below
+                "f": rinterface.REALSXP,
+                "c": rinterface.CPLXSXP,
+                # "O" -> special-cased below
+                "S": rinterface.STRSXP,
+                "U": rinterface.STRSXP,
+                # "V" -> special-cased below
+                }
+            # Most types map onto R arrays:
+            if o.dtype.kind in kinds:
+                # "F" means "use column-major order"
+    #            vec = rinterface.SexpVector(o.ravel("F"), kinds[o.dtype.kind])
+                vec = rinterface.SexpVector(numpy.ravel(o,"F"), kinds[o.dtype.kind])
+                res = vec
+            # R does not support unsigned types:
+            elif o.dtype.kind == "u":
+                o = numpy.array(o, dtype=numpy.int64)
+                return numpy2ri_vector(o)
+                #raise(ValueError("Cannot convert numpy array of unsigned values -- R does not have unsigned integers."))
+            # Array-of-PyObject is treated like a Python list:
+            elif o.dtype.kind == "O":
+                all_str = True
+                all_bool = True
+                for value in o:
+                    if (
+                            not type(value) is str and 
+                            not type(value) is unicode and 
+                            not type(value) is numpy.string_ and 
+                            not (type(value) is numpy.ma.core.MaskedArray and value.mask == True) and
+                            not (type(value) is numpy.ma.core.MaskedConstant and value.mask == True)
+                                
+                                ):
+                        all_str = False
+                        break
+                    if not type(value) is bool or type(value) is numpy.bool_:
+                        all_bool = False
+                if (not all_str) and (not all_bool):
+                    raise(ValueError("numpy2ri_vector currently does not handle object vectors: %s %s" % (value, type(value))))
+                else:
+                    #since we keep strings as objects
+                    #we have to jump some hoops here
+                    vec = rinterface.SexpVector(numpy.ravel(o,"F"), kinds['S'])
+                    return vec
+                    #res = ro.conversion.py2ri(list(o))
+            # Record arrays map onto R data frames:
+            elif o.dtype.kind == "V":
+                raise(ValueError("numpy2ri_vector currently does not handle record arrays"))
+            # It should be impossible to get here:
+            else:
+                raise(ValueError("Unknown numpy array type."))
+        else:
+            raise(ValueError("Unknown input to numpy2ri_vector."))
+        return res
+
+    # I can't figuer out how to do colnames(x) = value without a helper function
+    ro.r("""
+        set_colnames = function(df, names)
+        {
+            colnames(df) = names
+            df
+        }
+        """)
+       
+    def convert_dataframe_to_r(o):
+        #print 'converting', o, type(o)
+        if isinstance(o, pandas.DataFrame):
+            #print 'dataframe'
+            dfConstructor = ro.r['data.frame']
+            names = []
+            parameters = []
+            kw_params = {}
+            for column_name in o.columns:
+                try:
+                    names.append(str(column_name))
+                    if str(o[column_name].dtype) == 'category':  # There has to be a more elegant way to specify this...
+                        col = ro.r('factor')(numpy.array(o[column_name]), list(o[column_name].cat.categories), ordered=True )
+
+                    else:
+                        col = numpy.array(o[column_name])
+                        col = numpy2ri_vector(col)
+                    parameters.append(col)
+                except ValueError, e:
+                    raise ValueError(str(e) + ' Offending column: %s, dtype: %s, content: %s' %( column_name, col.dtype, col[:10]))
+            #kw_params['row.names'] = numpy2ri_vector(numpy.array(o.index))
+            try:
+                res = dfConstructor(*parameters, **kw_params)
+                res = ro.r('set_colnames')(res, names)
+            except TypeError:
+                print parameters.keys()
+                raise
+        elif isinstance(o, numpy.ndarray):
+            res = numpy2ri_vector(o)
+        else:
+            res =  ro.default_py2ri(o)
+        return res
+
+except ImportError: #guess we don't have rpy
+    pass
 
 
-from square_euler import SquareEuler
-from sequence_logos import plot_sequences, plot_sequence_alignment
-from kaplan_meier import plot_kaplan_meier
-
-
-all = [Plot, SquareEuler, plot_sequence_alignment, plot_sequences, plot_heatmap]
-
+all = [Plot, plot_heatmap]
