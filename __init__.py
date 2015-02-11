@@ -34,7 +34,8 @@ Takes a pandas.DataFrame object, then add layers with the various add_xyz
 functions (e.g. add_scatter).
 
 Referr to the ggplot documentation about the layers (geoms), and simply
-replace geom_* with add_*
+replace geom_* with add_*.
+See http://docs.ggplot2.org/0.9.3.1/index.html
 
 You do not need to seperate aesthetics from values - the wrapper
 will treat a parameter as value if and only if it is not a column name.
@@ -342,51 +343,89 @@ class Plot:
         All geoms have required & optional attributes and take an optional data parameter with another
         dataframe
         """
-        #python method name (add_ + name), geom (R) name, required attributes, optional attributes
+        #python method name (add_ + name), geom (R) name, required attributes, optional attributes, default attribute values
         methods = (
                 #geoms
 
-                ('ab_line', 'geom_abline', ['intercept', 'slope'], ['alpha', 'size', 'color'], {}),
-                ('area', 'geom_area', ['x', 'y'], ['color', 'fill', 'linetype', 'alpha', 'size', 'position'], {}),
-                ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha', 'width'], {'position': 'dodge', 'stat': 'identity'}),
-                ('box_plot2', 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['color','group','fill', 'alpha', 'stat'], {'stat': 'identity'}),
-                ('box_plot', 'geom_boxplot', ['x', 'y'], ['color', 'group', 'fill', 'alpha', 'notch', 'notchwidth'], {}),
-                ('density_2d', 'geom_density2d', ['x', 'y'], ['color', 'alpha','fill', 'contour'], {}),
-                ('density', 'geom_density', ['x'], ['y', 'color'], {'bw': lambda mappings: robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(mappings['x'])))}),
-                ('error_bars', 'geom_errorbar', ['x', 'ymin', 'ymax'], ['color', 'group', 'width', 'alpha'], {'width': 0.25}),
-                ('error_barsh', 'geom_errorbarh', ['y', 'xmin', 'xmax'], ['color', 'group', 'width', 'alpha'], {'width': 0.25}),
-                ('horizontal_bar', 'geom_hline', ['yintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
-                ('line', 'geom_line', ['x','y'], ['color', 'group', 'shape', 'alpha', 'size', 'stat', 'fun.y'], {}),
-                ('raster', 'geom_raster', ['x', 'y'], ['fill', 'alpha'], {}),
-                ('rect', 'geom_rect', ['xmin', 'xmax', 'ymin', 'ymax'], ['color', 'fill', 'alpha'], {'alpha': 1}),
-                ('ribbon', 'geom_ribbon', ['x', 'ymin', 'ymax'], ['color', 'fill', 'size', 'linetype', 'alpha', 'position'], {}),
-                ('rug', 'geom_rug', [], ['sides'], {'sides': 'bl'}),
-                ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}),
-                ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['color', 'alpha', 'size'], {'size': 0.5}),
-                ('text', 'geom_text', ['x', 'y', 'label'], ['angle', 'alpha', 'size', 'hjust', 'vjust', 'fontface', 'color', 'position', 'ymax'], {'position': 'identity'}),
-                ('tile', 'geom_tile', ['x', 'y'], ['color', 'fill', 'size', 'linetype', 'alpha','stat'], {}),
-                ('vertical_bar', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}),
-                ('smooth', 'geom_smooth', ['x', 'y'], ['method', 'color'], {}),
+                ('ab_line', 'geom_abline', ['intercept', 'slope'], ['alpha', 'size', 'color', 'linetype'], {}, ''),
+                ('area', 'geom_area', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', 'position'], {}, ''),
+                ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha', 'weight', 'width'], {'position': 'dodge', 'stat': 'identity'}, ''),
+                ('bin2d', 'geom_bin2d', ['xmin', 'xmax', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight'], {}, ''),
+                ('blank', 'geom_blank', [], [], {}, ''),
+                ('box_plot', 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight'], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
+                ('box_plot2', 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight'], 
+                    {'stat': 'identity'}, ' box plot where you define everything manually'),
+                ('contour', 'geom_contour', ['x', 'y'], ['alpha',' color', 'linetype', 'size',' weight'], {}, ''),
+                ('crossbar', 'geom_crossbar', ['x','y', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
+                ('density', 'geom_density', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size',' weight'], 
+                    {'bw': lambda mappings: (robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(mappings['x']))))
+                        }, ''),
+                ('density_2d', 'geom_density2d', ['x', 'y'], ['alpha', 'color', 'linetype','fill', 'contour'], {}, ''),
+                ('error_bars', 'geom_errorbar', ['x', 'ymin', 'ymax'], ['alpha', 'color', 'group', 'linetype', 'size', 'width'], {'width': 0.25}, ''),
+                ('error_barsh', 'geom_errorbarh', ['y', 'xmin', 'xmax'], ['alpha', 'color', 'group', 'linetype', 'size', 'width'], {'width': 0.25}, ''),
+                ('freq_poly', 'geom_freq_poly', [], ['alpha', 'color', 'linetype', 'size'], {}, ''),
+                ('hex', 'geom_hex', ['x', 'y'], ['alpha', 'color', 'fill', 'size'], {}, ''),
+                #  ('histogram', this is it's own function
+
+                ('hline', 'geom_hline', ['yintercept'], ['alpha', 'color', 'linetype', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}, ''),
+                ('horizontal_line', 'geom_hline', ['yintercept'], ['alpha', 'color', 'linetype', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}, 'Renamed hline'), 
+
+                # jitter is it's own function
+                ('line', 'geom_line', ['x','y'], ['color', 'group', 'shape', 'alpha', 'size', 'stat', 'fun.y', 'linetype'], {}, ''),
+                ('map', 'geom_map', ['map_id'], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
+                ('path', 'geom_path', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', 'group'], {}, ''),
+
+                ('point', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}, ''),
+                ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}, ''),
+
+                ('pointrange', 'geom_pointrange', ['x', 'y', 'ymin', 'ymax'], ['alpha', 'color',' fill', 'linetype', 'shape', 'size'], {}, ''),
+                ('polygon','geom_polygon',  ['x', 'y',], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
+                ('quantile','geom_quantile',  ['x', 'y',], ['alpha', 'color', 'linetype', 'size', 'weight'], {}, ''),
+                ('raster', 'geom_raster', ['x', 'y'], ['fill', 'alpha'], {}, ''),
+                ('rect', 'geom_rect', ['xmin', 'xmax', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size'], {'alpha': 1}, ''),
+                ('ribbon', 'geom_ribbon', ['x', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size', 'position'], {}, ''),
+                ('rug', 'geom_rug', [], ['sides'], {'sides': 'bl'}, ''),
+                ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}, ''),
+                ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['alpha', 'color', 'linetype', 'size'], {'size': 0.5}, ''),
+                ('smooth', 'geom_smooth', ['x', 'y'], ['alpha', 'color',' fill', 'linetype', 'size', 'weight', 'method'], {}, ''),
+                ('step', 'geom_step', ['x','y'], ['direction', 'stat', 'position', 'alpha', 'color', 'linetype', 'size'], {}, ''),
+                ('text', 'geom_text', ['x', 'y', 'label'], ['alpha', 'angle', 'color', 'family', 'fontface', 'hjust', 'lineheight', 'size', 'vjust', 'position'], {'position': 'identity'}, ''),
+                ('tile', 'geom_tile', ['x', 'y'], ['alpha', 'color', 'fill', 'size', 'linetype', 'stat'], {}, ''),
+                ('violin', 'geom_violin', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight', 'scale', 'stat', 'position', 'trim'], {'stat': 'ydensity'}, ''),
+
+                ('vline', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size', 'linetype'], {'alpha': 0.5, 'color': 'black', 'size': 1}, ''),
+                ('vertical_bar', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size', 'linetype'], {'alpha': 0.5, 'color': 'black', 'size': 1}, ''),
 
                 # stats
-                ('stat_sum_color', 'stat_sum', ['x', 'y'], ['size'], {'color': '..n..', 'size': 0.5}),
-                ('stat_smooth', 'stat_smooth', [], ['method', 'se', 'x', 'y'], {"method": 'lm', 'se': True}),
-                ('stat_density_2d', 'stat_density', ['x','y'], ['geom','contour', 'fill'], {}),
+                ('stat_sum_color', 'stat_sum', ['x', 'y'], ['size'], {'color': '..n..', 'size': 0.5}, ''),
+                ('stat_smooth', 'stat_smooth', [], ['method', 'se', 'x', 'y'], {"method": 'lm', 'se': True}, ''),
+                ('stat_density_2d', 'stat_density', ['x','y'], ['geom','contour', 'fill'], {}, ''),
 
-                ('stacked_bar_plot', 'geom_bar', ['x', 'y', 'fill'], [], {'position': 'stack'}),  # do we still need this?
+                ('stacked_bar_plot', 'geom_bar', ['x', 'y', 'fill'], [], {'position': 'stack'}, ''),  # do we still need this?
                 # """A scatter plat that's colored by no of overlapping points"""
                 #annotations
-                ('annotation_logticks', 'annotation_logticks', [], ['base','sides','scaled', 'short','mid', 'long',],  { 'base' : 10, 'sides' : "bl", 'scaled' : True, 'short' : robjects.r('unit')(0.1, "cm"), 'mid' : robjects.r('unit')(0.2, "cm"), 'long' : robjects.r('unit')(0.3, "cm"), }),
+                ('annotation_logticks', 'annotation_logticks', [], ['base','sides','scaled', 'short','mid', 'long',],  
+                        { 'base' : 10,
+                          'sides': "bl",
+                          'scaled': True,
+                          'short': robjects.r('unit')(0.1, "cm"),
+                          'mid': robjects.r('unit')(0.2, "cm"),
+                          'long': robjects.r('unit')(0.3, "cm"),
+                       }, ''),
                 )
+        for x in methods:
+            if len(x) != 6:
+                raise ValueError("Wrong number of arguments: %s" % (x,))
 
-        for (name, geom, required, optional, defaults) in methods:
+        for (name, geom, required, optional, defaults, doc_str) in methods:
             def define(name, geom, required, optional, defaults):  # we need to capture the variables...
                 def do_add(*args, **kwargs):
                     return self._add(name, geom, required, optional, defaults, args, kwargs)
+                do_add.__doc__ = doc_str
                 return do_add
             setattr(self, 'add_' + name, define(name, geom, required, optional, defaults))
 
-    def add_jitter(self, x,y, color=None, group = None, shape=None, size=None, alpha=None, jitter_x = True, jitter_y = True):
+    def add_jitter(self, x,y, color=None, group = None, shape=None, size=None, alpha=None, jitter_x = True, jitter_y = True, fill=None):
         #an api changed necessitates this - jitter_x and jitter_y have been replaced with position_jitter(width, height)...
         aes_params = {'x': x, 'y': y}
         other_params = {}
@@ -396,6 +435,11 @@ class Plot:
                 aes_params['colour'] = color
             else:
                 other_params['colour'] = color
+        if fill:
+            if fill in self.old_names:
+                aes_params['fill'] = fill
+            else:
+                other_params['fill'] = fill
         if group:
             aes_params['group'] = group
         if not alpha is None:
