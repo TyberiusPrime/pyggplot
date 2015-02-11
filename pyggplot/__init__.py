@@ -169,21 +169,16 @@ class Plot:
         output_filename = output_filename.replace('%', '%%')  # R tries some kind of integer substitution on these, so we need to double the %
         self.r['ggsave'](filename=output_filename, plot=plot, width=width, height=height, dpi=dpi)
 
-    def render_notebook(self, width=8, height=6):
-        """Show the plot in the ipython notebook (ie. return svg formated image data)"""
+    def _repr_png_(self):
+        """Show the plot in the ipython notebook (ie. return png formated image data)"""
         import tempfile
-        grdevices = importr('grDevices')
         tf = tempfile.NamedTemporaryFile(suffix='.png')
-        self.render(tf.name, width, height)
+        self.render(tf.name, width=8, height=6)
         tf.flush()
         tf.seek(0,0)
         result = tf.read()
         tf.close()
         return result
-
-    def _repr_png_(self):
-        """Ipython notebook representation callback"""
-        return self.render_notebook()
 
     def _prep_dataframe(self, df):
         """prepare the dataframe by renaming all the columns
