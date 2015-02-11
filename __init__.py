@@ -33,10 +33,30 @@
 Takes a pandas.DataFrame object, then add layers with the various add_xyz
 functions (e.g. add_scatter).
 
+Referr to the ggplot documentation about the layers (geoms), and simply
+replace geom_* with add_*
+
 You do not need to seperate aesthetics from values - the wrapper
 will treat a parameter as value if and only if it is not a column name.
 (so y = 0 is a value, color = 'blue 'is a value - except if you have a column
 'blue', then it's a column!. And y = 'value' doesn't work, but that seems to be a ggplot issue).
+
+When the DataFrame is passed to R:
+    - row indices are truned into columns with 'reset_index'
+    - multi level column indices are flattend by concatenating them with ' ' 
+        -> (X, 'mean) becomes 'x mean'
+
+Error messages are not great - most of them translate to 'one or more columns were not found',
+but they can appear as a lot of different actual messages such as
+    - argument "env" is missing, with no defalut
+    - object 'y' not found
+    - object 'dat_0' not found
+    - requires the follewing missing aesthetics: x
+    - non numeric argument to binary operator
+without actually quite pointing at what is strictly the offending value.
+Also, the error appears when rendering (or printing in ipython notebook),
+not when adding the layer.
+
 
 
 
@@ -67,6 +87,7 @@ def load_r():
         global NA
         global robjects
         import rpy2.robjects as robjects
+        import rpy2.rinterface as rinterface
         NA = robjects.r("NA")
         robjects.r('library(grid)')
         robjects.r('library(ggplot2)')
@@ -138,18 +159,14 @@ class Plot:
 
     def render(self, output_filename, width=8, height=6, dpi=300):
         """Save the plot to a file"""
-        try:
-            plot = self.r['ggplot'](convert_dataframe_to_r(self.dataframe))
-            for obj in self._other_adds:
-                plot = self.r['add'](plot, obj)
-            for name, value in self.lab_rename.items():
-                plot = self.r['add'](
-                        plot, robjects.r('labs(%s = "%s")' % (name, value)))
-            output_filename = output_filename.replace('%', '%%')  # R tries some kind of integer substitution on these, so we need to double the %
-            self.r['ggsave'](filename=output_filename, plot=plot, width=width, height=height, dpi=dpi)
-        except ValueError:
-            print 'old names', self.old_names
-            raise
+        plot = self.r['ggplot'](convert_dataframe_to_r(self.dataframe))
+        for obj in self._other_adds:
+            plot = self.r['add'](plot, obj)
+        for name, value in self.lab_rename.items():
+            plot = self.r['add'](
+                    plot, robjects.r('labs(%s = "%s")' % (name, value)))
+        output_filename = output_filename.replace('%', '%%')  # R tries some kind of integer substitution on these, so we need to double the %
+        self.r['ggsave'](filename=output_filename, plot=plot, width=width, height=height, dpi=dpi)
 
     def render_notebook(self, width=800, height=600):
         """Show the plot in the ipython notebook (ie. return svg formated image data)"""
@@ -167,6 +184,7 @@ class Plot:
             plot = self.r['add'](
                     plot, robjects.r('labs(%s = "%s")' % (name, value)))
         robjects.r('plot')(plot)
+            
         grdevices.dev_off()
         tf.seek(0,0)
         result = tf.read()
@@ -182,6 +200,9 @@ class Plot:
         (we use this to get around R naming issues - the axis get labled correctly later on)"""
         if 'pydataframe.dataframe.DataFrame' in str(type(df)):
             df = self._convert_pydataframe(df)
+        if isinstance(df.columns, pandas.MultiIndex):
+            df.columns = [' '.join(col).strip() for col in df.columns.values]
+        df = df.reset_index()
         #df = dataframe.copy()
         new_names = []
         for name in df.columns:
@@ -329,7 +350,7 @@ class Plot:
                 ('area', 'geom_area', ['x', 'y'], ['color', 'fill', 'linetype', 'alpha', 'size', 'position'], {}),
                 ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha', 'width'], {'position': 'dodge', 'stat': 'identity'}),
                 ('box_plot2', 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['color','group','fill', 'alpha', 'stat'], {'stat': 'identity'}),
-                ('box_plot', 'geom_boxplot', ['x', 'y'], ['color', 'group', 'fill', 'alpha'], {}),
+                ('box_plot', 'geom_boxplot', ['x', 'y'], ['color', 'group', 'fill', 'alpha', 'notch', 'notchwidth'], {}),
                 ('density_2d', 'geom_density2d', ['x', 'y'], ['color', 'alpha','fill', 'contour'], {}),
                 ('density', 'geom_density', ['x'], ['y', 'color'], {'bw': lambda mappings: robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(mappings['x'])))}),
                 ('error_bars', 'geom_errorbar', ['x', 'ymin', 'ymax'], ['color', 'group', 'width', 'alpha'], {'width': 0.25}),
