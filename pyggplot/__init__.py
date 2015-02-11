@@ -68,6 +68,7 @@ not when adding the layer.
 try:
     import exptools
     exptools.load_software('ggplot2')
+    exptools.load_software('pandas')
     import ggplot2
     ggplot2.load_r()
 except ImportError:
