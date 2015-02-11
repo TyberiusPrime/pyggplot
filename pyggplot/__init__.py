@@ -77,6 +77,7 @@ from ordereddict import OrderedDict
 import numpy
 import math
 import pandas
+import tempfile
 
 _r_loaded = False
 
@@ -169,11 +170,17 @@ class Plot:
         output_filename = output_filename.replace('%', '%%')  # R tries some kind of integer substitution on these, so we need to double the %
         self.r['ggsave'](filename=output_filename, plot=plot, width=width, height=height, dpi=dpi)
 
-    def _repr_png_(self):
-        """Show the plot in the ipython notebook (ie. return png formated image data)"""
-        import tempfile
+    def render_notebook(self, width=800, height=600):
+        from IPython.core.display import Image
         tf = tempfile.NamedTemporaryFile(suffix='.png')
-        self.render(tf.name, width=8, height=6)
+        self.render(tf.name, width=width/72., height=height/72., dpi=72)
+        return Image(tf.name)
+
+
+    def _repr_png_(self, width=800, height=600):
+        """Show the plot in the ipython notebook (ie. return png formated image data)"""
+        tf = tempfile.NamedTemporaryFile(suffix='.png')
+        self.render(tf.name, width=width/72., height=height/72., dpi=72)
         tf.flush()
         tf.seek(0,0)
         result = tf.read()
@@ -644,12 +651,14 @@ class Plot:
         if base_size:
             kwargs['base_size'] = float(base_size)
         self._other_adds.append(robjects.r('theme_bw')(**kwargs))
+        return self
 
     def theme_grey(self, base_size=None):
         kwargs = {}
         if base_size:
             kwargs['base_size'] = float(base_size)
         self._other_adds.append(robjects.r('theme_grey')(**kwargs))
+        return self
     
     def theme_darktalk(self, base_size=None):
         kwargs = {}
@@ -697,21 +706,27 @@ class Plot:
 
 """)
         self._other_adds.append(robjects.r('theme_darktalk')(**kwargs))
+        return self
 
     def theme_talk(self, base_size=None):
         kwargs = {}
         if base_size:
             kwargs['base_size'] = float(base_size)
         self._other_adds.append(robjects.r('theme_talk')(**kwargs))
+        return self
 
+    def theme_xkcd(self):
+        robjects.r('library("xkcd")')
+        self._other_adds.append(robjects.r('theme_xkcd()'))
+        return self
     def set_base_size(self, base_size=10):
         self.theme_grey(base_size=base_size)
+        return self
 
     def add_label(self, text, xpos, ypos, size=8, color=None, alpha=None):
-        import pydataframe
-        data = pydataframe.DataFrame({'x': [xpos], 'y': [ypos], 'text': [text]})
+        data = self._prep_dataframe(pandas.DataFrame({'x': [xpos], 'y': [ypos], 'text': [text]}))
         aes_params = OrderedDict({'x': 'x', 'y': 'y', 'label': 'text'})
-        other_params = {'data': data}
+        other_params = {'data': convert_dataframe_to_r(data)}
         if color:
             other_params['colour'] = color
         if alpha:
@@ -832,7 +847,6 @@ class Plot:
             robjects.r('scale_y_discrete')(**other_params)
         )
         return self
-
 
     def scale_x_reverse(self):
         self._other_adds.append(robjects.r('scale_x_reverse()'))
@@ -969,7 +983,6 @@ class Plot:
     def scale_fill_rainbow(self, number_of_steps = 7):
         self._other_adds.append(robjects.r('scale_fill_gradientn')(colours = robjects.r('rainbow')(number_of_steps)))
 
-
     def coord_flip(self):
         self._other_adds.append(robjects.r('coord_flip()'))
         return self
@@ -985,12 +998,14 @@ class Plot:
 
     def legend_position(self, value):
         if type(value) is tuple:
-            self._other_adds.append(robjects.r('opts(legend.position = c(%i,%i))' % value))
+            self._other_adds.append(robjects.r('theme(legend.position = c(%i,%i))' % value))
         else:
-            self._other_adds.append(robjects.r('opts(legend.position = "%s")' % value))
+            self._other_adds.append(robjects.r('theme(legend.position = "%s")' % value))
+        return self
 
     def hide_legend(self):
         self.legend_position('none')
+        return self
 
     def guide_legend(self,**kwargs):
         r_args = {}
@@ -1017,7 +1032,6 @@ class Plot:
             if arg_name in kwargs and kwargs[arg_name] is not None: 
                 r_args[arg_name.replace('_','.')] = kwargs[arg_name]
         return robjects.r('guide_legend')(**kwargs)
-        
 
     def guide_colourbar(self,**kwargs):
         r_args = {}
@@ -1048,53 +1062,62 @@ class Plot:
         return robjects.r('guide_colourbar')(**kwargs)
        
     def hide_panel_border(self):
-        self._other_adds.append(robjects.r('opts(panel.border=theme_rect(fill=NA, colour=NA))'))
+        self._other_adds.append(robjects.r('theme(panel.border=theme_rect(fill=NA, colour=NA))'))
 
     def set_axis_color(self, color=None):
         if color is None:
-            self._other_adds.append(robjects.r('opts(axis.line = theme_segment())'))
+            self._other_adds.append(robjects.r('theme(axis.line = theme_segment())'))
         else:
-            self._other_adds.append(robjects.r('opts(axis.line = theme_segment(colour = "%s"))' % color))
+            self._other_adds.append(robjects.r('theme(axis.line = theme_segment(colour = "%s"))' % color))
+        return self
 
     def hide_grid(self):
-        self._other_adds.append(robjects.r('opts(panel.grid.major = theme_blank())'))
-        self._other_adds.append(robjects.r('opts(panel.grid.minor = theme_blank())'))
+        self._other_adds.append(robjects.r('theme(panel.grid.major = theme_blank())'))
+        self._other_adds.append(robjects.r('theme(panel.grid.minor = theme_blank())'))
+        return self
 
     def hide_grid_minor(self):
-        #self._other_adds.append(robjects.r('opts(panel.grid.major = theme_line(colour = NA))'))
- #       self._other_adds.append(robjects.r('opts(panel.grid.minor = theme_line(colour = NA))'))
-        self._other_adds.append(robjects.r('opts(panel.grid.minor = theme_blank())'))
+        #self._other_adds.append(robjects.r('theme(panel.grid.major = theme_line(colour = NA))'))
+ #       self._other_adds.append(robjects.r('theme(panel.grid.minor = theme_line(colour = NA))'))
+        self._other_adds.append(robjects.r('theme(panel.grid.minor = theme_blank())'))
 
     def smaller_margins(self):
-        self._other_adds.append(robjects.r('opts(panel.margin = unit(0.0, "lines"))'))
-        self._other_adds.append(robjects.r('opts(axis.ticks.margin = unit(0.0, "cm"))'))
+        self._other_adds.append(robjects.r('theme(panel.margin = unit(0.0, "lines"))'))
+        self._other_adds.append(robjects.r('theme(axis.ticks.margin = unit(0.0, "cm"))'))
         self.plot_margin(0, 0, 0, 0)
+        return self
 
     def plot_margin(self, top, left, bottom, right):
-        self._other_adds.append(robjects.r('opts(plot.margin = unit(c(%i,%i,%i,%i), "lines"))' % (top, left, bottom, right)))
+        self._other_adds.append(robjects.r('theme(plot.margin = unit(c(%i,%i,%i,%i), "lines"))' % (top, left, bottom, right)))
+        return self
 
     def scale_shape_manual(self, values):
         self._other_adds.append(robjects.r('scale_shape_manual')(values=values))
+        return self
 
     def scale_shape_identity(self):
         self._other_adds.append(robjects.r('scale_shape_identity')())
+        return self
 
     def scale_shape(self, solid=True):
         self._other_adds.append(robjects.r('scale_shape')(solid=solid))
+        return self
 
     def scale_colour_manual(self, values, guide = None):
         kwargs = {}
         if guide is not None:
             kwargs['guide'] = guide
         self._other_adds.append(robjects.r('scale_colour_manual')(values=numpy.array(values), **kwargs))
+        return self
 
     def scale_colour_manual_labels(self, vals, labels, guide = None):
         kwargs = {}
         if guide is not None:
             kwargs['guide'] = guide
         self._other_adds.append(robjects.r("""
-        scale_colour_manual
-        """)(values=numpy.array(vals), labels = numpy.array(labels), **kwargs))
+            scale_colour_manual
+            """)(values=numpy.array(vals), labels = numpy.array(labels), **kwargs))
+        return self
 
     def scale_color_manual(self, *args, **kwargs):
         return self.scale_colour_manual(*args, **kwargs)
@@ -1104,12 +1127,14 @@ class Plot:
         if guide is not None:
             kwargs['guide'] = guide
         self._other_adds.append(robjects.r('scale_colour_identity')(**kwargs))
+        return self
 
     def scale_color_hue(self, guide = None):
         kwargs = {}
         if guide is not None:
             kwargs['guide'] = guide
         self._other_adds.append(robjects.r('scale_colour_hue')(**kwargs))
+        return self
 
     def scale_color_brewer(self, name=None, palette='Set1', guide = None):
         other_params = {}
@@ -1120,12 +1145,14 @@ class Plot:
         if guide is not None:
             other_params['guide'] = guide
         self._other_adds.append(robjects.r('scale_colour_brewer')(**other_params))
+        return self
 
     def scale_colour_grey(self, guide = None):
         kwargs = {}
         if guide is not None:
             kwargs['guide'] = guide
         self._other_adds.append(robjects.r('scale_colour_grey')(**kwargs))
+        return self
 
     def scale_color_gradient(self, low, high, mid=None, midpoint=None, name=None, space='rgb', breaks=None, labels=None, limits=None, trans=None, guide = None):
         other_params = {}
@@ -1161,6 +1188,7 @@ class Plot:
         if guide is not None:
             kwargs['guide'] = guide
         self._other_adds.append(robjects.r('scale_fill_grey')(**kwargs))
+        return self
 
 
 class MultiPagePlot(Plot):
