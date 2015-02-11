@@ -5,7 +5,7 @@ except:
 
 setup(
     name='pyggplot',
-    version='2',
+    version='3',
     packages=['pyggplot',],
     license='BSD',
     #url='http://code.google.com/p/pydataframe/',
@@ -16,5 +16,6 @@ setup(
     install_requires=[
         'pandas>=0.15',
         'rpy2',
+        'ordereddict',
         ]
 )
