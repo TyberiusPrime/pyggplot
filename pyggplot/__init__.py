@@ -68,7 +68,6 @@ not when adding the layer.
 try:
     import exptools
     exptools.load_software('ggplot2')
-    exptools.load_software('pandas')
     import ggplot2
     ggplot2.load_r()
 except ImportError:
@@ -170,24 +169,13 @@ class Plot:
         output_filename = output_filename.replace('%', '%%')  # R tries some kind of integer substitution on these, so we need to double the %
         self.r['ggsave'](filename=output_filename, plot=plot, width=width, height=height, dpi=dpi)
 
-    def render_notebook(self, width=800, height=600):
+    def render_notebook(self, width=8, height=6):
         """Show the plot in the ipython notebook (ie. return svg formated image data)"""
         import tempfile
-        from rpy2.robjects.packages import importr 
-        from IPython.core.display import Image
         grdevices = importr('grDevices')
         tf = tempfile.NamedTemporaryFile(suffix='.png')
-        fn = tf.name
-        grdevices.png(fn, width = width, height = height)
-        plot = self.r['ggplot'](convert_dataframe_to_r(self.dataframe))
-        for obj in self._other_adds:
-            plot = self.r['add'](plot, obj)
-        for name, value in self.lab_rename.items():
-            plot = self.r['add'](
-                    plot, robjects.r('labs(%s = "%s")' % (name, value)))
-        robjects.r('plot')(plot)
-            
-        grdevices.dev_off()
+        self.render(tf.name, width, height)
+        tf.flush()
         tf.seek(0,0)
         result = tf.read()
         tf.close()
