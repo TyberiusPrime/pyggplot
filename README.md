@@ -5,11 +5,32 @@ pyggplot is a Pythonic wrapper around the [R ggplot2 library](http://had.co.nz/g
 
 Unlike the [Python ggplot](https://github.com/yhat/ggplot) this is not a reimplementation based on [Matplotlib](http://matplotlib.org/), but a straightforward *take [Pandas](http://pandas.pydata.org/) data frames and shove them into [R](http://www.r-project.org/) via [rpy2](https://pypi.python.org/pypi/rpy2)* approach.
 
-Usage:
-df = pandas.DataFrame({'x': numpy.uniform(size=100), 'y' = numpy.uniform(size=100), 'group' = ['A','B'] * 50})
-p = pyggplot.Plot(df)
-p.add_scatter('x','y', color='group')
-p.render('output.png')
+## Installation
+
+The easiest installation is via [PyPI](https://pypi.python.org/pypi).
+
+    $ pip install pyggplot
+
+You may be required to update `pandas`, `rpy2`, so you may be required to run
+
+    $ pip install --upgrade pyggplot 
+
+## Usage
+
+    import pandas as pd
+    import numpy as np
+    import ggplot
+
+    df = pd.DataFrame({'x': np.random.rand(100),
+                       'y': np.random.randn(100),
+                       'group': ['A','B'] * 50})
+
+    p = pyggplot.Plot(df)
+    p.add_scatter('x','y', color='group')
+    p.render('output.png')
+    ## or if you want to use it in IPython Notebook
+    # p.render_notebook()
+
 
 Takes a `pandas.DataFrame` object, then add layers with the various `add_xyz`
 functions (e.g. `add_scatter`).
