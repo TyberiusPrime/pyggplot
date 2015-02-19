@@ -179,14 +179,17 @@ class Plot:
 
     def _repr_png_(self, width=800, height=600):
         """Show the plot in the ipython notebook (ie. return png formated image data)"""
-        tf = tempfile.NamedTemporaryFile(suffix='.png')
-        self.render(tf.name, width=width/72., height=height/72., dpi=72)
-        tf.flush()
-        tf.seek(0,0)
-        result = tf.read()
-        tf.close()
-        return result
-
+        try:
+            handle, name = tempfile.mkstemp(suffix=".png") # mac os for some reason would not read back again from a named tempfile.
+            os.close(handle)
+            self.render(name, width=width/72., height=height/72., dpi=72)
+            tf = open(name, "r")
+            result = tf.read()
+            tf.close()
+            return result
+        finally:
+            os.unlink(name)
+        
     def _prep_dataframe(self, df):
         """prepare the dataframe by renaming all the columns
         (we use this to get around R naming issues - the axis get labled correctly later on)"""
