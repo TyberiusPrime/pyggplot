@@ -5,7 +5,7 @@ except:
 
 setup(
     name='pyggplot',
-    version='6',
+    version='7',
     packages=['pyggplot',],
     license='BSD',
     #url='http://code.google.com/p/pydataframe/',
