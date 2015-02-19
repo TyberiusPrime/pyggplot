@@ -12,7 +12,7 @@ setup(
     author='Florian Finkernagel',
     description = "A pythonic wrapper around R's ggplot",
     author_email='finkernagel@coonabibba.de',
-    long_description=open('README.txt').read(),
+    long_description=open('README.md').read(),
     install_requires=[
         'pandas>=0.15',
         'rpy2',
