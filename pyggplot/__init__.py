@@ -82,6 +82,7 @@ import numpy
 import math
 import pandas
 import tempfile
+import os
 
 _r_loaded = False
 
@@ -138,6 +139,9 @@ def r_expression(expr):
     return robjects.r('expression(%s)' % expr)
 
 
+ipython_plot_width = 480
+ipython_plot_height = 480
+
 
 class Plot:
 
@@ -162,6 +166,9 @@ class Plot:
         self._other_adds = []
         self.to_rename = {}
         self._add_geom_methods()
+        self.previous_mappings = {}
+        self.ipython_plot_width = ipython_plot_width
+        self.ipython_plot_height = ipython_plot_height
 
     def render(self, output_filename, width=8, height=6, dpi=300):
         """Save the plot to a file"""
@@ -181,8 +188,11 @@ class Plot:
         return Image(tf.name)
 
 
-    def _repr_png_(self, width=800, height=600):
+    def _repr_png_(self, width=None, height=None):
         """Show the plot in the ipython notebook (ie. return png formated image data)"""
+        if width is None:
+            width = self.ipython_plot_width
+            height = self.ipython_plot_height
         try:
             handle, name = tempfile.mkstemp(suffix=".png") # mac os for some reason would not read back again from a named tempfile.
             os.close(handle)
@@ -315,7 +325,17 @@ class Plot:
                 raise ValueError("add_%s / %s does not take parameter %s" % (name, geom_name, mapping))
         for mapping in required_mappings:
             if not mapping in mappings:
-                raise ValueError("Missing required mapping in add_%s / %s: %s" % (name, geom_name, mapping))
+                if mapping in defaults:
+                    if hasattr(defaults[mapping], '__call__', ):
+                        mappings[mapping] = defaults[mapping](mappings)
+                    else:
+                        mappings[mapping] = defaults[mapping]
+                elif mapping in self.previous_mappings:
+                    mappings[mapping] = self.previous_mappings[mapping]
+                else:
+                    raise ValueError("Missing required mapping in add_%s / %s: %s" % (name, geom_name, mapping))
+            else:
+                self.previous_mappings[mapping] = mappings[mapping]
         for mapping in optional_mappings:
             if not mapping in mappings:
                 if mapping in defaults:
@@ -329,6 +349,10 @@ class Plot:
         self.reset_params(data)
         for param in mappings:
             self.parse_param(param, mappings[param])
+        
+        if 'stat' in self.other_collection and 'y' in self.other_collection: #support ..count.. and so on
+            self.aes_collection['y'] = self.other_collection['y']
+            del self.other_collection['y']
 
         if geom_name.startswith('annotation'):
             self._other_adds.append(robjects.r(geom_name)( **self.other_collection))
@@ -355,8 +379,10 @@ class Plot:
                     {'stat': 'identity'}, ' box plot where you define everything manually'),
                 ('contour', 'geom_contour', ['x', 'y'], ['alpha',' color', 'linetype', 'size',' weight'], {}, ''),
                 ('crossbar', 'geom_crossbar', ['x','y', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
-                ('density', 'geom_density', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size',' weight'], 
-                    {'bw': lambda mappings: (robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(mappings['x']))))
+                ('density', 'geom_density', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size',' weight', 'stat'], 
+                    {
+                        'bw': lambda mappings: (robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(mappings['x'])))),
+                        'y': 'count',
                         }, ''),
                 ('density_2d', 'geom_density2d', ['x', 'y'], ['alpha', 'color', 'linetype','fill', 'contour'], {}, ''),
                 ('error_bars', 'geom_errorbar', ['x', 'ymin', 'ymax'], ['alpha', 'color', 'group', 'linetype', 'size', 'width'], {'width': 0.25}, ''),
@@ -385,7 +411,7 @@ class Plot:
                 ('rug', 'geom_rug', [], ['sides'], {'sides': 'bl'}, ''),
                 ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}, ''),
                 ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['alpha', 'color', 'linetype', 'size'], {'size': 0.5}, ''),
-                ('smooth', 'geom_smooth', ['x', 'y'], ['alpha', 'color',' fill', 'linetype', 'size', 'weight', 'method'], {}, ''),
+                ('smooth', 'geom_smooth', ['x', 'y'], ['alpha', 'color',' fill', 'linetype', 'size', 'weight', 'method', 'group'], {}, ''),
                 ('step', 'geom_step', ['x','y'], ['direction', 'stat', 'position', 'alpha', 'color', 'linetype', 'size'], {}, ''),
                 ('text', 'geom_text', ['x', 'y', 'label'], ['alpha', 'angle', 'color', 'family', 'fontface', 'hjust', 'lineheight', 'size', 'vjust', 'position'], {'position': 'identity'}, ''),
                 ('tile', 'geom_tile', ['x', 'y'], ['alpha', 'color', 'fill', 'size', 'linetype', 'stat'], {}, ''),
@@ -594,6 +620,7 @@ class Plot:
 
     def set_title(self, title):
         self._other_adds.append(robjects.r('ggtitle')(title))
+        return self
 
     def facet(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
         facet_wrap = robjects.r['facet_wrap']
@@ -623,8 +650,7 @@ class Plot:
         self._other_adds.append(facet_wrap(robjects.r(facet_specification), **params))
         return self
 
-    def facet_grid(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
-        facet_wrap = robjects.r['facet_wrap']
+    def facet_grid(self, rows=None, columns=None, fixed_x=True, fixed_y=True, ncol=None):
         if fixed_x and not fixed_y:
             scale = 'free_y'
         elif not fixed_x and fixed_y:
@@ -633,13 +659,18 @@ class Plot:
             scale = 'free'
         else:
             scale = 'fixed'
-        if column_two:
-            new_one = 'dat_%s' % self.old_names.index(column_one)
-            new_two = 'dat_%s' % self.old_names.index(column_two)
+        if rows is None and columns is None:
+            raise ValueError("You have to pass at least one - rows or columns")
+        if columns and rows:
+            new_one = 'dat_%s' % self.old_names.index(rows)
+            new_two = 'dat_%s' % self.old_names.index(columns)
             facet_specification = '%s ~ %s' % (new_one, new_two)
-        else:
-            params = self._translate_params({"": column_one})[0]
+        elif columns:
+            params = self._translate_params({"": columns})[0]
             facet_specification = '. ' + params.replace('=', '~')
+        else:
+            params = self._translate_params({"": rows})[0]
+            facet_specification = params.replace('=', '') + ' ~ .'
             #facet_specification = '~ %s' % (column_one, )
         params = {
             'scale': scale}
@@ -755,13 +786,14 @@ class Plot:
         return self
 
     def scale_x_continuous(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, formatter=None, name=None):
-        return self.scale_continuous('x', breaks, minor_breaks, trans, limits, labels, expand, name)
+        return self.scale_continuous('scale_x_continuous', breaks, minor_breaks, trans, limits, labels, expand, name)
 
     def scale_y_continuous(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
-        return self.scale_continuous('y', breaks, minor_breaks, trans, limits,  labels, expand, name)
+        return self.scale_continuous('scale_y_continuous', breaks, minor_breaks, trans, limits,  labels, expand, name)
 
-    def scale_continuous(self, scale = 'x', breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
-        other_params = {}
+    def scale_continuous(self, scale = 'scale_x_continuous', breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None, other_params = None):
+        if other_params is None:
+            other_params = OrderedDict()
         if not breaks is None:
             if breaks in ('date', 'log', 'pretty', 'trans'):
                 other_params['breaks'] = robjects.r('%s_breaks' % breaks)()
@@ -798,9 +830,12 @@ class Plot:
             other_params['name'] = name
 
         self._other_adds.append(
-            robjects.r('scale_%s_continuous' % scale)(**other_params)
+            robjects.r(scale)(**other_params)
         )
         return self
+
+    def scale_size_area(self, max_size = 6, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
+        return self.scale_continuous('scale_size_area', breaks, minor_breaks, trans, limits,  labels, expand, name, other_params = OrderedDict({'max_size': max_size}))
 
     def scale_x_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name = None):
         other_params = {}
