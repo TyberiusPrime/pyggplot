@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <link href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <title>Pyggplot by TyberiusPrime</title>
+  </head>
+
+  <body>
+    <div id="container">
+      <div class="inner">
+
+        <header>
+          <h1>Pyggplot</h1>
+          <h2>Pythonic wrapper for R&#39;s ggplot using rpy2 and pandas</h2>
+        </header>
+
+        <section id="downloads" class="clearfix">
+          <a href="https://github.com/TyberiusPrime/pyggplot/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/TyberiusPrime/pyggplot/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/TyberiusPrime/pyggplot" id="view-on-github" class="button"><span>View on GitHub</span></a>
+        </section>
+
+        <hr>
+
+        <section id="main_content">
+          <h1>
+<a id="pyggplot" class="anchor" href="#pyggplot" aria-hidden="true"><span class="octicon octicon-link"></span></a>pyggplot</h1>
+
+<p>pyggplot is a Pythonic wrapper around the <a href="http://had.co.nz/ggplot2/">R ggplot2 library</a>.</p>
+
+<p>Unlike the <a href="https://github.com/yhat/ggplot">Python ggplot</a> this is not a reimplementation based on <a href="http://matplotlib.org/">Matplotlib</a>, but a straightforward <em>take <a href="http://pandas.pydata.org/">Pandas</a> data frames and shove them into <a href="http://www.r-project.org/">R</a> via <a href="https://pypi.python.org/pypi/rpy2">rpy2</a></em> approach.</p>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>The easiest installation is via <a href="https://pypi.python.org/pypi">PyPI</a>.</p>
+
+<pre><code>$ pip install pyggplot
+</code></pre>
+
+<p>You may be required to update <code>pandas</code>, <code>rpy2</code>, so you may be required to run</p>
+
+<pre><code>$ pip install --upgrade pyggplot 
+</code></pre>
+
+<h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<pre><code>import pandas as pd
+import numpy as np
+import ggplot
+
+df = pd.DataFrame({'x': np.random.rand(100),
+                   'y': np.random.randn(100),
+                   'group': ['A','B'] * 50})
+
+p = pyggplot.Plot(df)
+p.add_scatter('x','y', color='group')
+p.render('output.png')
+## or if you want to use it in IPython Notebook
+# p.render_notebook()
+</code></pre>
+
+<h2>
+<a id="examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<p>Look at (<a href="https://github.com/TyberiusPrime/pyggplot/blob/master/examples/pyggplot%20samples.html">https://github.com/TyberiusPrime/pyggplot/blob/master/examples/pyggplot%20samples.html</a>) for some examples with their corresponding R syntax.</p>
+
+<h2>
+<a id="further-usage" class="anchor" href="#further-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Further usage</h2>
+
+<p>Takes a <code>pandas.DataFrame</code> object, then add layers with the various <code>add_xyz</code>
+functions (e.g. <code>add_scatter</code>).</p>
+
+<p>Refer to the ggplot documentation about the layers (geoms), and simply
+replace <code>geom_*</code> with <code>add_*</code>.
+See: <a href="http://docs.ggplot2.org/0.9.3.1/index.html">http://docs.ggplot2.org/0.9.3.1/index.html</a></p>
+
+<p>You do not need to separate aesthetics from values - the wrapper
+will treat a parameter as value if and only if it is not a column name.
+(so <code>y = 0</code> is a value, <code>color = 'blue'</code> is a value - except if you have a column <code>'blue'</code>, then it is a column!.
+And <code>y = 'value'</code> does not work, but that seems to be a ggplot issue).</p>
+
+<p>When the DataFrame is passed to R:</p>
+
+<ul>
+<li>row indices are turned into columns with 'reset_index',</li>
+<li>multi level column indices are flattened by concatenating them with <code>' '</code>, that is <code>(X, 'mean')</code> becomes <code>'x mean'</code>.</li>
+</ul>
+
+<p>Error messages are not great - most of them translate to 'one or more columns were not found',
+but they can appear as a lot of different actual messages such as</p>
+
+<ul>
+<li>argument "env" is missing, with no default</li>
+<li>object 'y' not found</li>
+<li>object 'dat_0' not found</li>
+<li>requires the following missing aesthetics: x</li>
+<li>non numeric argument to binary operator</li>
+</ul>
+
+<p>without actually quite pointing at what is strictly the offending value.
+Also, the error appears when rendering (or printing in the <a href="http://ipython.org/notebook.html">IPython Notebook</a>),
+not when adding the layer.</p>
+
+<h2>
+<a id="open-questions" class="anchor" href="#open-questions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Open questions</h2>
+
+<ul>
+<li>the stat support is not great - it doesn't easily map into pythonic objects. For now, do your stats in pandas - more powerful anyhow! </li>
+<li>how could error messages be improved?</li>
+</ul>
+        </section>
+
+        <footer>
+          Pyggplot is maintained by <a href="https://github.com/TyberiusPrime">TyberiusPrime</a><br>
+          This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
+        </footer>
+
+        
+      </div>
+    </div>
+  </body>
+</html>
