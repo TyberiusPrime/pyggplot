@@ -32,7 +32,7 @@ You may be required to update `pandas`, `rpy2`, so you may be required to run
     # p.render_notebook()
 
 ## Examples
-Look at (https://github.com/TyberiusPrime/pyggplot/blob/master/example/pyggplot%20samples.html) for some examples with their corresponding R syntax.
+Look at (https://github.com/TyberiusPrime/pyggplot/blob/master/examples/pyggplot%20samples.html) for some examples with their corresponding R syntax.
 
 
 ## Further usage

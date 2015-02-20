@@ -2,6 +2,7 @@ try:
     from setuptools import setup, find_packages
 except:
     from distutils.core import setup
+import os
 
 long_description = "Please visit https://github.com/TyberiusPrime/pyggplot for full description"
 if os.path.exists('README.txt'):
@@ -10,7 +11,7 @@ if os.path.exists('README.txt'):
 
 setup(
     name='pyggplot',
-    version='13',
+    version='14',
     packages=['pyggplot',],
     license='BSD',
     #url='http://code.google.com/p/pydataframe/',
