@@ -3,9 +3,14 @@ try:
 except:
     from distutils.core import setup
 
+long_description = "Please visit https://github.com/TyberiusPrime/pyggplot for full description"
+if os.path.exists('README.txt'):
+    with open('README.txt') as op:
+        long_description = op.read()
+
 setup(
     name='pyggplot',
-    version='12',
+    version='13',
     packages=['pyggplot',],
     license='BSD',
     #url='http://code.google.com/p/pydataframe/',
