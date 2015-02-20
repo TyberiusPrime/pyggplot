@@ -32,7 +32,7 @@ You may be required to update `pandas`, `rpy2`, so you may be required to run
     # p.render_notebook()
 
 ## Examples
-Please visit our (http://tyberiusprime.github.io/pyggplot/ GitHub Pages site) for examples.
+Please visit (http://tyberiusprime.github.io/pyggplot/pyggplot%20samples.html our examples).
 
 
 ## Further usage
