@@ -67,13 +67,17 @@ not when adding the layer.
 
 try:
     import exptools
+    exptools.load_software('pandas')
     exptools.load_software('ggplot2')
     import ggplot2
     ggplot2.load_r()
 except ImportError:
     pass
 import itertools
-from ordereddict import OrderedDict
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 import numpy
 import math
 import pandas
@@ -504,7 +508,6 @@ class Plot:
         else:
             other_params['position'] = position
             #print 'b', other_params
-            print (aes_params)
             self._other_adds.append(
                 robjects.r('geom_histogram')(self._build_aesthetic(aes_params), **other_params)
             )
@@ -1278,7 +1281,6 @@ class MultiPagePlot(Plot):
             for name, value in self.lab_rename.items():
                 plot = self.r['add'](
                         plot, robjects.r('labs(%s = "%s")' % (name, value)))
-            print self._other_adds
             robjects.r('print')(plot)
         robjects.r('dev.off')()
 
@@ -1675,14 +1677,14 @@ try:
                         col = numpy.array(o[column_name])
                         col = numpy2ri_vector(col)
                     parameters.append(col)
-                except ValueError, e:
+                except ValueError as e:
                     raise ValueError(str(e) + ' Offending column: %s, dtype: %s, content: %s' %( column_name, col.dtype, col[:10]))
             #kw_params['row.names'] = numpy2ri_vector(numpy.array(o.index))
             try:
                 res = dfConstructor(*parameters, **kw_params)
                 res = ro.r('set_colnames')(res, names)
             except TypeError:
-                print parameters.keys()
+                print (parameters.keys())
                 raise
         elif isinstance(o, numpy.ndarray):
             res = numpy2ri_vector(o)
