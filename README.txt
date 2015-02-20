@@ -31,6 +31,11 @@ You may be required to update `pandas`, `rpy2`, so you may be required to run
     ## or if you want to use it in IPython Notebook
     # p.render_notebook()
 
+## Examples
+Look at (https://github.com/TyberiusPrime/pyggplot/blob/master/example/pyggplot%20samples.html) for some examples with their corresponding R syntax.
+
+
+## Further usage
 
 Takes a `pandas.DataFrame` object, then add layers with the various `add_xyz`
 functions (e.g. `add_scatter`).
