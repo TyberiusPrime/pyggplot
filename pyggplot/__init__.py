@@ -303,7 +303,7 @@ class Plot:
         if not data is None:
             self.other_collection['data'] = convert_dataframe_to_r(self._prep_dataframe(data))
 
-    def _add(self, name, geom_name, required_mappings, optional_mappings, defaults, args, kwargs):
+    def _add(self, geom_name, required_mappings, optional_mappings, defaults, args, kwargs):
         """The generic method to add a geom to the ggplot.
         You need to call add_xyz (see _add_geom_methods for a list, with each variable mapping
         being one argument) with the respectivly required parameters (see ggplot documentation).
@@ -323,7 +323,7 @@ class Plot:
             data = None
         for mapping in mappings:
             if not mapping in required_mappings and not mapping in optional_mappings:
-                raise ValueError("add_%s / %s does not take parameter %s" % (name, geom_name, mapping))
+                raise ValueError("%s / %s does not take parameter %s" % (geom_name, mapping))
         for mapping in required_mappings:
             if not mapping in mappings:
                 if mapping in defaults:
@@ -334,7 +334,7 @@ class Plot:
                 elif mapping in self.previous_mappings:
                     mappings[mapping] = self.previous_mappings[mapping]
                 else:
-                    raise ValueError("Missing required mapping in add_%s / %s: %s" % (name, geom_name, mapping))
+                    raise ValueError("Missing required mapping in %s: %s" % (geom_name, mapping))
             else:
                 self.previous_mappings[mapping] = mappings[mapping]
         for mapping in optional_mappings:
@@ -436,17 +436,18 @@ class Plot:
             if len(x) != 6:
                 raise ValueError("Wrong number of arguments: %s" % (x,))
 
-        for (name, geom, required, optional, defaults, doc_str) in methods:
-            def define(name, geom, required, optional, defaults):  # we need to capture the variables...
+        for (names, geom, required, optional, defaults, doc_str) in methods:
+            def define(geom, required, optional, defaults):  # we need to capture the variables...
                 def do_add(*args, **kwargs):
-                    return self._add(name, geom, required, optional, defaults, args, kwargs)
+                    return self._add(geom, required, optional, defaults, args, kwargs)
                 do_add.__doc__ = doc_str
                 return do_add
-            f = define(name, geom, required, optional, defaults)
+            f = define(geom, required, optional, defaults)
             if isinstance(names, str):
                 names = [names]
             for name in names:
-                setattr(self, 'add_' + name, )  # legacy names, basically
+                if not hasattr(self, 'add_' + name):  # so we can still overwrite them by defining functions by hand
+                    setattr(self, 'add_' + name, )  # legacy names, basically
             if not hasattr(self, geom):
                 setattr(self, geom, define(name, geom, required, optional, defaults))
 
