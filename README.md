@@ -5,6 +5,9 @@ pyggplot is a Pythonic wrapper around the [R ggplot2 library](http://had.co.nz/g
 
 Unlike the [Python ggplot](https://github.com/yhat/ggplot) this is not a reimplementation based on [Matplotlib](http://matplotlib.org/), but a straightforward *take [Pandas](http://pandas.pydata.org/) data frames and shove them into [R](http://www.r-project.org/) via [rpy2](https://pypi.python.org/pypi/rpy2)* approach.
 
+## Examples
+Please visit http://nbviewer.ipython.org/url/tyberiusprime.github.io/pyggplot/pyggplot%20samples.ipynb
+
 ## Installation
 
 The easiest installation is via [PyPI](https://pypi.python.org/pypi).
@@ -31,8 +34,6 @@ You may be required to update `pandas`, `rpy2`, so you may be required to run
     ## or if you want to use it in IPython Notebook
     # p.render_notebook()
 
-## Examples
-Please visit (http://tyberiusprime.github.io/pyggplot/pyggplot%20samples.html our examples).
 
 
 ## Further usage
