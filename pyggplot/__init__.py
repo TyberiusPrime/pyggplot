@@ -64,6 +64,7 @@ not when adding the layer.
 
 
 """
+import rpy2
 
 try:
     import exptools
@@ -71,7 +72,7 @@ try:
     exptools.load_software('ggplot2')
     import ggplot2
     ggplot2.load_r()
-except ImportError:
+except (ImportError, rpy2.rinterface.RRuntimeError):
     pass
 import itertools
 try:
@@ -86,15 +87,15 @@ import os
 
 _r_loaded = False
 
-
+import rpy2.robjects as robjects
+import rpy2.rinterface as rinterface
+        
 def load_r():
     """Lazy R loader"""
     global _r_loaded
     if not _r_loaded:
         global NA
         global robjects
-        import rpy2.robjects as robjects
-        import rpy2.rinterface as rinterface
         NA = robjects.r("NA")
         robjects.r('library(grid)')
         robjects.r('library(ggplot2)')
@@ -302,7 +303,7 @@ class Plot:
         if not data is None:
             self.other_collection['data'] = convert_dataframe_to_r(self._prep_dataframe(data))
 
-    def _add(self, name, geom_name, required_mappings, optional_mappings, defaults, args, kwargs):
+    def _add(self, geom_name, required_mappings, optional_mappings, defaults, args, kwargs):
         """The generic method to add a geom to the ggplot.
         You need to call add_xyz (see _add_geom_methods for a list, with each variable mapping
         being one argument) with the respectivly required parameters (see ggplot documentation).
@@ -322,7 +323,7 @@ class Plot:
             data = None
         for mapping in mappings:
             if not mapping in required_mappings and not mapping in optional_mappings:
-                raise ValueError("add_%s / %s does not take parameter %s" % (name, geom_name, mapping))
+                raise ValueError("%s does not take parameter %s" % (geom_name, mapping))
         for mapping in required_mappings:
             if not mapping in mappings:
                 if mapping in defaults:
@@ -333,7 +334,7 @@ class Plot:
                 elif mapping in self.previous_mappings:
                     mappings[mapping] = self.previous_mappings[mapping]
                 else:
-                    raise ValueError("Missing required mapping in add_%s / %s: %s" % (name, geom_name, mapping))
+                    raise ValueError("Missing required mapping in %s: %s" % (geom_name, mapping))
             else:
                 self.previous_mappings[mapping] = mappings[mapping]
         for mapping in optional_mappings:
@@ -374,8 +375,8 @@ class Plot:
                 ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha', 'weight', 'width'], {'position': 'dodge', 'stat': 'identity'}, ''),
                 ('bin2d', 'geom_bin2d', ['xmin', 'xmax', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight'], {}, ''),
                 ('blank', 'geom_blank', [], [], {}, ''),
-                ('box_plot', 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight'], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
-                ('box_plot2', 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight'], 
+                (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight'], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
+                (('box_plot2', 'boxplot2'), 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight'], 
                     {'stat': 'identity'}, ' box plot where you define everything manually'),
                 ('contour', 'geom_contour', ['x', 'y'], ['alpha',' color', 'linetype', 'size',' weight'], {}, ''),
                 ('crossbar', 'geom_crossbar', ['x','y', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
@@ -390,18 +391,14 @@ class Plot:
                 ('freq_poly', 'geom_freq_poly', [], ['alpha', 'color', 'linetype', 'size'], {}, ''),
                 ('hex', 'geom_hex', ['x', 'y'], ['alpha', 'color', 'fill', 'size'], {}, ''),
                 #  ('histogram', this is it's own function
+                ('histogram', 'geom_histogram', ['x', 'y'], ['color',' group', 'fill', 'position', 'add_text', 'binwidth', 'alpha', 'size', 'stat'], { 'y': '..count..', 'position': 'dodge','stat': 'bin'}, ''),
 
-                ('hline', 'geom_hline', ['yintercept'], ['alpha', 'color', 'linetype', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}, ''),
-                ('horizontal_line', 'geom_hline', ['yintercept'], ['alpha', 'color', 'linetype', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}, 'Renamed hline'), 
-
-                # jitter is it's own function
+                (('horizontal_line', 'horizontal_bar', 'hline'), 'geom_hline', ['yintercept'], ['alpha', 'color', 'linetype', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}, 'Renamed hline'), 
                 ('line', 'geom_line', ['x','y'], ['color', 'group', 'shape', 'alpha', 'size', 'stat', 'fun.y', 'linetype'], {}, ''),
                 ('map', 'geom_map', ['map_id'], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
                 ('path', 'geom_path', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', 'group'], {}, ''),
-
-                ('point', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}, ''),
-                ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}, ''),
-
+                (('point', 'scatter'), 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}, ''),
+                ('jitter', 'geom_jitter', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y', 'position'], {}, ''),
                 ('pointrange', 'geom_pointrange', ['x', 'y', 'ymin', 'ymax'], ['alpha', 'color',' fill', 'linetype', 'shape', 'size'], {}, ''),
                 ('polygon','geom_polygon',  ['x', 'y',], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
                 ('quantile','geom_quantile',  ['x', 'y',], ['alpha', 'color', 'linetype', 'size', 'weight'], {}, ''),
@@ -409,7 +406,6 @@ class Plot:
                 ('rect', 'geom_rect', ['xmin', 'xmax', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size'], {'alpha': 1}, ''),
                 ('ribbon', 'geom_ribbon', ['x', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size', 'position'], {}, ''),
                 ('rug', 'geom_rug', [], ['sides'], {'sides': 'bl'}, ''),
-                ('scatter', 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}, ''),
                 ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['alpha', 'color', 'linetype', 'size'], {'size': 0.5}, ''),
                 ('smooth', 'geom_smooth', ['x', 'y'], ['alpha', 'color',' fill', 'linetype', 'size', 'weight', 'method', 'group'], {}, ''),
                 ('step', 'geom_step', ['x','y'], ['direction', 'stat', 'position', 'alpha', 'color', 'linetype', 'size'], {}, ''),
@@ -417,13 +413,12 @@ class Plot:
                 ('tile', 'geom_tile', ['x', 'y'], ['alpha', 'color', 'fill', 'size', 'linetype', 'stat'], {}, ''),
                 ('violin', 'geom_violin', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight', 'scale', 'stat', 'position', 'trim'], {'stat': 'ydensity'}, ''),
 
-                ('vline', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size', 'linetype'], {'alpha': 0.5, 'color': 'black', 'size': 1}, ''),
-                ('vertical_bar', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size', 'linetype'], {'alpha': 0.5, 'color': 'black', 'size': 1}, ''),
+                (('vertical_line', 'vertical_bar', 'vline'), 'geom_vline', ['xintercept'], ['alpha', 'color', 'size', 'linetype'], {'alpha': 0.5, 'color': 'black', 'size': 1}, ''),
 
                 # stats
-                ('stat_sum_color', 'stat_sum', ['x', 'y'], ['size'], {'color': '..n..', 'size': 0.5}, ''),
-                ('stat_smooth', 'stat_smooth', [], ['method', 'se', 'x', 'y'], {"method": 'lm', 'se': True}, ''),
-                ('stat_density_2d', 'stat_density', ['x','y'], ['geom','contour', 'fill'], {}, ''),
+                #('stat_sum_color', 'stat_sum', ['x', 'y'], ['size'], {'color': '..n..', 'size': 0.5}, ''),
+                #('stat_smooth', 'stat_smooth', [], ['method', 'se', 'x', 'y'], {"method": 'lm', 'se': True}, ''),
+                #('stat_density_2d', 'stat_density', ['x','y'], ['geom','contour', 'fill'], {}, ''),
 
                 ('stacked_bar_plot', 'geom_bar', ['x', 'y', 'fill'], [], {'position': 'stack'}, ''),  # do we still need this?
                 # """A scatter plat that's colored by no of overlapping points"""
@@ -441,13 +436,20 @@ class Plot:
             if len(x) != 6:
                 raise ValueError("Wrong number of arguments: %s" % (x,))
 
-        for (name, geom, required, optional, defaults, doc_str) in methods:
-            def define(name, geom, required, optional, defaults):  # we need to capture the variables...
+        for (names, geom, required, optional, defaults, doc_str) in methods:
+            def define(geom, required, optional, defaults):  # we need to capture the variables...
                 def do_add(*args, **kwargs):
-                    return self._add(name, geom, required, optional, defaults, args, kwargs)
+                    return self._add(geom, required, optional, defaults, args, kwargs)
                 do_add.__doc__ = doc_str
                 return do_add
-            setattr(self, 'add_' + name, define(name, geom, required, optional, defaults))
+            f = define(geom, required, optional, defaults)
+            if isinstance(names, str):
+                names = [names]
+            for name in names:
+                if not hasattr(self, 'add_' + name):  # so we can still overwrite them by defining functions by hand
+                    setattr(self, 'add_' + name, f)  # legacy names, basically
+            if not hasattr(self, geom):
+                setattr(self, geom, f)
 
     def add_jitter(self, x,y, color=None, group = None, shape=None, size=None, alpha=None, jitter_x = True, jitter_y = True, fill=None):
         #an api changed necessitates this - jitter_x and jitter_y have been replaced with position_jitter(width, height)...
@@ -621,6 +623,9 @@ class Plot:
     def set_title(self, title):
         self._other_adds.append(robjects.r('ggtitle')(title))
         return self
+
+    def title(self, title):
+        return self.set_title(title)
 
     def facet(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
         facet_wrap = robjects.r['facet_wrap']
@@ -1605,6 +1610,27 @@ def EmptyPlot(text_to_display = 'No data'):
     p = Plot(pandas.DataFrame({'x': [0], 'y': [0], 'text': [text_to_display]}))
     p.add_text('x', 'y', 'text')
     return p
+
+
+def position_dodge(width = robjects.constants.NULL, height= robjects.constants.NULL):
+    """Adjust position by dodging overlaps to the side."""
+    return robjects.r('position_dodge')(width, height)
+
+def position_fill(width = robjects.constants.NULL, height= robjects.constants.NULL):
+    """Stack overlapping objects on top of one another, and standardise to have"""
+    return robjects.r('position_fill')(width, height)
+
+def position_identity(width = robjects.constants.NULL, height= robjects.constants.NULL):
+    """Don't adjust position"""
+    return robjects.r('position_identity')(width, height)
+
+def position_stack(width = robjects.constants.NULL, height = robjects.constants.NULL):
+    """Stack overlapping objects on top of one another."""
+    return robjects.r('position_stack')(width, height)
+
+def position_jitter(w = 0.4, h = 0.4):
+    return robjects.r('position_jitter')(w, h)
+
 
 
 try:

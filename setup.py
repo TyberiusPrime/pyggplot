@@ -11,7 +11,7 @@ if os.path.exists('README.txt'):
 
 setup(
     name='pyggplot',
-    version='16',
+    version='17',
     packages=['pyggplot',],
     license='BSD',
     #url='http://code.google.com/p/pydataframe/',
