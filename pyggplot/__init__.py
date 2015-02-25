@@ -64,16 +64,20 @@ not when adding the layer.
 
 
 """
+import rpy2
 
 try:
     import exptools
     exptools.load_software('ggplot2')
     import ggplot2
     ggplot2.load_r()
-except ImportError:
+except (ImportError, rpy2.rinterface.RRuntimeError):
     pass
 import itertools
-from ordereddict import OrderedDict
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 import numpy
 import math
 import pandas
@@ -385,7 +389,7 @@ class Plot:
                 ('violin', 'geom_violin', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight', 'scale', 'stat', 'position', 'trim'], {'stat': 'ydensity'}, ''),
 
                 ('vline', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size', 'linetype'], {'alpha': 0.5, 'color': 'black', 'size': 1}, ''),
-                ('vertical_bar', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size', 'linetype'], {'alpha': 0.5, 'color': 'black', 'size': 1}, ''),
+                ('vertical_line', 'geom_vline', ['xintercept'], ['alpha', 'color', 'size', 'linetype'], {'alpha': 0.5, 'color': 'black', 'size': 1}, ''),
 
                 # stats
                 ('stat_sum_color', 'stat_sum', ['x', 'y'], ['size'], {'color': '..n..', 'size': 0.5}, ''),
