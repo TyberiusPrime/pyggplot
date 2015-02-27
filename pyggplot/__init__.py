@@ -64,15 +64,19 @@ not when adding the layer.
 
 
 """
-
 try:
-    import exptools
-    exptools.load_software('pandas')
-    exptools.load_software('ggplot2')
-    import ggplot2
-    ggplot2.load_r()
+    import rpy2
+    try:
+        import exptools
+        exptools.load_software('pandas')
+        exptools.load_software('ggplot2')
+        import ggplot2
+        ggplot2.load_r()
+    except (ImportError, rpy2.rinterface.RRuntimeError):
+        pass
 except ImportError:
     pass
+
 import itertools
 try:
     from collections import OrderedDict
@@ -447,7 +451,9 @@ class Plot:
                     return self._add(name, geom, required, optional, defaults, args, kwargs)
                 do_add.__doc__ = doc_str
                 return do_add
-            setattr(self, 'add_' + name, define(name, geom, required, optional, defaults))
+            f = define(name, geom, required, optional, defaults)
+            setattr(self, 'add_' + name, f)
+            setattr(self, geom, f)
 
     def add_jitter(self, x,y, color=None, group = None, shape=None, size=None, alpha=None, jitter_x = True, jitter_y = True, fill=None):
         #an api changed necessitates this - jitter_x and jitter_y have been replaced with position_jitter(width, height)...
@@ -500,6 +506,9 @@ class Plot:
             )
         return self
 
+    def geom_jitter(self, *args, **kwargs):
+        self.add_jitter(*args, **kwargs)
+
     def add_histogram(self, x_column, y_column="..count..", color=None, group=None, fill=None, position="dodge", add_text=False, bin_width=None, alpha=None, size=None):
         aes_params = {'x': x_column}
         other_params = {}
@@ -542,6 +551,9 @@ class Plot:
                 robjects.r('geom_text')(
                     self._build_aesthetic({'x': x_column, 'y': '..count..', 'label': '..count..'}), stat='bin'))
         return self
+
+    def geom_histogram(self, *args, **kwargs):
+        self.add_histogram(*args, **kwargs)
 
     def add_cummulative(self, x_column, ascending=True, percent = False, percentile = 1.0):
         """Add a line showing cumulative % of data <= x.
