@@ -842,6 +842,9 @@ class Plot:
     def scale_size_area(self, max_size = 6, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
         return self.scale_continuous('scale_size_area', breaks, minor_breaks, trans, limits,  labels, expand, name, other_params = OrderedDict({'max_size': max_size}))
 
+    def scale_size_area(self, max_size = 6, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
+        return self.scale_continuous('scale_size_area', breaks, minor_breaks, trans, limits,  labels, expand, name, other_params = OrderedDict({'max_size': max_size}))
+
     def scale_x_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name = None):
         other_params = {}
         if not breaks is None:
