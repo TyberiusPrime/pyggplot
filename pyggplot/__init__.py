@@ -1615,19 +1615,19 @@ def EmptyPlot(text_to_display = 'No data'):
     return p
 
 
-def position_dodge(width = robjects.constants.NULL, height= robjects.constants.NULL):
+def position_dodge(width = robjects.NULL, height= robjects.NULL):
     """Adjust position by dodging overlaps to the side."""
     return robjects.r('position_dodge')(width, height)
 
-def position_fill(width = robjects.constants.NULL, height= robjects.constants.NULL):
+def position_fill(width = robjects.NULL, height= robjects.NULL):
     """Stack overlapping objects on top of one another, and standardise to have"""
     return robjects.r('position_fill')(width, height)
 
-def position_identity(width = robjects.constants.NULL, height= robjects.constants.NULL):
+def position_identity(width = robjects.NULL, height= robjects.NULL):
     """Don't adjust position"""
     return robjects.r('position_identity')(width, height)
 
-def position_stack(width = robjects.constants.NULL, height = robjects.constants.NULL):
+def position_stack(width = robjects.NULL, height = robjects.NULL):
     """Stack overlapping objects on top of one another."""
     return robjects.r('position_stack')(width, height)
 
