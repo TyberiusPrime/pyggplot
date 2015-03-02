@@ -66,6 +66,9 @@ not when adding the layer.
 """
 try:
     import rpy2
+    import rpy2.robjects as robjects
+    import rpy2.rinterface as rinterface
+    RNULL = robjects.NULL
     try:
         import exptools
         exptools.load_software('pandas')
@@ -75,6 +78,7 @@ try:
     except (ImportError, rpy2.rinterface.RRuntimeError):
         pass
 except ImportError:
+    RNULL = None
     pass
 
 import itertools
@@ -90,8 +94,6 @@ import os
 
 _r_loaded = False
 
-import rpy2.robjects as robjects
-import rpy2.rinterface as rinterface
         
 def load_r():
     """Lazy R loader"""
@@ -1624,19 +1626,19 @@ def EmptyPlot(text_to_display = 'No data'):
     return p
 
 
-def position_dodge(width = robjects.NULL, height= robjects.NULL):
+def position_dodge(width = RNULL, height= RNULL):
     """Adjust position by dodging overlaps to the side."""
     return robjects.r('position_dodge')(width, height)
 
-def position_fill(width = robjects.NULL, height= robjects.NULL):
+def position_fill(width = RNULL, height= RNULL):
     """Stack overlapping objects on top of one another, and standardise to have"""
     return robjects.r('position_fill')(width, height)
 
-def position_identity(width = robjects.NULL, height= robjects.NULL):
+def position_identity(width = RNULL, height= RNULL):
     """Don't adjust position"""
     return robjects.r('position_identity')(width, height)
 
-def position_stack(width = robjects.NULL, height = robjects.NULL):
+def position_stack(width = RNULL, height = RNULL):
     """Stack overlapping objects on top of one another."""
     return robjects.r('position_stack')(width, height)
 
