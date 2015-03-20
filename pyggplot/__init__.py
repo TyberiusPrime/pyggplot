@@ -927,9 +927,9 @@ class Plot:
             if value is None:
                 del axis_text_x_args[key]
         kargs = {
-            'axis.text.x': robjects.r('theme_text')(**axis_text_x_args)
+            'axis.text.x': robjects.r('element_text')(**axis_text_x_args)
         }
-        self._other_adds.append(robjects.r('opts')(**kargs))
+        self._other_adds.append(robjects.r('theme')(**kargs))
         return self
 
     def turn_y_axis_labels(self, angle=75, hjust=1, size=8, vjust=0, color=None):
