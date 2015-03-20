@@ -955,18 +955,23 @@ class Plot:
 
     def hide_y_axis_labels(self):
         self._other_adds.append(robjects.r('theme')(**{"axis.text.y": robjects.r('element_blank()')}))
+        return self
 
     def hide_x_axis_labels(self):
         self._other_adds.append(robjects.r('theme')(**{"axis.text.x": robjects.r('element_blank()')}))
+        return self
 
     def hide_axis_ticks(self):
         self._other_adds.append(robjects.r('theme')(**{"axis.ticks": robjects.r('element_blank()')}))
+        return self
 
     def hide_y_axis_title(self):
         self._other_adds.append(robjects.r('theme')(**{"axis.title.y": robjects.r('element_blank()')}))
+        return self
 
     def hide_x_axis_title(self):
         self._other_adds.append(robjects.r('theme')(**{"axis.title.x": robjects.r('element_blank()')}))
+        return self
 
     def scale_fill_manual(self, list_of_colors, guide = None):
         kwargs = {}
@@ -974,6 +979,7 @@ class Plot:
             kwargs['guide'] = guide
         kwargs['values'] = numpy.array(list_of_colors) 
         self._other_adds.append(robjects.r('scale_fill_manual')(**kwargs))
+        return self
 
     def scale_fill_brewer(self, name=None, palette=1, guide = None, typ='qual'):
         other_params = {}
@@ -984,6 +990,7 @@ class Plot:
         if guide is not None:
             other_params['guide'] = guide
         self._other_adds.append(robjects.r('scale_fill_brewer')(palette = palette, **{'type': typ}))
+        return self
 
     def scale_fill_hue(self, h=None, l=None, c=None, limits=None, breaks=None, labels=None, h_start=None, direction=None, guide = None):
         other_params = {}
@@ -1006,6 +1013,7 @@ class Plot:
         if guide is not None:
             other_params['guide'] = guide
         self._other_adds.append(robjects.r('scale_fill_hue')(**other_params))
+        return self
 
     def scale_fill_gradient(self, low, high, mid=None, midpoint=None, name=None, space='rgb', breaks=None, labels=None, limits=None, trans=None, guide = None):
         other_params = {}
@@ -1035,12 +1043,14 @@ class Plot:
         else:
             self._other_adds.append(robjects.r('scale_fill_gradient')(**other_params))
         return self
+
     def scale_fill_gradientn(self, *args):
         self._other_adds.append(robjects.r('scale_fill_gradientn')(colours = list(args)))
-
+        return self
 
     def scale_fill_rainbow(self, number_of_steps = 7):
         self._other_adds.append(robjects.r('scale_fill_gradientn')(colours = robjects.r('rainbow')(number_of_steps)))
+        return self
 
     def coord_flip(self):
         self._other_adds.append(robjects.r('coord_flip()'))
@@ -1122,6 +1132,7 @@ class Plot:
        
     def hide_panel_border(self):
         self._other_adds.append(robjects.r('theme(panel.border=theme_rect(fill=NA, colour=NA))'))
+        return self
 
     def set_axis_color(self, color=None):
         if color is None:
@@ -1139,6 +1150,7 @@ class Plot:
         #self._other_adds.append(robjects.r('theme(panel.grid.major = theme_line(colour = NA))'))
  #       self._other_adds.append(robjects.r('theme(panel.grid.minor = theme_line(colour = NA))'))
         self._other_adds.append(robjects.r('theme(panel.grid.minor = element_blank())'))
+        return self
 
     def smaller_margins(self):
         self._other_adds.append(robjects.r('theme(panel.margin = unit(0.0, "lines"))'))
