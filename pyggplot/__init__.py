@@ -392,7 +392,7 @@ class Plot:
                         }, ''),
                 ('density_2d', 'geom_density2d', ['x', 'y'], ['alpha', 'color', 'linetype','fill', 'contour'], {}, ''),
                 ('error_bars', 'geom_errorbar', ['x', 'ymin', 'ymax'], ['alpha', 'color', 'group', 'linetype', 'size', 'width'], {'width': 0.25}, ''),
-                ('error_barsh', 'geom_errorbarh', ['y', 'xmin', 'xmax'], ['alpha', 'color', 'group', 'linetype', 'size', 'width'], {'width': 0.25}, ''),
+                ('error_barsh', 'geom_errorbarh', ['x', 'y', 'xmin', 'xmax'], ['alpha', 'color', 'group', 'linetype', 'size', 'width'], {'width': 0.25}, ''),
                 ('freq_poly', 'geom_freq_poly', [], ['alpha', 'color', 'linetype', 'size'], {}, ''),
                 ('hex', 'geom_hex', ['x', 'y'], ['alpha', 'color', 'fill', 'size'], {}, ''),
                 #  ('histogram', this is it's own function
@@ -400,6 +400,8 @@ class Plot:
 
                 (('horizontal_line', 'horizontal_bar', 'hline'), 'geom_hline', ['yintercept'], ['alpha', 'color', 'linetype', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}, 'Renamed hline'), 
                 ('line', 'geom_line', ['x','y'], ['color', 'group', 'shape', 'alpha', 'size', 'stat', 'fun.y', 'linetype'], {}, ''),
+                ('linerange', 'geom_linerange', ['x','ymax','ymin'], [ 'alpha', 'color', 'linetype', 'size'], {}, ''),
+                
                 ('map', 'geom_map', ['map_id'], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
                 ('path', 'geom_path', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', 'group'], {}, ''),
                 (('point', 'scatter'), 'geom_point', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}, ''),
@@ -506,9 +508,6 @@ class Plot:
                 robjects.r('geom_jitter')(self._build_aesthetic(aes_params), **other_params)
             )
         return self
-
-    def geom_jitter(self, *args, **kwargs):
-        self.add_jitter(*args, **kwargs)
 
     def add_histogram(self, x_column, y_column="..count..", color=None, group=None, fill=None, position="dodge", add_text=False, bin_width=None, alpha=None, size=None):
         aes_params = {'x': x_column}
@@ -1257,27 +1256,30 @@ class MultiPagePlot(Plot):
     Bug: The last page may get fewer variables and the plots get a different size than the other pages
     
     """
-    def __init__(self, dataframe, facet_variable_x, facet_variable_y = None, ncol_per_page = 3, n_rows_per_page = 5, fixed_x = False, fixed_y = True, facet_style = 'wrap'):
+    def __init__(self, dataframe, facet_variable_x, facet_variable_y = None, n_cols_per_page = 3, n_rows_per_page = 5, fixed_x = False, fixed_y = True, facet_style = 'wrap'):
+        if 'pydataframe.dataframe.DataFrame' in str(type(dataframe)):
+            dataframe = self._convert_pydataframe(dataframe)
+        
         Plot.__init__(self, dataframe)
         self.facet_variable_x = facet_variable_x
         self.facet_variable_y = facet_variable_y
-        if facet_variable_x not in dataframe.columns_ordered:
+        if facet_variable_x not in dataframe.columns:
             raise ValueError("facet_variable_x %s not in dataframe.columns_ordered" % facet_variable_x)
-        if facet_variable_y and facet_variable_y not in dataframe.columns_ordered:
+        if facet_variable_y and facet_variable_y not in dataframe.columns:
             raise ValueError("facet_variable_y %s not in dataframe.columns_ordered" % facet_variable_y)
         if facet_style not in ('wrap', 'grid'):
             raise ValueError("facet_style must be one of wrap, grid")
         self.facet_style = facet_style
         self.fixed_x = fixed_x
         self.fixed_y = fixed_y
-        self.ncol_per_page = ncol_per_page
-        no_of_x_variables = len(dataframe.get_column_unique(self.facet_variable_x))
+        self.n_cols_per_page = n_cols_per_page
+        no_of_x_variables = len(self.dataframe['dat_%s' % self.old_names.index(self.facet_variable_x)].unique())
         if self.facet_variable_y:
-            no_of_y_variables = len(dataframe.get_column_unique(self.facet_variable_y))
+            no_of_y_variables = len(self.dataframe['dat_%s' % self.old_names.index(self.facet_variable_y)].unique())
             no_of_plots = no_of_x_variables * no_of_y_variables
         else:
             no_of_plots = no_of_x_variables
-        self.plots_per_page = ncol_per_page * n_rows_per_page
+        self.plots_per_page = n_cols_per_page * n_rows_per_page
         pages_needed = math.ceil(no_of_plots / float(self.plots_per_page))
         self.width = 8.26772
         self.height = 11.6929
@@ -1293,13 +1295,16 @@ class MultiPagePlot(Plot):
             raise NotImplemented("The splitting into two variable sub_dfs is not implemented yet")
         else:
             x_column = 'dat_%s' % self.old_names.index(self.facet_variable_x)
-            x_values = self.dataframe.get_column_unique(x_column)
+            x_values = self.dataframe[x_column].unique()
             for group in grouper(sorted(x_values), self.plots_per_page):
+                group = list(group)
                 keep = numpy.zeros((len(self.dataframe)), dtype=numpy.bool)
                 for value in group:
-                    if value:
-                        keep[self.dataframe.get_column_view(x_column) == value] = True
-                yield self.dataframe[keep, :]
+                    if value is not None:
+                        keep = keep | (self.dataframe[x_column] == value)
+                        #keep[self.dataframe.get_column_view(x_column) == value] = True
+                d = self.dataframe[keep]
+                yield d
 
     def render(self, output_filename, width=8, height=6, dpi=300):
         if not output_filename.endswith('.pdf'):
@@ -1321,15 +1326,15 @@ class MultiPagePlot(Plot):
         else:
             scale = 'fixed'
         if self.facet_style == 'grid':
-            self._other_adds.append(robjects.r('facet_grid')(robjects.r(facet_specification), scale = scale, ncol=self.ncol_per_page))
+            self._other_adds.append(robjects.r('facet_grid')(robjects.r(facet_specification), scale = scale, ncol=self.n_cols_per_page))
         elif self.facet_style == 'wrap':
-            self._other_adds.append(robjects.r('facet_wrap')(robjects.r(facet_specification), scale = scale, ncol=self.ncol_per_page))
+            self._other_adds.append(robjects.r('facet_wrap')(robjects.r(facet_specification), scale = scale, ncol=self.n_cols_per_page))
 
         robjects.r('pdf')(output_filename, width = 8.26, height = 11.69)
         page_no = 0
         for sub_df in self._iter_by_pages():
             page_no += 1
-            plot = self.r['ggplot'](sub_df)
+            plot = self.r['ggplot'](convert_dataframe_to_r(sub_df))
             for obj in self._other_adds:
                 plot = self.r['add'](plot, obj)
             for name, value in self.lab_rename.items():
