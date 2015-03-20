@@ -700,7 +700,7 @@ class Plot:
 
     def theme_bw(self, base_size=None):
         kwargs = {}
-        if base_size:
+        if base_size is None:
             kwargs['base_size'] = float(base_size)
         self._other_adds.append(robjects.r('theme_bw')(**kwargs))
         return self
@@ -721,37 +721,37 @@ class Plot:
 {
     structure(
         list(
-        axis.line = theme_blank(),
-        axis.text.x = theme_text(size = base_size *
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = base_size *
             0.8, lineheight = 0.9, colour = "white", vjust = 1),
-        axis.text.y = theme_text(size = base_size * 0.8, lineheight = 0.9,
+        axis.text.y = element_text(size = base_size * 0.8, lineheight = 0.9,
             colour = "white", hjust = 1),
         axis.ticks = theme_segment(colour = "grey40"),
-        axis.title.x = theme_text(size = base_size, vjust = 0.5, colour="white"),
-        axis.title.y = theme_text(size = base_size, colour="white", angle=90),
+        axis.title.x = element_text(size = base_size, vjust = 0.5, colour="white"),
+        axis.title.y = element_text(size = base_size, colour="white", angle=90),
         axis.ticks.length = unit(0.15, "cm"),
         axis.ticks.margin = unit(0.1, "cm"),
 
         legend.background = theme_rect(colour = "black"),
         legend.key = theme_rect(fill = "grey5", colour = "black"),
         legend.key.size = unit(2.2, "lines"),
-            legend.text = theme_text(size = base_size * 1, colour="white"),"
-            legend.title = theme_text(size = base_size * 1, face = "bold", hjust = 0),
+            legend.text = element_text(size = base_size * 1, colour="white"),"
+            legend.title = element_text(size = base_size * 1, face = "bold", hjust = 0),
             legend.position = "right",
 
         panel.background = theme_rect(fill = "black", colour = NA),
-        panel.border = theme_blank(),
+        panel.border = element_blank(),
         panel.grid.major = theme_line(colour = "grey40"),
         panel.grid.minor = theme_line(colour = "grey25", size = 0.25),
         panel.margin = unit(0.25, "lines"),
 
         strip.background = theme_rect(fill = "grey20", colour = NA),
         strip.label = function(variable, value) value,
-        strip.text.x = theme_text(size = base_size * 0.8),
-        strip.text.y = theme_text(size = base_size * 0.8, angle = -90),
+        strip.text.x = element_text(size = base_size * 0.8),
+        strip.text.y = element_text(size = base_size * 0.8, angle = -90),
 
         plot.background = theme_rect(colour = NA, fill = "black"),
-        plot.title = theme_text(size = base_size * 1.2, colour="white"), plot.margin = unit(c(1, 1, 0.5, 0.5), "lines")),
+        plot.title = element_text(size = base_size * 1.2, colour="white"), plot.margin = unit(c(1, 1, 0.5, 0.5), "lines")),
 
         class = "options")
 }
@@ -944,29 +944,29 @@ class Plot:
             if value is None:
                 del axis_text_y_args[key]
         kargs = {
-            'axis.text.y': robjects.r('theme_text')(**axis_text_y_args)
+            'axis.text.y': robjects.r('element_text')(**axis_text_y_args)
         }
-        self._other_adds.append(robjects.r('opts')(**kargs))
+        self._other_adds.append(robjects.r('theme')(**kargs))
         return self
 
     def hide_background(self):
-        self._other_adds.append(robjects.r('opts')(**{'panel.background': robjects.r('theme_blank()')}))
+        self._other_adds.append(robjects.r('theme')(**{'panel.background': robjects.r('element_blank()')}))
         return self
 
     def hide_y_axis_labels(self):
-        self._other_adds.append(robjects.r('opts')(**{"axis.text.y": robjects.r('theme_blank()')}))
+        self._other_adds.append(robjects.r('theme')(**{"axis.text.y": robjects.r('element_blank()')}))
 
     def hide_x_axis_labels(self):
-        self._other_adds.append(robjects.r('opts')(**{"axis.text.x": robjects.r('theme_blank()')}))
+        self._other_adds.append(robjects.r('theme')(**{"axis.text.x": robjects.r('element_blank()')}))
 
     def hide_axis_ticks(self):
-        self._other_adds.append(robjects.r('opts')(**{"axis.ticks": robjects.r('theme_blank()')}))
+        self._other_adds.append(robjects.r('theme')(**{"axis.ticks": robjects.r('element_blank()')}))
 
     def hide_y_axis_title(self):
-        self._other_adds.append(robjects.r('opts')(**{"axis.title.y": robjects.r('theme_blank()')}))
+        self._other_adds.append(robjects.r('theme')(**{"axis.title.y": robjects.r('element_blank()')}))
 
     def hide_x_axis_title(self):
-        self._other_adds.append(robjects.r('opts')(**{"axis.title.x": robjects.r('theme_blank()')}))
+        self._other_adds.append(robjects.r('theme')(**{"axis.title.x": robjects.r('element_blank()')}))
 
     def scale_fill_manual(self, list_of_colors, guide = None):
         kwargs = {}
@@ -1131,14 +1131,14 @@ class Plot:
         return self
 
     def hide_grid(self):
-        self._other_adds.append(robjects.r('theme(panel.grid.major = theme_blank())'))
-        self._other_adds.append(robjects.r('theme(panel.grid.minor = theme_blank())'))
+        self._other_adds.append(robjects.r('theme(panel.grid.major = element_blank())'))
+        self._other_adds.append(robjects.r('theme(panel.grid.minor = element_blank())'))
         return self
 
     def hide_grid_minor(self):
         #self._other_adds.append(robjects.r('theme(panel.grid.major = theme_line(colour = NA))'))
  #       self._other_adds.append(robjects.r('theme(panel.grid.minor = theme_line(colour = NA))'))
-        self._other_adds.append(robjects.r('theme(panel.grid.minor = theme_blank())'))
+        self._other_adds.append(robjects.r('theme(panel.grid.minor = element_blank())'))
 
     def smaller_margins(self):
         self._other_adds.append(robjects.r('theme(panel.margin = unit(0.0, "lines"))'))
