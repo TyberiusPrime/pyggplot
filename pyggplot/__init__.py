@@ -1765,7 +1765,7 @@ try:
                 try:
                     names.append(str(column_name))
                     if str(o[column_name].dtype) == 'category':  # There has to be a more elegant way to specify this...
-                        col = ro.r('factor')(numpy.array(o[column_name]), list(o[column_name].cat.categories), ordered=True )
+                        col = ro.r('factor')(list(numpy.array(o[column_name])), list(o[column_name].cat.categories), ordered=True )
 
                     else:
                         col = numpy.array(o[column_name])
