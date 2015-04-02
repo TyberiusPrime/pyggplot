@@ -1015,7 +1015,7 @@ class Plot:
         self._other_adds.append(robjects.r('scale_fill_hue')(**other_params))
         return self
 
-    def scale_fill_gradient(self, low, high, mid=None, midpoint=None, name=None, space='rgb', breaks=None, labels=None, limits=None, trans=None, guide = None):
+    def scale_fill_gradient(self, low, high, mid=None, midpoint=None, name=None, space='rgb', breaks=None, labels=None, limits=None, trans=None, guide = None, na_value = 'grey50'):
         other_params = {}
         other_params['low'] = low
         other_params['high'] = high
@@ -1037,6 +1037,8 @@ class Plot:
             other_params['trans'] = trans
         if guide is not None:
             other_params['guide'] = guide
+        if na_value:
+            other_params['na.value'] = na_value
         
         if mid is not None:
             self._other_adds.append(robjects.r('scale_fill_gradient2')(**other_params))
