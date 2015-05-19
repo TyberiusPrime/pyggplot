@@ -1669,6 +1669,61 @@ def EmptyPlot(text_to_display = 'No data'):
     return p
 
 
+class CombinedPlots:
+    """Combine multiple ggplots into one graph.
+    Default is A4
+
+    """
+    def __init__(self, plots, ncol = 3, width=8.267 * 150, height=11.5 * 150):
+        """width/height are in pixels @ 150 pixels/inch"""
+        self.plots = plots
+        self.ncol = ncol
+        self.width = float(width)
+        self.height = float(height)
+        
+    def _repr_svg_(self):
+        so = tempfile.NamedTemporaryFile(suffix='.svg') 
+        self.render(so.name)
+        so.flush()
+        so.flush()
+        result = so.read()
+        so.close()
+        return result, {"isolated": True}
+    
+    def render(self, output_filename, width = None, height = None):
+        import svg_stack
+
+        if width is None:
+            width = self.width
+        if height is None:
+            height = self.height
+        if len(self.plots) < self.ncol:
+            self.ncol = len(self.plots)
+        nrow = math.ceil(len(self.plots) / float(self.ncol))
+        svgs = [p._repr_svg_(width = self.width / self.ncol / 150 * 72, height = self.height / nrow / 150 * 72) for p in self.plots]       
+        tfs = [tempfile.NamedTemporaryFile(suffix='.svg') for x in svgs]
+        for of, svg in zip(tfs, svgs):
+            of.write(svg[0])
+            of.flush()
+        doc = svg_stack.Document()
+        layout1 = svg_stack.VBoxLayout()
+        rows = [tfs[i:i+self.ncol] for i in range(0, len(tfs), self.ncol)]   
+        ii = 0
+        for row in rows:
+            ii += 1
+            layout2 = svg_stack.HBoxLayout()
+            for element in row:
+                layout2.addSVG(element.name, alignment=svg_stack.AlignLeft)
+            layout2.setSpacing(0)
+            layout1.addLayout(layout2)
+        layout1.setSpacing(0)
+        doc.setLayout(layout1)
+    
+        doc.save(output_filename)
+        for of in tfs:
+            of.close()
+        
+
 def position_dodge(width = RNULL, height= RNULL):
     """Adjust position by dodging overlaps to the side."""
     return robjects.r('position_dodge')(width, height)
@@ -1687,6 +1742,7 @@ def position_stack(width = RNULL, height = RNULL):
 
 def position_jitter(w = 0.4, h = 0.4):
     return robjects.r('position_jitter')(w, h)
+
 
 
 
