@@ -78,6 +78,6 @@ not when adding the layer.
 ## Other ggplots' for python
 
 * http://ggplot.yhathq.com/ is a port of ggplot2 for python based on matplotlib - unfortunatly not yet feature complete as of early 2015.
-* https://github.com/sirrice/pyplot is another wrapper for ggplot closer to R's syntax.
+* https://github.com/sirrice/pyplot is another wrapper for ggplot closer to R's syntax, and does not rely on rpy2 - calls command line R.
 
 
