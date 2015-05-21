@@ -185,7 +185,10 @@ class Plot:
             plot = self.r['add'](
                     plot, robjects.r('labs(%s = "%s")' % (name, value)))
         output_filename = output_filename.replace('%', '%%')  # R tries some kind of integer substitution on these, so we need to double the %
-        self.r['ggsave'](filename=output_filename, plot=plot, width=width, height=height, dpi=dpi)
+        kwargs = {}
+        if output_filename.endswith('.png'):
+            kwargs['type'] = 'cairo'
+        self.r['ggsave'](filename=output_filename, plot=plot, width=width, height=height, dpi=dpi, **kwargs)
 
     def render_notebook(self, width=800, height=600):
         from IPython.core.display import Image
@@ -209,7 +212,23 @@ class Plot:
             return result
         finally:
             os.unlink(name)
-        
+
+    def _repr_svg_(self, width=None, height=None):
+        """Show the plot in the ipython notebook (ie. return svg formated image data)"""
+        if width is None:
+            width = self.ipython_plot_width / 150. * 72
+            height = self.ipython_plot_height / 150. * 72
+        try:
+            handle, name = tempfile.mkstemp(suffix=".svg") # mac os for some reason would not read back again from a named tempfile.
+            os.close(handle)
+            self.render(name, width=width/72., height=height/72., dpi=72)
+            tf = open(name, "r")
+            result = tf.read()
+            tf.close()
+            return result, {"isolated": True}
+        finally:
+            os.unlink(name)
+       
     def _prep_dataframe(self, df):
         """prepare the dataframe by renaming all the columns
         (we use this to get around R naming issues - the axis get labled correctly later on)"""
@@ -289,7 +308,7 @@ class Plot:
 
         """
         if not value is None:
-            if isinstance(value, tuple):  # this  allows renaming columns when plotting - why is this here? Is this actually usefully
+            if isinstance(value, tuple):  # this  allows renaming columns when plotting - why is this here? Is this actually useful
                 new_name = value[1]
                 value = value[0]
                 self.to_rename[value] = new_name
@@ -630,6 +649,11 @@ class Plot:
             self._other_adds.append( robjects.r('scale_fill_gradient2')(low=low, mid=mid, high=high, midpoint=midpoint, **scale_args))
         return self
 
+    def add_distribution(self, value_column, x_name = 'Default'):
+        self.old_names.append('distribution_x')
+        self.dataframe['dat_%i' % self.old_names.index('distribution_x')] = [x_name] * len(self.dataframe)
+        return self.add_box_plot('distribution_x',  value_column)
+
     def set_title(self, title):
         self._other_adds.append(robjects.r('ggtitle')(title))
         return self
@@ -700,7 +724,7 @@ class Plot:
 
     def theme_bw(self, base_size=None):
         kwargs = {}
-        if base_size is None:
+        if base_size is not None:
             kwargs['base_size'] = float(base_size)
         self._other_adds.append(robjects.r('theme_bw')(**kwargs))
         return self
@@ -1645,6 +1669,61 @@ def EmptyPlot(text_to_display = 'No data'):
     return p
 
 
+class CombinedPlots:
+    """Combine multiple ggplots into one graph.
+    Default is A4
+
+    """
+    def __init__(self, plots, ncol = 3, width=8.267 * 150, height=11.5 * 150):
+        """width/height are in pixels @ 150 pixels/inch"""
+        self.plots = plots
+        self.ncol = ncol
+        self.width = float(width)
+        self.height = float(height)
+        
+    def _repr_svg_(self):
+        so = tempfile.NamedTemporaryFile(suffix='.svg') 
+        self.render(so.name)
+        so.flush()
+        so.flush()
+        result = so.read()
+        so.close()
+        return result, {"isolated": True}
+    
+    def render(self, output_filename, width = None, height = None):
+        import svg_stack
+
+        if width is None:
+            width = self.width
+        if height is None:
+            height = self.height
+        if len(self.plots) < self.ncol:
+            self.ncol = len(self.plots)
+        nrow = math.ceil(len(self.plots) / float(self.ncol))
+        svgs = [p._repr_svg_(width = self.width / self.ncol / 150 * 72, height = self.height / nrow / 150 * 72) for p in self.plots]       
+        tfs = [tempfile.NamedTemporaryFile(suffix='.svg') for x in svgs]
+        for of, svg in zip(tfs, svgs):
+            of.write(svg[0])
+            of.flush()
+        doc = svg_stack.Document()
+        layout1 = svg_stack.VBoxLayout()
+        rows = [tfs[i:i+self.ncol] for i in range(0, len(tfs), self.ncol)]   
+        ii = 0
+        for row in rows:
+            ii += 1
+            layout2 = svg_stack.HBoxLayout()
+            for element in row:
+                layout2.addSVG(element.name, alignment=svg_stack.AlignLeft)
+            layout2.setSpacing(0)
+            layout1.addLayout(layout2)
+        layout1.setSpacing(0)
+        doc.setLayout(layout1)
+    
+        doc.save(output_filename)
+        for of in tfs:
+            of.close()
+        
+
 def position_dodge(width = RNULL, height= RNULL):
     """Adjust position by dodging overlaps to the side."""
     return robjects.r('position_dodge')(width, height)
@@ -1663,6 +1742,7 @@ def position_stack(width = RNULL, height = RNULL):
 
 def position_jitter(w = 0.4, h = 0.4):
     return robjects.r('position_jitter')(w, h)
+
 
 
 
