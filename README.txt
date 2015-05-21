@@ -3,7 +3,7 @@ pyggplot
 
 pyggplot is a Pythonic wrapper around the [R ggplot2 library](http://had.co.nz/ggplot2/).
 
-Unlike the [Python ggplot](https://github.com/yhat/ggplot) this is not a reimplementation based on [Matplotlib](http://matplotlib.org/), but a straightforward *take [Pandas](http://pandas.pydata.org/) data frames and shove them into [R](http://www.r-project.org/) via [rpy2](https://pypi.python.org/pypi/rpy2)* approach.
+It is based on a a straightforward *take [Pandas](http://pandas.pydata.org/) data frames and shove them into [R](http://www.r-project.org/) via [rpy2](https://pypi.python.org/pypi/rpy2)* approach.
 
 ## Examples
 Please visit http://nbviewer.ipython.org/url/tyberiusprime.github.io/pyggplot/pyggplot%20samples.ipynb
@@ -74,5 +74,10 @@ not when adding the layer.
 * how could error messages be improved?
 
 
+
+## Other ggplots' for python
+
+* http://ggplot.yhathq.com/ is a port of ggplot2 for python based on matplotlib - unfortunatly not yet feature complete as of early 2015.
+* https://github.com/sirrice/pyplot is another wrapper for ggplot closer to R's syntax.
 
 
