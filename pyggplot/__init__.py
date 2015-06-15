@@ -1054,9 +1054,9 @@ class Plot:
         if space is not None:
             other_params['space'] = space
         if breaks is not None:
-            other_params['breaks'] = breaks
+            other_params['breaks'] = np.array(breaks)
         if limits is not None:
-            other_params['limits'] = limits
+            other_params['limits'] = np.array(limits)
         if trans is not None:
             other_params['trans'] = trans
         if guide is not None:
