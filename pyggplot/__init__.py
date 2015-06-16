@@ -1704,6 +1704,8 @@ class CombinedPlots:
         return result, {"isolated": True}
     
     def render(self, output_filename, width = None, height = None):
+        if not output_filename.endswith('.svg'):
+            raise ValueError("combined plots currently only support svg")
         import svg_stack
 
         if width is None:
