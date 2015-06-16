@@ -175,6 +175,7 @@ class Plot:
         self.previous_mappings = {}
         self.ipython_plot_width = ipython_plot_width
         self.ipython_plot_height = ipython_plot_height
+        self.used_columns = set()
 
     def render(self, output_filename, width=8, height=6, dpi=300):
         """Save the plot to a file"""
@@ -265,6 +266,7 @@ class Plot:
         aes_params = []
         for aes_name, aes_column in params.items():
             if aes_column in self.old_names:
+                self.used_columns.update([aes_column])
                 new_name = 'dat_%s' % self.old_names.index(aes_column)
                 aes_params.append('%s=%s' % (aes_name, new_name))
                 if aes_column in self.to_rename:
@@ -383,6 +385,7 @@ class Plot:
             self._other_adds.append(robjects.r(geom_name)( **self.other_collection))
         else:
             self._other_adds.append(robjects.r(geom_name)(self._build_aesthetic(self.aes_collection), **self.other_collection))
+
         return self
 
     def _add_geom_methods(self):
@@ -1054,9 +1057,9 @@ class Plot:
         if space is not None:
             other_params['space'] = space
         if breaks is not None:
-            other_params['breaks'] = np.array(breaks)
+            other_params['breaks'] = numpy.array(breaks)
         if limits is not None:
-            other_params['limits'] = np.array(limits)
+            other_params['limits'] = numpy.array(limits)
         if trans is not None:
             other_params['trans'] = trans
         if guide is not None:
@@ -1287,6 +1290,16 @@ class Plot:
         self._other_adds.append(robjects.r('scale_fill_grey')(**kwargs))
         return self
 
+    def to_excel(self, output_filename):
+        writer = pandas.ExcelWriter(output_filename)
+        df = self.dataframe.copy()
+        df.columns = self.old_names[:len(df.column)]  # we only export the primary DF right now.
+        df = df[list(set(df.columns).intersection(self.used_columns))]
+        df.to_excel(writer, 'Plot1')
+        writer.save()
+
+
+       
 
 class MultiPagePlot(Plot):
     """A plot job that splits faceted variables over multiple pages.
@@ -1722,6 +1735,20 @@ class CombinedPlots:
         doc.save(output_filename)
         for of in tfs:
             of.close()
+
+    def to_excel(self, output_filename):
+        writer = pandas.ExcelWriter(output_filename)
+        i = 0
+        for p in self.plots:
+            i += 1
+            df = p.dataframe.copy()
+            df.columns = p.old_names
+            df = df[list(set(df.columns).intersection(p.used_columns))]
+        
+            df.to_excel(writer, 'Plot%i' % i)
+        writer.save()
+
+
         
 
 def position_dodge(width = RNULL, height= RNULL):
