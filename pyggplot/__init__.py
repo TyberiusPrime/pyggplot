@@ -402,7 +402,7 @@ class Plot:
                 ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha', 'weight', 'width'], {'position': 'dodge', 'stat': 'identity'}, ''),
                 ('bin2d', 'geom_bin2d', ['xmin', 'xmax', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight'], {}, ''),
                 ('blank', 'geom_blank', [], [], {}, ''),
-                (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight'], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
+                (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'notch'], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
                 (('box_plot2', 'boxplot2'), 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight'], 
                     {'stat': 'identity'}, ' box plot where you define everything manually'),
                 ('contour', 'geom_contour', ['x', 'y'], ['alpha',' color', 'linetype', 'size',' weight'], {}, ''),
@@ -1073,8 +1073,11 @@ class Plot:
             self._other_adds.append(robjects.r('scale_fill_gradient')(**other_params))
         return self
 
-    def scale_fill_gradientn(self, *args):
-        self._other_adds.append(robjects.r('scale_fill_gradientn')(colours = list(args)))
+    def scale_fill_gradientn(self,colors, name=None, *args):
+        other_params = {}
+        if name is not None:
+            other_params['name'] = name
+        self._other_adds.append(robjects.r('scale_fill_gradientn')(colours = colors, **other_params))
         return self
 
     def scale_fill_rainbow(self, number_of_steps = 7):
@@ -1293,7 +1296,12 @@ class Plot:
     def to_excel(self, output_filename):
         writer = pandas.ExcelWriter(output_filename)
         df = self.dataframe.copy()
-        df.columns = self.old_names[:len(df.column)]  # we only export the primary DF right now.
+        rename_columns = {}
+        for ii, x in enumerate(self.old_names):
+            new_name = 'dat_%s' % ii
+            if new_name in df:
+                rename_columns[new_name] = x
+        df = df.rename(columns = rename_columns)
         df = df[list(set(df.columns).intersection(self.used_columns))]
         df.to_excel(writer, 'Plot1')
         writer.save()
@@ -1744,7 +1752,12 @@ class CombinedPlots:
         for p in self.plots:
             i += 1
             df = p.dataframe.copy()
-            df.columns = p.old_names
+            rename_columns = {}
+            for ii, x in enumerate(p.old_names):
+                new_name = 'dat_%s' % ii
+                if new_name in df:
+                    rename_columns[new_name] = x
+            df = df.rename(columns = rename_columns)
             df = df[list(set(df.columns).intersection(p.used_columns))]
         
             df.to_excel(writer, 'Plot%i' % i)
