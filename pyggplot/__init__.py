@@ -480,35 +480,10 @@ class Plot:
             if not hasattr(self, geom):
                 setattr(self, geom, f)
 
-    def add_jitter(self, x,y, color=None, group = None, shape=None, size=None, alpha=None, jitter_x = True, jitter_y = True, fill=None):
+    def add_jitter(self, x,y, jitter_x = True, jitter_y = True, **kwargs):
         #an api changed necessitates this - jitter_x and jitter_y have been replaced with position_jitter(width, height)...
-        aes_params = {'x': x, 'y': y}
-        other_params = {}
+       
         position_jitter_params = {}
-        if color:
-            if color in self.old_names:
-                aes_params['colour'] = color
-            else:
-                other_params['colour'] = color
-        if fill:
-            if fill in self.old_names:
-                aes_params['fill'] = fill
-            else:
-                other_params['fill'] = fill
-        if group:
-            aes_params['group'] = group
-        if not alpha is None:
-            if alpha in self.old_names:
-                aes_params['alpha'] = alpha
-            else:
-                other_params['alpha'] = alpha
-        if not shape is None:
-            if shape in self.old_names:
-                aes_params['shape'] = shape
-            else:
-                other_params['shape'] = shape
-        if size:
-            other_params['size'] = size
         if jitter_x is True:
             position_jitter_params['width'] = robjects.r('NULL')
         elif isinstance(jitter_x, float) or isinstance(jitter_x, int):
@@ -525,10 +500,11 @@ class Plot:
             position_jitter_params['height'] = 0
         else:
             raise ValueError("invalid jitter_y value")
-        other_params['position'] = robjects.r('position_jitter')(**position_jitter_params)
-        self._other_adds.append(
-                robjects.r('geom_jitter')(self._build_aesthetic(aes_params), **other_params)
-            )
+        kwargs['position'] = robjects.r('position_jitter')(**position_jitter_params)
+        self._add('geom_jitter', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y', 'position'], {}, ['x','y'], **kwargs)
+        #self._other_adds.append(
+                #robjects.r('geom_jitter')(self._build_aesthetic(aes_params), **other_params)
+            #)
         return self
 
     def add_histogram(self, x_column, y_column="..count..", color=None, group=None, fill=None, position="dodge", add_text=False, bin_width=None, alpha=None, size=None):
