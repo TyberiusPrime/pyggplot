@@ -1639,14 +1639,14 @@ def plot_heatmap(output_filename, data, infinity_replacement_value = 10, low='bl
         else
             vp = viewport(0.8, 0.8, x=0.4, y=0.4)
 
-        #print(p1, vp=vp)
+        print(p1, vp=vp)
         if (!keep_column_order && !hide_tree)
         {
-            #print(p2, vp=viewport(0.60, 0.2, x=0.4, y=0.9))
+            print(p2, vp=viewport(0.60, 0.2, x=0.4, y=0.9))
         }
         if (!keep_row_order && !hide_tree)
         {
-            #print(p3, vp=viewport(0.2, 0.86, x=0.9, y=0.4))
+            print(p3, vp=viewport(0.2, 0.86, x=0.9, y=0.4))
         }
         dev.off()
     }
