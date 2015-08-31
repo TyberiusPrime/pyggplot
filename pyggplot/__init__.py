@@ -501,7 +501,7 @@ class Plot:
         else:
             raise ValueError("invalid jitter_y value")
         kwargs['position'] = robjects.r('position_jitter')(**position_jitter_params)
-        self._add('geom_jitter', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y', 'position'], {}, ['x','y'], **kwargs)
+        self._add('geom_jitter', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y', 'position'], {}, [x,y], kwargs)
         #self._other_adds.append(
                 #robjects.r('geom_jitter')(self._build_aesthetic(aes_params), **other_params)
             #)
@@ -691,9 +691,10 @@ class Plot:
             facet_specification = params.replace('=', '') + ' ~ .'
             #facet_specification = '~ %s' % (column_one, )
         params = {
-            'scale': scale}
+            'scales': scale}
         if ncol:
             params['ncol'] = ncol
+        print params
         self._other_adds.append(robjects.r('facet_grid')(robjects.r(facet_specification), **params))
         return self
 
