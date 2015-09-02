@@ -694,7 +694,6 @@ class Plot:
             'scales': scale}
         if ncol:
             params['ncol'] = ncol
-        print params
         self._other_adds.append(robjects.r('facet_grid')(robjects.r(facet_specification), **params))
         return self
 
