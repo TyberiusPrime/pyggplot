@@ -1139,6 +1139,10 @@ class Plot:
         self._other_adds.append(robjects.r('theme(panel.border=theme_rect(fill=NA, colour=NA))'))
         return self
 
+    def hide_strip_background(self):
+        self._other_adds.append(robjects.r('theme(strip.background=element_rect(fill=NA, colour=NA))'))
+        return self
+
     def set_axis_color(self, color=None):
         if color is None:
             self._other_adds.append(robjects.r('theme(axis.line = theme_segment())'))
