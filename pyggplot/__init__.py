@@ -501,7 +501,7 @@ class Plot:
         else:
             raise ValueError("invalid jitter_y value")
         kwargs['position'] = robjects.r('position_jitter')(**position_jitter_params)
-        self._add('geom_jitter', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y', 'position'], {}, [x,y], kwargs)
+        self._add('geom_jitter', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y', 'position'], {}, args = [x,y], kwargs = kwargs)
         #self._other_adds.append(
                 #robjects.r('geom_jitter')(self._build_aesthetic(aes_params), **other_params)
             #)
@@ -694,7 +694,6 @@ class Plot:
             'scales': scale}
         if ncol:
             params['ncol'] = ncol
-        print params
         self._other_adds.append(robjects.r('facet_grid')(robjects.r(facet_specification), **params))
         return self
 
@@ -915,15 +914,55 @@ class Plot:
         )
         return self
 
-    def scale_x_reverse(self):
-        self._other_adds.append(robjects.r('scale_x_reverse()'))
+    def scale_x_reverse(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name = None):
+        other_params = {}
+        if not breaks is None:
+            other_params['breaks'] = numpy.array(breaks)
+        if not minor_breaks is None:
+            other_params['minor_breaks'] = numpy.array(minor_breaks)
+        if trans:
+            other_params['trans'] = str(trans)
+        if not limits is None:
+            other_params['limits'] = numpy.array(limits)
+        if not labels is None:
+            other_params['labels'] = numpy.array(labels)
+        if not expand is None:
+            other_params['expand'] = numpy.array(expand)
+        if not name is None:
+            other_params['name'] = name
+
+        if not breaks is None and not labels is None:
+                if len(breaks) != len(labels):
+                    raise ValueError("len(breaks) != len(labels)")
+
+        self._other_adds.append(robjects.r('scale_x_reverse')(**other_params))
         return self
 
-    def scale_y_reverse(self):
-        self._other_adds.append(robjects.r('scale_y_reverse()'))
+    def scale_y_reverse(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name = None):
+        other_params = {}
+        if not breaks is None:
+            other_params['breaks'] = numpy.array(breaks)
+        if not minor_breaks is None:
+            other_params['minor_breaks'] = numpy.array(minor_breaks)
+        if trans:
+            other_params['trans'] = str(trans)
+        if not limits is None:
+            other_params['limits'] = numpy.array(limits)
+        if not labels is None:
+            other_params['labels'] = numpy.array(labels)
+        if not expand is None:
+            other_params['expand'] = numpy.array(expand)
+        if not name is None:
+            other_params['name'] = name
+
+        if not breaks is None and not labels is None:
+                if len(breaks) != len(labels):
+                    raise ValueError("len(breaks) != len(labels)")
+
+        self._other_adds.append(robjects.r('scale_y_reverse')(**other_params))
         return self
 
-    def turn_x_axis_labels(self, angle=75, hjust=1, size=8, vjust=0, color=None):
+    def turn_x_axis_labels(self, angle=75, hjust=None, size=None, vjust=0, color=None):
         axis_text_x_args = {
                 'angle': angle,
                 'hjust': hjust,
@@ -1145,6 +1184,10 @@ class Plot:
        
     def hide_panel_border(self):
         self._other_adds.append(robjects.r('theme(panel.border=theme_rect(fill=NA, colour=NA))'))
+        return self
+
+    def hide_strip_background(self):
+        self._other_adds.append(robjects.r('theme(strip.background=element_rect(fill=NA, colour=NA))'))
         return self
 
     def set_axis_color(self, color=None):
