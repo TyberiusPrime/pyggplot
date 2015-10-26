@@ -837,6 +837,13 @@ class Plot:
                 #labels = None
             elif hasattr(labels, '__iter__'):
                 other_params['labels'] = numpy.array(labels)
+            elif isinstance(labels, rpy2.robjects.SignatureTranslatedFunction):
+                other_params['labels'] = labels
+            elif hasattr(labels, '__call__'):
+                def label_callback(x):
+                    res = labels(x)
+                    return rpy2.robjects.r('c')(numpy.array(res))
+                other_params['labels'] = rinterface.rternalize(label_callback)
             else:
                 other_params['labels'] = robjects.r(labels)
                 labels = None
