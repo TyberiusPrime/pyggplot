@@ -633,9 +633,8 @@ class Plot:
         self.dataframe['dat_%i' % self.old_names.index('distribution_x')] = [x_name] * len(self.dataframe)
         return self.add_box_plot('distribution_x',  value_column)
 
-    def add_alternating_background(self, x_column):
+    def add_alternating_background(self, x_column, fill_1 = "#EEEEEE", fill_2 = "#FFFFFF"):
         """Add an alternating background to a categorial (x-axis) plot.
-        Colors are set via scale_fill
         """
         try:
             new_name = "dat_%i" % self.old_names.index(x_column)
@@ -647,9 +646,12 @@ class Plot:
                                 'xmax': numpy.array(xrange(no_of_x_values)) + .5 + 1,
                                 'ymin': 0,
                                 'ymax': numpy.inf,
-                                'fill': (['a', 'b'] * (no_of_x_values / 2 + 1))[:no_of_x_values]
+                                'fill': ([fill_1, fill_2] * (no_of_x_values / 2 + 1))[:no_of_x_values]
                                })
-        self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill='fill', data=df_rect, alpha=.5)
+        left = df_rect[df_rect.fill == fill_1]
+        right = df_rect[df_rect.fill == fill_2]
+        self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_1, data=left, alpha=.5)
+        self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_2, data=right, alpha=.5)
         return self
 
     def set_title(self, title):
