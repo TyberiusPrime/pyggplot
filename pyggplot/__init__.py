@@ -403,7 +403,7 @@ class Plot:
                 ('bin2d', 'geom_bin2d', ['xmin', 'xmax', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight'], {}, ''),
                 ('blank', 'geom_blank', [], [], {}, ''),
                 (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'notch'], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
-                (('box_plot2', 'boxplot2'), 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight'], 
+                (('box_plot2', 'boxplot2'), 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'stat'], 
                     {'stat': 'identity'}, ' box plot where you define everything manually'),
                 ('contour', 'geom_contour', ['x', 'y'], ['alpha',' color', 'linetype', 'size',' weight'], {}, ''),
                 ('crossbar', 'geom_crossbar', ['x','y', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
