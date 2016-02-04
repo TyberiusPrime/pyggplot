@@ -176,6 +176,7 @@ class Plot:
         self.ipython_plot_width = ipython_plot_width
         self.ipython_plot_height = ipython_plot_height
         self.used_columns = set()
+        self.limitsize = True
 
     def render(self, output_filename, width=8, height=6, dpi=300):
         """Save the plot to a file"""
@@ -189,7 +190,7 @@ class Plot:
         kwargs = {}
         if output_filename.endswith('.png'):
             kwargs['type'] = 'cairo'
-        self.r['ggsave'](filename=output_filename, plot=plot, width=width, height=height, dpi=dpi, **kwargs)
+        self.r['ggsave'](filename=output_filename, plot=plot, width=width, height=height, dpi=dpi, limitsize = self.limitsize, **kwargs)
 
     def render_notebook(self, width=800, height=600):
         from IPython.core.display import Image
@@ -565,7 +566,7 @@ class Plot:
             column_name = 'dat_%s' % self.old_names.index(x_column)
         except ValueError:
             raise ValueError("Could not find column %s, available: %s" % (x_column, self.old_names))
-        column_data = self.dataframe.get_column(column_name)  # explicit copy!
+        column_data = self.dataframe[column_name].copy()  # explicit copy!
         column_data = column_data[~numpy.isnan(column_data)]
         column_data = numpy.sort(column_data)
         total = float(len(column_data))
@@ -600,7 +601,7 @@ class Plot:
             else:
                 current -= (len(list(group)))
             #y_values.append(current)
-        data = pydataframe.DataFrame({x_column: x_values, ("%" if percent else '#') + ' <=': y_values})
+        data = pandas.DataFrame({x_column: x_values, ("%" if percent else '#') + ' <=': y_values})
         if percentile > 0:
             self.scale_y_continuous(limits = [0, real_total])
         self.add_line(x_column, ("%" if percent else '#') + ' <=', data=data)
