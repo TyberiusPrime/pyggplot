@@ -404,7 +404,7 @@ class Plot:
                 ('bin2d', 'geom_bin2d', ['xmin', 'xmax', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight'], {}, ''),
                 ('blank', 'geom_blank', [], [], {}, ''),
                 (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'notch'], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
-                (('box_plot2', 'boxplot2'), 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight'], 
+                (('box_plot2', 'boxplot2'), 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'stat'], 
                     {'stat': 'identity'}, ' box plot where you define everything manually'),
                 ('contour', 'geom_contour', ['x', 'y'], ['alpha',' color', 'linetype', 'size',' weight'], {}, ''),
                 ('crossbar', 'geom_crossbar', ['x','y', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
@@ -634,6 +634,31 @@ class Plot:
         self.dataframe['dat_%i' % self.old_names.index('distribution_x')] = [x_name] * len(self.dataframe)
         return self.add_box_plot('distribution_x',  value_column)
 
+    def add_alternating_background(self, x_column, fill_1 = "#EEEEEE", fill_2 = "#FFFFFF", vertical = False):
+        """Add an alternating background to a categorial (x-axis) plot.
+        """
+        try:
+            new_name = "dat_%i" % self.old_names.index(x_column)
+        except ValueError:
+            raise ValueError("Invalid column: %s" % x_column)
+        no_of_x_values = len(self.dataframe[new_name].unique())
+        df_rect = pandas.DataFrame({
+                                'xmin': numpy.array(xrange(no_of_x_values)) - .5 + 1,
+                                'xmax': numpy.array(xrange(no_of_x_values)) + .5 + 1,
+                                'ymin': 0,
+                                'ymax': numpy.inf,
+                                'fill': ([fill_1, fill_2] * (no_of_x_values / 2 + 1))[:no_of_x_values]
+                               })
+        left = df_rect[df_rect.fill == fill_1]
+        right = df_rect[df_rect.fill == fill_2]
+        if not vertical:
+            self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_1, data=left, alpha=.5)
+            self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_2, data=right, alpha=.5)
+        else:
+            self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_1, data=left, alpha=.5)
+            self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_2, data=right, alpha=.5)
+        return self
+
     def set_title(self, title):
         self._other_adds.append(robjects.r('ggtitle')(title))
         return self
@@ -837,6 +862,13 @@ class Plot:
                 #labels = None
             elif hasattr(labels, '__iter__'):
                 other_params['labels'] = numpy.array(labels)
+            elif isinstance(labels, rpy2.robjects.SignatureTranslatedFunction):
+                other_params['labels'] = labels
+            elif hasattr(labels, '__call__'):
+                def label_callback(x):
+                    res = labels(x)
+                    return rpy2.robjects.r('c')(numpy.array(res))
+                other_params['labels'] = rinterface.rternalize(label_callback)
             else:
                 other_params['labels'] = robjects.r(labels)
                 labels = None
@@ -1014,10 +1046,27 @@ class Plot:
         self._other_adds.append(robjects.r('theme')(**{"axis.title.x": robjects.r('element_blank()')}))
         return self
 
-    def scale_fill_manual(self, list_of_colors, guide = None):
+    def scale_fill_many_categories(self):
+        self.scale_fill_manual(["dodgerblue2","#E31A1C", # red
+                "green4",
+                "#6A3D9A", # purple
+                "#FF7F00", # orange
+                "black","gold1",
+                "skyblue2","#FB9A99", # lt pink
+                "palegreen2",
+                "#CAB2D6", # lt purple
+                "#FDBF6F", # lt orange
+                "gray70", "khaki2",
+                "maroon","orchid1","deeppink1","blue1","steelblue4",
+                "darkturquoise","green1","yellow4","yellow3",
+                "darkorange4","brown"])
+
+    def scale_fill_manual(self, list_of_colors, guide = None, name = None):
         kwargs = {}
         if guide is not None: 
             kwargs['guide'] = guide
+        if name is not None:
+            kwargs['name'] = name
         kwargs['values'] = numpy.array(list_of_colors) 
         self._other_adds.append(robjects.r('scale_fill_manual')(**kwargs))
         return self
@@ -1303,6 +1352,22 @@ class Plot:
         else:
             self._other_adds.append(robjects.r('scale_colour_gradient')(**other_params))
         return self
+
+    def scale_color_many_categories(self):
+        self.scale_color_manual(["dodgerblue2","#E31A1C", # red
+                "green4",
+                "#6A3D9A", # purple
+                "#FF7F00", # orange
+                "black","gold1",
+                "skyblue2","#FB9A99", # lt pink
+                "palegreen2",
+                "#CAB2D6", # lt purple
+                "#FDBF6F", # lt orange
+                "gray70", "khaki2",
+                "maroon","orchid1","deeppink1","blue1","steelblue4",
+                "darkturquoise","green1","yellow4","yellow3",
+                "darkorange4","brown"])
+
 
     def scale_fill_grey(self, guide = None):
         kwargs = {}
