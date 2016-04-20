@@ -1513,7 +1513,7 @@ class _CowBase(_PlotBase):
         kwargs = {}
         if output_filename.endswith('.png'):
             kwargs['type'] = 'cairo'
-        self.r['save_plot'](filename=output_filename, plot=plot, limitsize = self.limitsize, **kwargs)
+        self.r['save_plot'](filename=output_filename, plot=plot, limitsize = self.limitsize, base_aspect_ratio = self.base_aspect_ratio, **kwargs)
 
 
 class GGDraw(_CowBase):
@@ -1535,6 +1535,7 @@ class GGDraw(_CowBase):
         self.limitsize = True
         self.to_rename = {}
         self.old_names = []
+        self.base_aspect_ratio = 1.1
         
     def draw_plot(self, plot, x, y, width, height):
         self._draw_after_plot.append((plot, x, y, width, height))
@@ -1612,6 +1613,7 @@ class CowPlot(_CowBase, Plot):
         self.r['draw_plot'] = ro.r('draw_plot')
         self.r['draw_plot_label'] = ro.r('draw_plot_label')
         self.r['draw_figure_label'] = ro.r('draw_figure_label')
+        self.base_aspect_ratio = 1.1
         self._draw_before_plot = []
         self._draw_after_plot = []
         self._add_draw_methods()
