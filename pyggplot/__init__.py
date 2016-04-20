@@ -528,7 +528,7 @@ class Plot(_PlotBase):
         else:
             raise ValueError("invalid jitter_y value")
         kwargs['position'] = robjects.r('position_jitter')(**position_jitter_params)
-        self._add('geom_jitter', ['x','y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y', 'position'], {}, args = [x,y], kwargs = kwargs)
+        self._add('geom_jitter', ['x', 'y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y', 'position'], {}, args = [x, y], kwargs = kwargs, target=self._other_adds)
         #self._other_adds.append(
                 #robjects.r('geom_jitter')(self._build_aesthetic(aes_params), **other_params)
             #)
