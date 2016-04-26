@@ -296,7 +296,7 @@ def _geoms():
             (('vertical_line', 'vertical_bar', 'vline'), 'geom_vline', ['xintercept'], ['alpha', 'color', 'size', 'linetype'], {'alpha': 0.5, 'color': 'black', 'size': 1}, ''),
 
 
-            ('stacked_bar_plot', 'geom_bar', ['x', 'y', 'fill'], [], {'position': 'stack'}, ''),  # do we still need this?
+            ('stacked_bar_plot', 'geom_bar', ['x', 'y', 'fill'], ['position', 'stat'], {'position': 'stack', 'stat': 'identity'}, ''),  # do we still need this?
             # annotations
             ('annotation_logticks', 'annotation_logticks', [], ['base', 'sides', 'scaled', 'short', 'mid', 'long'],
                 {
