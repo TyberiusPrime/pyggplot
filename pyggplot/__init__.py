@@ -2313,10 +2313,10 @@ try:
         }
         """)
 
-    def convert_dataframe_to_r(o):
-        #print 'converting', o, type(o)
+    def convert_dataframe_to_r(o, keep_index = False):
+        # print 'converting', o, type(o)
         if isinstance(o, pandas.DataFrame):
-            #print 'dataframe'
+            # print 'dataframe'
             dfConstructor = ro.r['data.frame']
             names = []
             parameters = []
@@ -2325,16 +2325,18 @@ try:
                 try:
                     names.append(str(column_name))
                     if str(o[column_name].dtype) == 'category':  # There has to be a more elegant way to specify this...
-                        col = ro.r('factor')(list(numpy.array(o[column_name])), list(o[column_name].cat.categories), ordered=True )
+                        col = ro.r('factor')(list(numpy.array(o[column_name])), list(o[column_name].cat.categories), ordered=True)
 
                     else:
                         col = numpy.array(o[column_name])
                         col = numpy2ri_vector(col)
                     parameters.append(col)
                 except ValueError as e:
-                    raise ValueError(str(e) + ' Offending column: %s, dtype: %s, content: %s' %( column_name, col.dtype, col[:10]))
-            #kw_params['row.names'] = numpy2ri_vector(numpy.array(o.index))
+                    raise ValueError(str(e) + ' Offending column: %s, dtype: %s, content: %s' % (column_name, col.dtype, col[:10]))
+            # kw_params['row.names'] = numpy2ri_vector(numpy.array(o.index))
             try:
+                if keep_index:
+                    kw_params['row.names'] = numpy.array(o.index)  # turn the index into rownames names
                 res = dfConstructor(*parameters, **kw_params)
                 res = ro.r('set_colnames')(res, names)
             except TypeError:
@@ -2343,10 +2345,10 @@ try:
         elif isinstance(o, numpy.ndarray):
             res = numpy2ri_vector(o)
         else:
-            res =  ro.default_py2ri(o)
+            res = ro.default_py2ri(o)
         return res
 
-except ImportError: #guess we don't have rpy
+except ImportError:  # guess we don't have rpy
     pass
 
 
