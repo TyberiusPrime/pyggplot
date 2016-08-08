@@ -258,6 +258,7 @@ def _geoms():
                 {'stat': 'identity'}, ' box plot where you define everything manually'),
             ('contour', 'geom_contour', ['x', 'y'], ['alpha', ' color', 'linetype', 'size', ' weight'], {}, ''),
             ('crossbar', 'geom_crossbar', ['x', 'y', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
+            ('curve', 'geom_curve', ['x','xend', 'y', 'yend'], ['alpha', 'color', 'curvature', 'ncp', 'angle', 'arrow', 'lineend'], {'curvature': 0.5}, ''),
             ('density', 'geom_density', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', ' weight', 'stat'],
                 {
                     'bw': lambda mappings: (robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(mappings['x'])))),
