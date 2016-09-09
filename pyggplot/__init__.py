@@ -1253,7 +1253,7 @@ class Plot(_PlotBase):
         return robjects.r('guide_colourbar')(**kwargs)
 
     def hide_panel_border(self):
-        self._other_adds.append(robjects.r('theme(panel.border=theme_rect(fill=NA, colour=NA))'))
+        self._other_adds.append(robjects.r('theme(panel.border=element_rect(fill=NA, colour=NA))'))
         return self
 
     def hide_strip_background(self):
