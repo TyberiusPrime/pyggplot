@@ -259,7 +259,7 @@ def _geoms():
             ('contour', 'geom_contour', ['x', 'y'], ['alpha', ' color', 'linetype', 'size', ' weight'], {}, ''),
             ('crossbar', 'geom_crossbar', ['x', 'y', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
             ('curve', 'geom_curve', ['x', 'xend', 'y', 'yend'], ['alpha', 'color', 'curvature', 'ncp', 'angle', 'arrow', 'lineend'], {'curvature': 0.5}, ''),
-            ('density', 'geom_density', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', ' weight', 'stat', 'group'],
+            ('density', 'geom_density', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', ' weight', 'stat', 'group', 'adjust'],
                 {
                     'bw': lambda mappings: (robjects.r('bw.SJ')(self.dataframe.get_column_view(self.old_names.index(mappings['x'])))),
                     'y': 'count',
@@ -535,12 +535,15 @@ class Plot(_PlotBase):
             #)
         return self
 
-    def add_histogram(self, x_column, y_column="..count..", color=None, group=None, fill=None, position="dodge", add_text=False, bin_width=None, alpha=None, size=None):
+    def add_histogram(self, x_column, y_column="..count..", color=None, group=None, fill=None, position="dodge", add_text=False, bin_width=None, alpha=None, size=None, data = None):
         aes_params = {'x': x_column}
         other_params = {}
         stat_params = {}
         if fill:
-            aes_params['fill'] = fill
+            if fill in self.old_names:
+                aes_params['fill'] = fill
+            else:
+                other_params['fill'] = fill
         if color:
             if color in self.old_names:
                 aes_params['colour'] = color
@@ -558,6 +561,9 @@ class Plot(_PlotBase):
                 other_params['alpha'] = alpha
         if size:
             other_params['size'] = size
+        if data is not None:
+            other_params['data'] = convert_dataframe_to_r(self._prep_dataframe(data))
+        aes_params['y'] = y_column
         if stat_params:
             #other_params.update(stat_params)
             other_params['position'] = position
