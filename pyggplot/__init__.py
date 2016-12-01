@@ -253,7 +253,7 @@ def _geoms():
             ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha', 'weight', 'width'], {'position': 'dodge', 'stat': 'identity'}, ''),
             ('bin2d', 'geom_bin2d', ['xmin', 'xmax', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight'], {}, ''),
             ('blank', 'geom_blank', [], [], {}, ''),
-            (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'notch'], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
+            (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'notch', 'position', 'outlier.shape'], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
             (('box_plot2', 'boxplot2'), 'geom_boxplot', ['x', 'lower', 'middle', 'upper', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'stat'],
                 {'stat': 'identity'}, ' box plot where you define everything manually'),
             ('contour', 'geom_contour', ['x', 'y'], ['alpha', ' color', 'linetype', 'size', ' weight'], {}, ''),
@@ -265,7 +265,7 @@ def _geoms():
                     'y': 'count',
             }, ''),
             ('density_2d', 'geom_density2d', ['x', 'y'], ['alpha', 'color', 'linetype', 'fill', 'contour'], {}, ''),
-            ('error_bars', 'geom_errorbar', ['x', 'ymin', 'ymax'], ['alpha', 'color', 'group', 'linetype', 'size', 'width'], {'width': 0.25}, ''),
+            ('error_bars', 'geom_errorbar', ['x', 'ymin', 'ymax'], ['alpha', 'color', 'group', 'linetype', 'size', 'width', 'position'], {'width': 0.25}, ''),
             ('error_barsh', 'geom_errorbarh', ['x', 'y', 'xmin', 'xmax'], ['alpha', 'color', 'group', 'linetype', 'size', 'width'], {'width': 0.25}, ''),
             ('freq_poly', 'geom_freq_poly', [], ['alpha', 'color', 'linetype', 'size'], {}, ''),
             ('hex', 'geom_hex', ['x', 'y'], ['alpha', 'color', 'fill', 'size'], {}, ''),
@@ -278,7 +278,7 @@ def _geoms():
 
             ('map', 'geom_map', ['map_id'], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
             ('path', 'geom_path', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', 'group'], {}, ''),
-            (('point', 'scatter'), 'geom_point', ['x', 'y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y'], {}, ''),
+            (('point', 'scatter'), 'geom_point', ['x', 'y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y', 'position'], {}, ''),
             ('jitter', 'geom_jitter', ['x', 'y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y', 'position'], {}, ''),
             ('pointrange', 'geom_pointrange', ['x', 'y', 'ymin', 'ymax'], ['alpha', 'color', ' fill', 'linetype', 'shape', 'size'], {}, ''),
             ('polygon', 'geom_polygon', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
@@ -1079,6 +1079,13 @@ class Plot(_PlotBase):
         self._other_adds.append(robjects.r('theme')(**{"axis.title.x": robjects.r('element_blank()')}))
         return self
 
+    def hide_facet_labels(self):
+        self._other_adds.append(robjects.r('theme')(**{
+            'strip.background': robjects.r('element_blank()'),
+            'strip.text.x': robjects.r('element_blank()'),
+        }))
+        return self
+    
     def scale_fill_many_categories(self):
         self.scale_fill_manual(["dodgerblue2","#E31A1C", # red
                 "green4",
