@@ -223,7 +223,7 @@ class _PlotBase(object):
         aes_params = self._translate_params(params)
         aes_params = ", ".join(aes_params)
         return robjects.r('aes(%s)' % aes_params)
-    
+
     def _translate_params(self, params):
         """Translate between the original dataframe names and the numbered ones we assign
         to avoid r-parsing issues"""
@@ -290,7 +290,7 @@ def _geoms():
             ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['alpha', 'color', 'linetype', 'size'], {'size': 0.5}, ''),
             ('smooth', 'geom_smooth', ['x', 'y'], ['alpha', 'color', ' fill', 'linetype', 'size', 'weight', 'method', 'group'], {}, ''),
             ('step', 'geom_step', ['x', 'y'], ['direction', 'stat', 'position', 'alpha', 'color', 'linetype', 'size'], {}, ''),
-            ('text', 'geom_text', ['x', 'y', 'label'], ['alpha', 'angle', 'color', 'family', 'fontface', 'hjust', 'lineheight', 'size', 'vjust', 'position'], {'position': 'identity'}, ''),
+            ('text', 'geom_text', ['x', 'y', 'label'], ['alpha', 'angle', 'color', 'family', 'fontface', 'hjust', 'lineheight', 'nudge_x', 'nudge_y', 'size', 'vjust', 'position'], {}, ''),
             ('tile', 'geom_tile', ['x', 'y'], ['alpha', 'color', 'fill', 'size', 'linetype', 'stat'], {}, ''),
             ('violin', 'geom_violin', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight', 'scale', 'stat', 'position', 'trim'], {'stat': 'ydensity'}, ''),
 
@@ -364,7 +364,7 @@ class Plot(_PlotBase):
         if 'pydataframe.dataframe.DataFrame' in str(type(df)):
             df = self._convert_pydataframe(df)
         elif isinstance(df, dict):
-            df = pandas.DataFrame(dict)
+            df = pandas.DataFrame(df)
         if isinstance(df.columns, pandas.MultiIndex):
             df.columns = [' '.join(col).strip() for col in df.columns.values]
         df = df.reset_index()
@@ -424,7 +424,7 @@ class Plot(_PlotBase):
             which_legend = 'size'
         if which_legend:
             self.lab_rename[which_legend] = real_name
-    
+
     def _add(self, geom_name, required_mappings, optional_mappings, defaults, args, kwargs, target):
         """The generic method to add a geom to the ggplot.
         You need to call add_xyz (see _add_geom_methods for a list, with each variable mapping
@@ -921,7 +921,7 @@ class Plot(_PlotBase):
     def scale_size_area(self, max_size = 6, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
         return self.scale_continuous('scale_size_area', breaks, minor_breaks, trans, limits,  labels, expand, name, other_params = OrderedDict({'max_size': max_size}))
 
-    def scale_x_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name = None):
+    def scale_discrete(self, scale_name, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name = None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -932,7 +932,24 @@ class Plot(_PlotBase):
         if not limits is None:
             other_params['limits'] = numpy.array(limits)
         if not labels is None:
-            other_params['labels'] = numpy.array(labels)
+            if labels in ( 'comma', 'dollar', 'percent', 'scientific', 'date', 'parse', 'format', ):
+                other_params['labels'] = robjects.r("%s_format" %labels)()
+                labels = None
+            #elif labels.startswith('math_format') or labels.startswith('trans_format'):
+                #other_params['labels'] = robjects.r(labels)
+                #labels = None
+            elif hasattr(labels, '__iter__'):
+                other_params['labels'] = numpy.array(labels)
+            elif isinstance(labels, rpy2.robjects.SignatureTranslatedFunction):
+                other_params['labels'] = labels
+            elif hasattr(labels, '__call__'):
+                def label_callback(x):
+                    res = labels(x)
+                    return rpy2.robjects.r('c')(numpy.array(res))
+                other_params['labels'] = rinterface.rternalize(label_callback)
+            else:
+                other_params['labels'] = robjects.r(labels)
+                labels = None
         if not expand is None:
             other_params['expand'] = numpy.array(expand)
         if not name is None:
@@ -943,35 +960,15 @@ class Plot(_PlotBase):
                     raise ValueError("len(breaks) != len(labels)")
 
         self._other_adds.append(
-            robjects.r('scale_x_discrete')(**other_params)
+            robjects.r(scale_name)(**other_params)
         )
         return self
+
+    def scale_x_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name = None):
+        return self.scale_discrete('scale_x_discrete', breaks, minor_breaks, trans, limits, labels, expand, name)
 
     def scale_y_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name = None):
-        other_params = {}
-        if not breaks is None:
-            other_params['breaks'] = numpy.array(breaks)
-        if not minor_breaks is None:
-            other_params['minor_breaks'] = numpy.array(minor_breaks)
-        if trans:
-            other_params['trans'] = str(trans)
-        if not limits is None:
-            other_params['limits'] = numpy.array(limits)
-        if not labels is None:
-            other_params['labels'] = numpy.array(labels)
-        if not expand is None:
-            other_params['expand'] = numpy.array(expand)
-        if not name is None:
-            other_params['name'] = name
-
-        if not breaks is None and not labels is None:
-                if len(breaks) != len(labels):
-                    raise ValueError("len(breaks) != len(labels)")
-
-        self._other_adds.append(
-            robjects.r('scale_y_discrete')(**other_params)
-        )
-        return self
+        return self.scale_discrete('scale_y_discrete', breaks, minor_breaks, trans, limits, labels, expand, name)
 
     def scale_x_reverse(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name = None):
         other_params = {}
