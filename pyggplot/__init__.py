@@ -898,10 +898,16 @@ class Plot(_PlotBase):
             elif isinstance(labels, rpy2.robjects.SignatureTranslatedFunction):
                 other_params['labels'] = labels
             elif hasattr(labels, '__call__'):
-                def label_callback(x):
-                    res = labels(x)
-                    return rpy2.robjects.r('c')(numpy.array(res))
+                def label_callback(x, labels=labels):
+                    temp = labels(x)
+                    res = rpy2.robjects.r('c')()
+                    for x in temp:
+                        res = rpy2.robjects.r('c')(res, x)
+                    return res
                 other_params['labels'] = rinterface.rternalize(label_callback)
+                labels = None
+            elif isinstance(labels, rpy2.robjects.vectors.Vector):
+                other_params['labels'] = labels #robjects.r(labels)
                 labels = None
             else:
                 other_params['labels'] = robjects.r(labels)
@@ -2288,6 +2294,7 @@ try:
             elif o.dtype.kind == "O":
                 all_str = True
                 all_bool = True
+                all_r_object = True
                 for value in o:
                     if (
                             not type(value) is str and
@@ -2299,9 +2306,11 @@ try:
                                 ):
                         all_str = False
                         break
-                    if not type(value) is bool or type(value) is numpy.bool_:
+                    if not (type(value) is bool or type(value) is numpy.bool_):
                         all_bool = False
-                if (not all_str) and (not all_bool):
+                    if not (type(value) is robjects.robject.RObject  or type(value) is rpy2.robjects.vectors.Vector):
+                        all_r_object = False
+                if (not all_str) and (not all_bool) and (not all_r_object):
                     raise(ValueError("numpy2ri_vector currently does not handle object vectors: %s %s" % (value, type(value))))
                 else:
                     #since we keep strings as objects
