@@ -1316,14 +1316,19 @@ class Plot(_PlotBase):
         self._other_adds.append(robjects.r('scale_shape_identity')())
         return self
 
-    def scale_shape(self, solid=True):
-        self._other_adds.append(robjects.r('scale_shape')(solid=solid))
+    def scale_shape(self, solid=True, name=None):
+        kwargs = {}
+        if name is not None:
+            kwargs['name'] = name
+        self._other_adds.append(robjects.r('scale_shape')(solid=solid, **kwargs))
         return self
 
-    def scale_colour_manual(self, values, guide = None):
+    def scale_colour_manual(self, values, guide = None, name=None):
         kwargs = {}
         if guide is not None:
             kwargs['guide'] = guide
+        if name is not None:
+            kwargs['name'] = name
         self._other_adds.append(robjects.r('scale_colour_manual')(values=numpy.array(values), **kwargs))
         return self
 
