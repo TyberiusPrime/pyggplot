@@ -364,7 +364,7 @@ class Plot(_PlotBase):
         if 'pydataframe.dataframe.DataFrame' in str(type(df)):
             df = self._convert_pydataframe(df)
         elif isinstance(df, dict):
-            df = pandas.DataFrame(dict)
+            df = pandas.DataFrame(df)
         if isinstance(df.columns, pandas.MultiIndex):
             df.columns = [' '.join(col).strip() for col in df.columns.values]
         df = df.reset_index()
@@ -902,6 +902,7 @@ class Plot(_PlotBase):
                     res = labels(x)
                     return rpy2.robjects.r('c')(numpy.array(res))
                 other_params['labels'] = rinterface.rternalize(label_callback)
+                labels = None
             else:
                 other_params['labels'] = robjects.r(labels)
                 labels = None
