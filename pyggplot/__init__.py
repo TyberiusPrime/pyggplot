@@ -253,7 +253,7 @@ def _geoms():
             ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha', 'weight', 'width'], {'position': 'dodge', 'stat': 'identity'}, ''),
             ('bin2d', 'geom_bin2d', ['xmin', 'xmax', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight'], {}, ''),
             ('blank', 'geom_blank', [], [], {}, ''),
-            (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'notch', 'position', 'outlier.shape'], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
+            (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'notch', 'position', 'outlier.shape', 'width',], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
             (('box_plot2', 'boxplot2'), 'geom_boxplot', ['x', 'lower', 'middle', 'upper', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'stat'],
                 {'stat': 'identity'}, ' box plot where you define everything manually'),
             ('contour', 'geom_contour', ['x', 'y'], ['alpha', ' color', 'linetype', 'size', ' weight'], {}, ''),
@@ -667,7 +667,7 @@ class Plot(_PlotBase):
         self.dataframe['dat_%i' % self.old_names.index('distribution_x')] = [x_name] * len(self.dataframe)
         return self.add_box_plot('distribution_x',  value_column)
 
-    def add_alternating_background(self, x_column, fill_1 = "#EEEEEE", fill_2 = "#FFFFFF", vertical = False):
+    def add_alternating_background(self, x_column, fill_1 = "#EEEEEE", fill_2 = "#FFFFFF", vertical = False, alpha=0.5):
         """Add an alternating background to a categorial (x-axis) plot.
         """
         try:
@@ -685,19 +685,21 @@ class Plot(_PlotBase):
         left = df_rect[df_rect.fill == fill_1]
         right = df_rect[df_rect.fill == fill_2]
         if not vertical:
-            self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_1, data=left, alpha=.5)
-            self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_2, data=right, alpha=.5)
+            self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_1, data=left, alpha=alpha)
+            self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_2, data=right, alpha=alpha)
         else:
-            self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_1, data=left, alpha=.5)
-            self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_2, data=right, alpha=.5)
+            self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_1, data=left, alpha=alpha)
+            self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_2, data=right, alpha=alpha)
         return self
 
-    def set_title(self, title):
+    def set_title(self, title, size=None):
+        if size is not None:
+            self._other_adds.append(ro.r("theme")(**{"plot.title": ro.r("element_text")(size=size)}))
         self._other_adds.append(robjects.r('ggtitle')(title))
         return self
 
-    def title(self, title):
-        return self.set_title(title)
+    def title(self, title, size=None):
+        return self.set_title(title, size=size)
 
     def facet(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
         facet_wrap = robjects.r['facet_wrap']
@@ -1441,6 +1443,10 @@ class Plot(_PlotBase):
         df.to_excel(writer, 'Plot1')
         writer.save()
 
+    def set_y_axis_title_size(self, size, angle=90):
+        self._other_adds.append(robjects.r('theme')(
+                **{
+                    'axis.title.y': ro.r('element_text')(size=size, angle=angle)}))
 
 class _CowBase(_PlotBase):
 
