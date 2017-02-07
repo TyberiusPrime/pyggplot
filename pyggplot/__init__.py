@@ -142,7 +142,7 @@ TransInvNegLog10b <- scales::trans_new(name="InvNegLog10b",
             format = function(x) bquote(10^.(-x)))
 
 """)
-
+        
 
 def r_expression(expr):
     return robjects.r('expression(%s)' % expr)
@@ -345,14 +345,26 @@ class Plot(_PlotBase):
     def default_theme(self):
         self.theme_grey()  # apply default theme..,.
 
-    def render(self, output_filename, width=8, height=6, dpi=300):
-        """Save the plot to a file"""
+    def _build_plot(self):
         plot = self.r['ggplot'](convert_dataframe_to_r(self.dataframe))
         for obj in self._other_adds:
             plot = self.r['add'](plot, obj)
         for name, value in self.lab_rename.items():
             plot = self.r['add'](
                     plot, robjects.r('labs(%s = "%s")' % (name, value)))
+        return plot
+        
+
+    def render(self, output_filename, width=8, height=6, dpi=300, din_size = None):
+        """Save the plot to a file.
+        If you set @din_size to A4, it will overwrite width and height with a portrait orientend A4 sheet of paper
+        
+        """
+        if din_size == 'A4':
+            width = 8.267
+            height = 11.692
+
+        plot = self._build_plot()
         output_filename = output_filename.replace('%', '%%')  # R tries some kind of integer substitution on these, so we need to double the %
         kwargs = {}
         if output_filename.endswith('.png'):
@@ -836,8 +848,23 @@ class Plot(_PlotBase):
         robjects.r('library("xkcd")')
         self._other_adds.append(robjects.r('theme_xkcd()'))
         return self
+
     def set_base_size(self, base_size=10):
         self.theme_grey(base_size=base_size)
+        return self
+
+    def set_font_size(self, name, size=None, color=None, angle=None):
+        """See http://docs.ggplot2.org/0.9.2.1/theme.html for the list of elements you can change - this set's element_text"""
+        element_args = {}
+        if size is not None:
+            element_args['size'] = int(size)
+        if color is not None:
+            element_args['color'] = color
+        if angle is not None:
+            element_args['angle'] = angle
+        element = robjects.r('element_text')(**element_args)
+        self._other_adds.append(
+                robjects.r('theme')(**{name: element}))
         return self
 
     def scale_x_log_10(self):
@@ -2232,6 +2259,47 @@ def position_stack(width = RNULL, height = RNULL):
 def position_jitter(w = 0.4, h = 0.4):
     return robjects.r('position_jitter')(w, h)
 
+def multiplot(list_of_plots, cols):
+    """Plot multiple plots on one image"""
+    robjects.r("""
+            multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+              library(grid)
+
+              # Make a list from the ... arguments and plotlist
+              plots <- c(list(...), plotlist)
+
+              numPlots = length(plots)
+
+              # If layout is NULL, then use 'cols' to determine layout
+              if (is.null(layout)) {
+                # Make the panel
+                # ncol: Number of columns of plots
+                # nrow: Number of rows needed, calculated from # of cols
+                layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                                ncol = cols, nrow = ceiling(numPlots/cols))
+              }
+
+             if (numPlots==1) {
+                print(plots[[1]])
+
+              } else {
+                # Set up the page
+                grid.newpage()
+                pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+                # Make each plot, in the correct location
+                for (i in 1:numPlots) {
+                  # Get the i,j matrix positions of the regions that contain this subplot
+                  matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+                  print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                                  layout.pos.col = matchidx$col))
+                }
+              }
+            }
+        """)
+    plots = [x._build_plot() for x in list_of_plots]
+    robjects.r('multiplot')(plotlist = plots, cols = cols)
 
 
 
@@ -2364,4 +2432,4 @@ except ImportError:  # guess we don't have rpy
     pass
 
 
-all = [Plot, plot_heatmap]
+all = [Plot, plot_heatmap, multiplot, MultiPagePlot]
