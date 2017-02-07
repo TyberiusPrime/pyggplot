@@ -502,6 +502,7 @@ class Plot(_PlotBase):
         dataframe
         """
         methods = _geoms()
+        #python method name (add_ + name), geom (R) name, required attributes, optional attributes, default attribute values
         for x in methods:
             if len(x) != 6:
                 raise ValueError("Wrong number of arguments: %s" % (x,))
@@ -1082,6 +1083,14 @@ class Plot(_PlotBase):
 
     def hide_axis_ticks(self):
         self._other_adds.append(robjects.r('theme')(**{"axis.ticks": robjects.r('element_blank()')}))
+        return self
+
+    def hide_axis_ticks_x(self):
+        self._other_adds.append(robjects.r('theme')(**{"axis.ticks.x": robjects.r('element_blank()')}))
+        return self
+
+    def hide_axis_ticks_y(self):
+        self._other_adds.append(robjects.r('theme')(**{"axis.ticks.y": robjects.r('element_blank()')}))
         return self
 
     def hide_y_axis_title(self):
