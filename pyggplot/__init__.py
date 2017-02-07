@@ -223,7 +223,7 @@ class _PlotBase(object):
         aes_params = self._translate_params(params)
         aes_params = ", ".join(aes_params)
         return robjects.r('aes(%s)' % aes_params)
-    
+
     def _translate_params(self, params):
         """Translate between the original dataframe names and the numbered ones we assign
         to avoid r-parsing issues"""
@@ -424,7 +424,7 @@ class Plot(_PlotBase):
             which_legend = 'size'
         if which_legend:
             self.lab_rename[which_legend] = real_name
-    
+
     def _add(self, geom_name, required_mappings, optional_mappings, defaults, args, kwargs, target):
         """The generic method to add a geom to the ggplot.
         You need to call add_xyz (see _add_geom_methods for a list, with each variable mapping
@@ -678,7 +678,7 @@ class Plot(_PlotBase):
         df_rect = pandas.DataFrame({
                                 'xmin': numpy.array(xrange(no_of_x_values)) - .5 + 1,
                                 'xmax': numpy.array(xrange(no_of_x_values)) + .5 + 1,
-                                'ymin': 0,
+                                'ymin': -numpy.inf,
                                 'ymax': numpy.inf,
                                 'fill': ([fill_1, fill_2] * (no_of_x_values / 2 + 1))[:no_of_x_values]
                                })
@@ -1094,13 +1094,13 @@ class Plot(_PlotBase):
             'strip.text.x': robjects.r('element_blank()'),
         }))
         return self
-    
+
     def scale_fill_many_categories(self):
         self.scale_fill_manual(["dodgerblue2","#E31A1C", # red
                 "green4",
                 "#6A3D9A", # purple
                 "#FF7F00", # orange
-                "black","gold1",
+                "grey30","gold1",
                 "skyblue2","#FB9A99", # lt pink
                 "palegreen2",
                 "#CAB2D6", # lt purple
@@ -1412,7 +1412,7 @@ class Plot(_PlotBase):
                 "green4",
                 "#6A3D9A", # purple
                 "#FF7F00", # orange
-                "black","gold1",
+                "grey30","gold1",
                 "skyblue2","#FB9A99", # lt pink
                 "palegreen2",
                 "#CAB2D6", # lt purple
@@ -1568,7 +1568,7 @@ class GGDraw(_CowBase):
         self.to_rename = {}
         self.old_names = []
         self.base_aspect_ratio = 1.1
-        
+
     def draw_plot(self, plot, x, y, width, height):
         self._draw_after_plot.append((plot, x, y, width, height))
         return self
@@ -1581,7 +1581,7 @@ class GGDraw(_CowBase):
             else:
                 d = self.r['add'](d, x)
         return d
-   
+
     def _add(self, geom_name, required_mappings, optional_mappings, defaults, args, kwargs, target):
         """The generic method to add a geom to the ggplot.
         You need to call add_xyz (see _add_geom_methods for a list, with each variable mapping
@@ -1764,7 +1764,7 @@ class plot_grid(_PlotBase):
         params = {}
         params['plotlist'] = [p.build_ggplot() for p in self.plots]
         params.update(self.params)
-        
+
         return self.r['plot_grid'](**params)
 
     def render(self, output_filename, width=None, height=None, dpi=None):
