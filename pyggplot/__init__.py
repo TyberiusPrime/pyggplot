@@ -403,7 +403,7 @@ class Plot:
                 ('bin2d', 'geom_bin2d', ['xmin', 'xmax', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight'], {}, ''),
                 ('blank', 'geom_blank', [], [], {}, ''),
                 (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'notch'], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
-                (('box_plot2', 'boxplot2'), 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight'], 
+                (('box_plot2', 'boxplot2'), 'geom_boxplot', ['x','lower', 'middle','upper','ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'stat'], 
                     {'stat': 'identity'}, ' box plot where you define everything manually'),
                 ('contour', 'geom_contour', ['x', 'y'], ['alpha',' color', 'linetype', 'size',' weight'], {}, ''),
                 ('crossbar', 'geom_crossbar', ['x','y', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size'], {}, ''),
@@ -1035,6 +1035,14 @@ class Plot:
 
     def hide_axis_ticks(self):
         self._other_adds.append(robjects.r('theme')(**{"axis.ticks": robjects.r('element_blank()')}))
+        return self
+
+    def hide_axis_ticks_x(self):
+        self._other_adds.append(robjects.r('theme')(**{"axis.ticks.x": robjects.r('element_blank()')}))
+        return self
+
+    def hide_axis_ticks_y(self):
+        self._other_adds.append(robjects.r('theme')(**{"axis.ticks.y": robjects.r('element_blank()')}))
         return self
 
     def hide_y_axis_title(self):
