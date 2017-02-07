@@ -273,6 +273,7 @@ def _geoms():
             ('histogram', 'geom_histogram', ['x', 'y'], ['color', ' group', 'fill', 'position', 'add_text', 'binwidth', 'alpha', 'size', 'stat'], {'y': '..count..', 'position': 'dodge', 'stat': 'bin'}, ''),
 
             (('horizontal_line', 'horizontal_bar', 'hline'), 'geom_hline', ['yintercept'], ['alpha', 'color', 'linetype', 'size'], {'alpha': 0.5, 'color': 'black', 'size': 1}, 'Renamed hline'),
+            ('label', 'geom_label', ['x', 'y', 'label'], ['alpha', 'angle', 'color', 'family', 'fontface', 'hjust', 'vjust', 'lineheight', 'size', 'vjust', 'parse', 'nudge_x', 'nudge_y', 'label.padding', 'label.r', 'label.size', 'show.legend', 'check_overlap', 'position'], {'position: identitiy'}, ''),
             ('line', 'geom_line', ['x', 'y'], ['color', 'group', 'shape', 'alpha', 'size', 'stat', 'fun.y', 'linetype'], {}, ''),
             ('linerange', 'geom_linerange', ['x', 'ymax', 'ymin'], ['alpha', 'color', 'linetype', 'size'], {}, ''),
 
@@ -290,7 +291,7 @@ def _geoms():
             ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['alpha', 'color', 'linetype', 'size'], {'size': 0.5}, ''),
             ('smooth', 'geom_smooth', ['x', 'y'], ['alpha', 'color', ' fill', 'linetype', 'size', 'weight', 'method', 'group'], {}, ''),
             ('step', 'geom_step', ['x', 'y'], ['direction', 'stat', 'position', 'alpha', 'color', 'linetype', 'size'], {}, ''),
-            ('text', 'geom_text', ['x', 'y', 'label'], ['alpha', 'angle', 'color', 'family', 'fontface', 'hjust', 'lineheight', 'nudge_x', 'nudge_y', 'size', 'vjust', 'position'], {}, ''),
+            ('text', 'geom_text', ['x', 'y', 'label'], ['alpha', 'angle', 'color', 'family', 'fontface', 'hjust', 'vjust', 'lineheight', 'size', 'vjust', 'parse', 'nudge_x', 'nudge_y', 'label.padding', 'label.r', 'label.size', 'show.legend', 'check_overlap', 'position'], {'position: identity'}, ''),
             ('tile', 'geom_tile', ['x', 'y'], ['alpha', 'color', 'fill', 'size', 'linetype', 'stat'], {}, ''),
             ('violin', 'geom_violin', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight', 'scale', 'stat', 'position', 'trim'], {'stat': 'ydensity'}, ''),
 
@@ -837,27 +838,6 @@ class Plot(_PlotBase):
         return self
     def set_base_size(self, base_size=10):
         self.theme_grey(base_size=base_size)
-        return self
-
-    def add_label(self, text, xpos, ypos, size=8, color=None, alpha=None):
-        data = self._prep_dataframe(pandas.DataFrame({'x': [xpos], 'y': [ypos], 'text': [text]}))
-        aes_params = OrderedDict({'x': 'x', 'y': 'y', 'label': 'text'})
-        other_params = {'data': convert_dataframe_to_r(data)}
-        if color:
-            other_params['colour'] = color
-        if alpha:
-            other_params['alpha'] = alpha
-        self._other_adds.append(robjects.r('geom_text')(self._build_aesthetic(aes_params), **other_params))
-        return self
-        self._other_adds.append(
-            self.r['geom_text'](
-               robjects.r('aes(x=x, y=y, label=text)'),
-               data,
-                size=size,
-                color="black"
-
-            )
-        )
         return self
 
     def scale_x_log_10(self):
