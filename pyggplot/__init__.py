@@ -290,7 +290,7 @@ def _geoms():
             ('segment', 'geom_segment', ['x', 'xend', 'y', 'yend'], ['alpha', 'color', 'linetype', 'size'], {'size': 0.5}, ''),
             ('smooth', 'geom_smooth', ['x', 'y'], ['alpha', 'color', ' fill', 'linetype', 'size', 'weight', 'method', 'group'], {}, ''),
             ('step', 'geom_step', ['x', 'y'], ['direction', 'stat', 'position', 'alpha', 'color', 'linetype', 'size'], {}, ''),
-            ('text', 'geom_text', ['x', 'y', 'label'], ['alpha', 'angle', 'color', 'family', 'fontface', 'hjust', 'lineheight', 'size', 'vjust', 'position'], {'position': 'identity'}, ''),
+            ('text', 'geom_text', ['x', 'y', 'label'], ['alpha', 'angle', 'color', 'family', 'fontface', 'hjust', 'lineheight', 'size', 'vjust', 'position', 'show.legend'], {'position': 'identity'}, ''),
             ('tile', 'geom_tile', ['x', 'y'], ['alpha', 'color', 'fill', 'size', 'linetype', 'stat'], {}, ''),
             ('violin', 'geom_violin', ['x', 'y'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight', 'scale', 'stat', 'position', 'trim'], {'stat': 'ydensity'}, ''),
 
@@ -340,12 +340,19 @@ class Plot(_PlotBase):
         self.used_columns = set()
         self.limitsize = True
         self.default_theme()
+        self._log_y_scale = False
 
     def default_theme(self):
         self.theme_grey()  # apply default theme..,.
 
     def render(self, output_filename, width=8, height=6, dpi=300):
         """Save the plot to a file"""
+        if self.expected_y_scale is not None:
+            if (
+                    (self.expected_y_scale == 'log' and not self._log_y_scale) or
+                    (self.expected_y_scale == 'normal' and self._log_y_scale)
+            ):
+                raise ValueError("Log/non log Y scale mismatch between add_alternating_background and scale_y")
         plot = self.r['ggplot'](convert_dataframe_to_r(self.dataframe))
         for obj in self._other_adds:
             plot = self.r['add'](plot, obj)
@@ -667,29 +674,47 @@ class Plot(_PlotBase):
         self.dataframe['dat_%i' % self.old_names.index('distribution_x')] = [x_name] * len(self.dataframe)
         return self.add_box_plot('distribution_x',  value_column)
 
-    def add_alternating_background(self, x_column, fill_1 = "#EEEEEE", fill_2 = "#FFFFFF", vertical = False, alpha=0.5):
+    def add_alternating_background(self, x_column, fill_1 = "#EEEEEE", fill_2 = "#FFFFFF", vertical = False, alpha=0.5,
+            log_y_scale = False, facet_column=None):
         """Add an alternating background to a categorial (x-axis) plot.
         """
         try:
             new_name = "dat_%i" % self.old_names.index(x_column)
         except ValueError:
             raise ValueError("Invalid column: %s" % x_column)
-        no_of_x_values = len(self.dataframe[new_name].unique())
-        df_rect = pandas.DataFrame({
-                                'xmin': numpy.array(xrange(no_of_x_values)) - .5 + 1,
-                                'xmax': numpy.array(xrange(no_of_x_values)) + .5 + 1,
-                                'ymin': 0,
-                                'ymax': numpy.inf,
-                                'fill': ([fill_1, fill_2] * (no_of_x_values / 2 + 1))[:no_of_x_values]
-                               })
-        left = df_rect[df_rect.fill == fill_1]
-        right = df_rect[df_rect.fill == fill_2]
-        if not vertical:
-            self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_1, data=left, alpha=alpha)
-            self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_2, data=right, alpha=alpha)
+        self.scale_x_discrete()
+        if log_y_scale:
+            self.expected_y_scale = 'log'
         else:
-            self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_1, data=left, alpha=alpha)
-            self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_2, data=right, alpha=alpha)
+            self.expected_y_scale = 'normal'
+        if facet_column is None:
+            sub_frames = [(False, self.dataframe)]
+        else:
+            try:
+                facet_name = "dat_%i" % self.old_names.index(facet_column)
+            except ValueError:
+                raise ValueError("Invalid column: %s" % facet_column)
+            sub_frames = self.dataframe.groupby(facet_name)
+
+        for facet_value, facet_df in sub_frames:
+            no_of_x_values = len(facet_df[new_name].unique())
+            df_rect = pandas.DataFrame({
+                                    'xmin': numpy.array(xrange(no_of_x_values)) - .5 + 1,
+                                    'xmax': numpy.array(xrange(no_of_x_values)) + .5 + 1,
+                                    'ymin': -numpy.inf if not log_y_scale else 0,
+                                    'ymax': numpy.inf,
+                                    'fill': ([fill_1, fill_2] * (no_of_x_values / 2 + 1))[:no_of_x_values]
+                                   })
+            if facet_value is not False:
+                df_rect.insert(0, facet_column, facet_value)
+            left = df_rect[df_rect.fill == fill_1]
+            right = df_rect[df_rect.fill == fill_2]
+            if not vertical:
+                self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_1, data=left, alpha=alpha)
+                self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_2, data=right, alpha=alpha)
+            else:
+                self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_1, data=left, alpha=alpha)
+                self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_2, data=right, alpha=alpha)
         return self
 
     def set_title(self, title, size=None):
@@ -868,6 +893,8 @@ class Plot(_PlotBase):
         return self.scale_continuous('scale_x_continuous', breaks, minor_breaks, trans, limits, labels, expand, name)
 
     def scale_y_continuous(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
+        if trans and 'log' in trans:
+            self._log_y_scale = True
         return self.scale_continuous('scale_y_continuous', breaks, minor_breaks, trans, limits,  labels, expand, name)
 
     def scale_continuous(self, scale = 'scale_x_continuous', breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None, other_params = None):
