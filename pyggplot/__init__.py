@@ -342,15 +342,17 @@ class Plot(_PlotBase):
         self.limitsize = True
         self.default_theme()
         self._log_y_scale = False
+        self._expected_y_scale = None
+
 
     def default_theme(self):
         self.theme_grey()  # apply default theme..,.
 
     def _build_plot(self):
-        if self.expected_y_scale is not None:
+        if self._expected_y_scale is not None:
             if (
-                    (self.expected_y_scale == 'log' and not self._log_y_scale) or
-                    (self.expected_y_scale == 'normal' and self._log_y_scale)
+                    (self._expected_y_scale == 'log' and not self._log_y_scale) or
+                    (self._expected_y_scale == 'normal' and self._log_y_scale)
             ):
                 raise ValueError("Log/non log Y scale mismatch between add_alternating_background and scale_y")
         plot = self.r['ggplot'](convert_dataframe_to_r(self.dataframe))
@@ -698,9 +700,9 @@ class Plot(_PlotBase):
             raise ValueError("Invalid column: %s" % x_column)
         self.scale_x_discrete()
         if log_y_scale:
-            self.expected_y_scale = 'log'
+            self._expected_y_scale = 'log'
         else:
-            self.expected_y_scale = 'normal'
+            self._expected_y_scale = 'normal'
         if facet_column is None:
             sub_frames = [(False, self.dataframe)]
         else:
@@ -1363,6 +1365,15 @@ class Plot(_PlotBase):
         if name is not None:
             kwargs['name'] = name
         self._other_adds.append(robjects.r('scale_shape')(solid=solid, **kwargs))
+        return self
+
+    def scale_linetype_manual(self, values, guide = None, name=None):
+        kwargs = {}
+        if guide is not None:
+            kwargs['guide'] = guide
+        if name is not None:
+            kwargs['name'] = name
+        self._other_adds.append(robjects.r('scale_linetype_manual')(values=numpy.array(values), **kwargs))
         return self
 
     def scale_colour_manual(self, values, guide = None, name=None):
