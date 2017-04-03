@@ -223,7 +223,7 @@ class _PlotBase(object):
         aes_params = self._translate_params(params)
         aes_params = ", ".join(aes_params)
         return robjects.r('aes(%s)' % aes_params)
-    
+
     def _translate_params(self, params):
         """Translate between the original dataframe names and the numbered ones we assign
         to avoid r-parsing issues"""
@@ -423,7 +423,7 @@ class Plot(_PlotBase):
             which_legend = 'size'
         if which_legend:
             self.lab_rename[which_legend] = real_name
-    
+
     def _add(self, geom_name, required_mappings, optional_mappings, defaults, args, kwargs, target):
         """The generic method to add a geom to the ggplot.
         You need to call add_xyz (see _add_geom_methods for a list, with each variable mapping
@@ -1072,6 +1072,11 @@ class Plot(_PlotBase):
         self._other_adds.append(robjects.r('theme')(**{"axis.title.x": robjects.r('element_blank()')}))
         return self
 
+    def hide_legend_key(self):
+        self._other_adds.append(robjects.r('theme')(**{"legend.key": robjects.r('element_blank()')}))
+        return self
+
+
     def scale_fill_many_categories(self):
         self.scale_fill_manual(["dodgerblue2","#E31A1C", # red
                 "green4",
@@ -1187,8 +1192,10 @@ class Plot(_PlotBase):
         return self
 
     def legend_position(self, value):
+        if not isinstance(value, tuple) and not isinstance(value, str):
+            raise ValueError("Legend position must be a tuple or a string")
         if type(value) is tuple:
-            self._other_adds.append(robjects.r('theme(legend.position = c(%i,%i))' % value))
+            self._other_adds.append(robjects.r('theme(legend.position = c(%f,%f))' % value))
         else:
             self._other_adds.append(robjects.r('theme(legend.position = "%s")' % value))
         return self
@@ -1299,17 +1306,21 @@ class Plot(_PlotBase):
         self._other_adds.append(robjects.r('scale_shape')(solid=solid))
         return self
 
-    def scale_colour_manual(self, values, guide = None):
+    def scale_colour_manual(self, values, guide = None, name=None):
         kwargs = {}
         if guide is not None:
             kwargs['guide'] = guide
+        if name is not None:
+            kwargs['name'] = name
         self._other_adds.append(robjects.r('scale_colour_manual')(values=numpy.array(values), **kwargs))
         return self
 
-    def scale_colour_manual_labels(self, vals, labels, guide = None):
+    def scale_colour_manual_labels(self, vals, labels, guide = None, name=None):
         kwargs = {}
         if guide is not None:
             kwargs['guide'] = guide
+        if name is not None:
+            kwargs['name'] = name
         self._other_adds.append(robjects.r("""
             scale_colour_manual
             """)(values=numpy.array(vals), labels = numpy.array(labels), **kwargs))
@@ -1379,7 +1390,7 @@ class Plot(_PlotBase):
             self._other_adds.append(robjects.r('scale_colour_gradient')(**other_params))
         return self
 
-    def scale_color_many_categories(self):
+    def scale_color_many_categories(self, **kwargs):
         self.scale_color_manual(["dodgerblue2","#E31A1C", # red
                 "green4",
                 "#6A3D9A", # purple
@@ -1392,7 +1403,7 @@ class Plot(_PlotBase):
                 "gray70", "khaki2",
                 "maroon","orchid1","deeppink1","blue1","steelblue4",
                 "darkturquoise","green1","yellow4","yellow3",
-                "darkorange4","brown"])
+                "darkorange4","brown"], **kwargs)
 
 
     def scale_fill_grey(self, guide = None):
@@ -1536,7 +1547,7 @@ class GGDraw(_CowBase):
         self.to_rename = {}
         self.old_names = []
         self.base_aspect_ratio = 1.1
-        
+
     def draw_plot(self, plot, x, y, width, height):
         self._draw_after_plot.append((plot, x, y, width, height))
         return self
@@ -1549,7 +1560,7 @@ class GGDraw(_CowBase):
             else:
                 d = self.r['add'](d, x)
         return d
-   
+
     def _add(self, geom_name, required_mappings, optional_mappings, defaults, args, kwargs, target):
         """The generic method to add a geom to the ggplot.
         You need to call add_xyz (see _add_geom_methods for a list, with each variable mapping
@@ -1732,7 +1743,7 @@ class plot_grid(_PlotBase):
         params = {}
         params['plotlist'] = [p.build_ggplot() for p in self.plots]
         params.update(self.params)
-        
+
         return self.r['plot_grid'](**params)
 
     def render(self, output_filename, width=None, height=None, dpi=None):
