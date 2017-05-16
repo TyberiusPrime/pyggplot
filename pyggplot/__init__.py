@@ -142,7 +142,7 @@ TransInvNegLog10b <- scales::trans_new(name="InvNegLog10b",
             format = function(x) bquote(10^.(-x)))
 
 """)
-        
+
 
 def r_expression(expr):
     return robjects.r('expression(%s)' % expr)
@@ -362,12 +362,12 @@ class Plot(_PlotBase):
             plot = self.r['add'](
                     plot, robjects.r('labs(%s = "%s")' % (name, value)))
         return plot
-        
+
 
     def render(self, output_filename, width=8, height=6, dpi=300, din_size = None):
         """Save the plot to a file.
         If you set @din_size to A4, it will overwrite width and height with a portrait orientend A4 sheet of paper
-        
+
         """
         if din_size == 'A4':
             width = 8.267
@@ -726,11 +726,15 @@ class Plot(_PlotBase):
             left = df_rect[df_rect.fill == fill_1]
             right = df_rect[df_rect.fill == fill_2]
             if not vertical:
-                self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_1, data=left, alpha=alpha)
-                self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_2, data=right, alpha=alpha)
+                if len(left):
+                    self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_1, data=left, alpha=alpha)
+                if len(right):
+                    self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_2, data=right, alpha=alpha)
             else:
-                self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_1, data=left, alpha=alpha)
-                self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_2, data=right, alpha=alpha)
+                if len(left):
+                    self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_1, data=left, alpha=alpha)
+                if len(right):
+                    self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_2, data=right, alpha=alpha)
         return self
 
     def set_title(self, title, size=None):
@@ -1136,7 +1140,7 @@ class Plot(_PlotBase):
             'strip.text.x': robjects.r('element_blank()'),
         }))
         return self
-        
+
     def hide_legend_key(self):
         self._other_adds.append(robjects.r('theme')(**{"legend.key": robjects.r('element_blank()')}))
         return self
