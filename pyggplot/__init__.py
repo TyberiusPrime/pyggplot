@@ -1068,7 +1068,7 @@ class Plot(_PlotBase):
         self._other_adds.append(robjects.r('scale_y_reverse')(**other_params))
         return self
 
-    def turn_x_axis_labels(self, angle=75, hjust=None, size=None, vjust=0, color=None):
+    def turn_x_axis_labels(self, angle=90, hjust=1,  vjust=0.5, size=None, color=None):
         axis_text_x_args = {
                 'angle': angle,
                 'hjust': hjust,
