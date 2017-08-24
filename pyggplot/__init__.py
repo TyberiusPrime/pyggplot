@@ -1106,6 +1106,11 @@ class Plot(_PlotBase):
         self._other_adds.append(robjects.r('theme')(**{'panel.background': robjects.r('element_blank()')}))
         return self
 
+    def hide_background_keep_frame(self):
+        self._other_adds.append(robjects.r('theme')(**{'panel.background': robjects.r("element_rect(colour='black', size=1, fill=NA)"),
+                                                       "panel.grid.major" : robjects.r("element_blank()"),
+                                                       "panel.grid.minor" : robjects.r("element_blank()") }))
+
     def hide_y_axis_labels(self):
         self._other_adds.append(robjects.r('theme')(**{"axis.text.y": robjects.r('element_blank()')}))
         return self
