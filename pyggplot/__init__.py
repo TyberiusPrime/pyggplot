@@ -86,6 +86,13 @@ except ImportError:
 
 import itertools
 try:
+    izip = itertools.izip
+    izip_longest = itertools.izip_longest
+except AttributeError:
+    izip = zip
+    izip_longest = itertools.zip_longest
+
+try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
@@ -94,6 +101,7 @@ import math
 import pandas
 import tempfile
 import os
+import six
 
 _r_loaded = False
 
@@ -715,11 +723,11 @@ class Plot(_PlotBase):
         for facet_value, facet_df in sub_frames:
             no_of_x_values = len(facet_df[new_name].unique())
             df_rect = pandas.DataFrame({
-                                    'xmin': numpy.array(xrange(no_of_x_values)) - .5 + 1,
-                                    'xmax': numpy.array(xrange(no_of_x_values)) + .5 + 1,
+                                    'xmin': numpy.array(range(no_of_x_values)) - .5 + 1,
+                                    'xmax': numpy.array(range(no_of_x_values)) + .5 + 1,
                                     'ymin': -numpy.inf if not log_y_scale else 0,
                                     'ymax': numpy.inf,
-                                    'fill': ([fill_1, fill_2] * (no_of_x_values / 2 + 1))[:no_of_x_values]
+                                    'fill': ([fill_1, fill_2] * (no_of_x_values // 2 + 1))[:no_of_x_values]
                                    })
             if facet_value is not False:
                 df_rect.insert(0, facet_column, facet_value)
@@ -1105,6 +1113,11 @@ class Plot(_PlotBase):
     def hide_background(self):
         self._other_adds.append(robjects.r('theme')(**{'panel.background': robjects.r('element_blank()')}))
         return self
+
+    def hide_background_keep_frame(self):
+        self._other_adds.append(robjects.r('theme')(**{'panel.background': robjects.r("element_rect(colour='black', size=1, fill=NA)"),
+                                                       "panel.grid.major" : robjects.r("element_blank()"),
+                                                       "panel.grid.minor" : robjects.r("element_blank()") }))
 
     def hide_y_axis_labels(self):
         self._other_adds.append(robjects.r('theme')(**{"axis.text.y": robjects.r('element_blank()')}))
@@ -1873,7 +1886,7 @@ class MultiPagePlot(Plot):
             "Collect data into fixed-length chunks or blocks"
             # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
             args = [iter(iterable)] * n
-            return itertools.izip_longest(fillvalue=fillvalue, *args)
+            return izip_longest(fillvalue=fillvalue, *args)
         if self.facet_variable_y:
             raise NotImplemented("The splitting into two variable sub_dfs is not implemented yet")
         else:
@@ -2238,7 +2251,7 @@ class CombinedPlots:
     def render(self, output_filename, width = None, height = None):
         if not output_filename.endswith('.svg'):
             raise ValueError("combined plots currently only support svg")
-        import svg_stack
+        from . import svg_stack
 
         if width is None:
             width = self.width
@@ -2371,7 +2384,7 @@ try:
             #res = ro.r['factor'](o.as_levels(), levels=o.levels, ordered=True)
         elif isinstance(o, numpy.ndarray):
             if not o.dtype.isnative:
-                raise(ValueError("Cannot pass numpy arrays with non-native byte orders at the moment."))
+                raise ValueError("Cannot pass numpy arrays with non-native byte orders at the moment.")
 
             # The possible kind codes are listed at
             #   http://numpy.scipy.org/array_interface.shtml
@@ -2405,8 +2418,7 @@ try:
                 all_r_object = True
                 for value in o:
                     if (
-                            not type(value) is str and
-                            not type(value) is unicode and
+                            isinstance(value, six.string_types) and
                             not type(value) is numpy.string_ and
                             not (type(value) is numpy.ma.core.MaskedArray and value.mask == True) and
                             not (type(value) is numpy.ma.core.MaskedConstant and value.mask == True)
@@ -2419,7 +2431,7 @@ try:
                     if not (type(value) is robjects.robject.RObject  or type(value) is rpy2.robjects.vectors.Vector):
                         all_r_object = False
                 if (not all_str) and (not all_bool) and (not all_r_object):
-                    raise(ValueError("numpy2ri_vector currently does not handle object vectors: %s %s" % (value, type(value))))
+                    raise ValueError("numpy2ri_vector currently does not handle object vectors: %s %s" % (value, type(value)))
                 else:
                     #since we keep strings as objects
                     #we have to jump some hoops here
@@ -2428,10 +2440,10 @@ try:
                     #res = ro.conversion.py2ri(list(o))
             # Record arrays map onto R data frames:
             elif o.dtype.kind == "V":
-                raise(ValueError("numpy2ri_vector currently does not handle record arrays"))
+                raise ValueError("numpy2ri_vector currently does not handle record arrays")
             # It should be impossible to get here:
             else:
-                raise(ValueError("Unknown numpy array type."))
+                raise ValueError("Unknown numpy array type.")
         else:
             raise(ValueError("Unknown input to numpy2ri_vector."))
         return res
