@@ -2366,6 +2366,32 @@ def multiplot(list_of_plots, cols):
     plots = [x._build_plot() for x in list_of_plots]
     robjects.r('multiplot')(plotlist = plots, cols = cols)
 
+def r_plot_to_png(callback, width=600, height=600, dpi=72):
+    from rpy2.robjects.lib import grdevices
+    with grdevices.render_to_bytesio(grdevices.png, 
+                                 width=width,
+                                 height=height, 
+                                 res=dpi) as b:
+        result = callback()
+    return b.getvalue()
+    
+class RPlot:
+    """Wrap an arbitrary R plot so you can render it to a file or view it in Jupyter"""
+
+    def __init__(self, callback):
+        self.callback = callback
+
+    def _repr_png_(self, width=600, height=600, dpi=72):
+        return r_plot_to_png(self.callback, width, height, dpi)
+
+    def render(self, filename, width=600, height=600, dpi=72):
+        if not filename.endswith('.png'):
+            raise ValueError("Only png export for now")
+        with open(filename, 'w') as op:
+            op.write(self._repr_png_(width, height, dpi))
+
+
+
 
 
 try:
