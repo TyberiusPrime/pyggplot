@@ -2399,6 +2399,7 @@ try:
     import rpy2.robjects.conversion
     import rpy2.rinterface as rinterface
     import rpy2.robjects.numpy2ri
+    rpy2.robjects.numpy2ri.activate()
 
     def numpy2ri_vector(o):
         """Convert a numpy 1d array to an R vector.
