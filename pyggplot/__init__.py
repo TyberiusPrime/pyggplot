@@ -73,7 +73,7 @@ try:
         import exptools
         exptools.load_software('pandas')
         exptools.load_software('ggplot2')
-        exptools.load_software('cowplot')
+        #exptools.load_software('cowplot') # ggplot2 contains cowplot
         import ggplot2
         import cowplot
         ggplot2.load_r()
