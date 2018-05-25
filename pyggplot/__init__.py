@@ -71,16 +71,17 @@ try:
     RNULL = robjects.NULL
     try:
         import exptools
-        exptools.load_software('pandas')
         exptools.load_software('ggplot2')
         #exptools.load_software('cowplot') # ggplot2 contains cowplot
         import ggplot2
-        import cowplot
+        #import cowplot
         ggplot2.load_r()
-        cowplot.load_r()
+        #cowplot.load_r()
     except (ImportError, rpy2.rinterface.RRuntimeError):
+        # raise
         pass
 except ImportError:
+    # raise
     RNULL = None
     pass
 
@@ -1084,7 +1085,7 @@ class Plot(_PlotBase):
                 'vjust': vjust,
                 'color': color
                 }
-        for key, value in axis_text_x_args.items():
+        for key, value in list(axis_text_x_args.items()):
             if value is None:
                 del axis_text_x_args[key]
         kargs = {
