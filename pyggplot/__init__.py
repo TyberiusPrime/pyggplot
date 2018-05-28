@@ -177,7 +177,7 @@ class _PlotBase(object):
             handle, name = tempfile.mkstemp(suffix=".png") # mac os for some reason would not read back again from a named tempfile.
             os.close(handle)
             self.render(name, width=width/72., height=height/72., dpi=72)
-            tf = open(name, "r")
+            tf = open(name, "rb")
             result = tf.read()
             tf.close()
             return result
@@ -196,6 +196,10 @@ class _PlotBase(object):
             tf = open(name, "r")
             result = tf.read()
             tf.close()
+            # newer jupyters need the height attribute
+            # otherwise the iframe is only one line high and 
+            # the figure tiny
+            result = result.replace("viewBox=", 'height=\'%i\' viewBox=' % (height))
             return result, {"isolated": True}
         finally:
             os.unlink(name)
