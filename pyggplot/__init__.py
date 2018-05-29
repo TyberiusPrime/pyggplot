@@ -928,7 +928,7 @@ class Plot(_PlotBase):
         if other_params is None:
             other_params = OrderedDict()
         if not breaks is None:
-            if breaks in ('date', 'log', 'pretty', 'trans'):
+            if isinstance(breaks, str) and breaks in ('date', 'log', 'pretty', 'trans'):
                 other_params['breaks'] = robjects.r('%s_breaks' % breaks)()
                 breaks = None
             else:
