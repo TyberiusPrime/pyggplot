@@ -266,7 +266,8 @@ def _geoms():
         ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha', 'weight', 'width'], {'position': 'dodge', 'stat': 'identity'}, ''),
         ('bin2d', 'geom_bin2d', ['xmin', 'xmax', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight'], {}, ''),
         ('blank', 'geom_blank', [], [], {}, ''),
-        (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'notch', 'position', 'outlier.shape', 'width', ], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
+        (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'notch', 
+                                                               'position', 'outlier.color', 'outlier.shape', 'width', ], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
         (('box_plot2', 'boxplot2'), 'geom_boxplot', ['x', 'lower', 'middle', 'upper', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'stat'],
          {'stat': 'identity'}, ' box plot where you define everything manually'),
         ('contour', 'geom_contour', ['x', 'y'], ['alpha', ' color', 'linetype', 'size', ' weight'], {}, ''),
@@ -280,7 +281,7 @@ def _geoms():
         ('density_2d', 'geom_density2d', ['x', 'y'], ['alpha', 'color', 'linetype', 'fill', 'contour'], {}, ''),
         ('error_bars', 'geom_errorbar', ['x', 'ymin', 'ymax'], ['alpha', 'color', 'group', 'linetype', 'size', 'width', 'position'], {'width': 0.25}, ''),
         ('error_barsh', 'geom_errorbarh', ['x', 'y', 'xmin', 'xmax'], ['alpha', 'color', 'group', 'linetype', 'size', 'width'], {'width': 0.25}, ''),
-        ('freq_poly', 'geom_freq_poly', [], ['alpha', 'color', 'linetype', 'size'], {}, ''),
+        ('freq_poly', 'geom_freqpoly', ['x'], ['alpha', 'color', 'linetype', 'size'], {}, ''),
         ('hex', 'geom_hex', ['x', 'y'], ['alpha', 'color', 'fill', 'size'], {}, ''),
         #  ('histogram', this is it's own function
         ('histogram', 'geom_histogram', ['x', 'y'], ['color', ' group', 'fill', 'position', 'add_text', 'binwidth', 'alpha', 'size', 'stat'], {'y': '..count..', 'position': 'dodge', 'stat': 'bin'}, ''),
@@ -982,7 +983,7 @@ class Plot(_PlotBase):
     def scale_size_area(self, max_size=6, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
         return self.scale_continuous('scale_size_area', breaks, minor_breaks, trans, limits,  labels, expand, name, other_params=OrderedDict({'max_size': max_size}))
 
-    def scale_discrete(self, scale_name, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
+    def scale_discrete(self, scale_name, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None, position=None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -1015,6 +1016,8 @@ class Plot(_PlotBase):
             other_params['expand'] = numpy.array(expand)
         if not name is None:
             other_params['name'] = name
+        if not position is None:
+            other_params['position'] = position
 
         if not breaks is None and not labels is None:
             if len(breaks) != len(labels):
@@ -1025,11 +1028,11 @@ class Plot(_PlotBase):
         )
         return self
 
-    def scale_x_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
-        return self.scale_discrete('scale_x_discrete', breaks, minor_breaks, trans, limits, labels, expand, name)
+    def scale_x_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None, position=None):
+        return self.scale_discrete('scale_x_discrete', breaks, minor_breaks, trans, limits, labels, expand, name, position)
 
-    def scale_y_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
-        return self.scale_discrete('scale_y_discrete', breaks, minor_breaks, trans, limits, labels, expand, name)
+    def scale_y_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None, position=None):
+        return self.scale_discrete('scale_y_discrete', breaks, minor_breaks, trans, limits, labels, expand, name, position)
 
     def scale_x_reverse(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
         other_params = {}
