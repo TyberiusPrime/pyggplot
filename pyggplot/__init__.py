@@ -456,6 +456,9 @@ class Plot(_PlotBase):
             which_legend = 'shape'
         elif aes_name == 'size':
             which_legend = 'size'
+        elif aes_name == 'linetype':
+            which_legend = 'linetype'
+        
         if which_legend:
             self.lab_rename[which_legend] = real_name
 
