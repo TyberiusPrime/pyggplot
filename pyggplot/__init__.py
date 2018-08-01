@@ -1808,7 +1808,7 @@ class plot_grid(_PlotBase):
             if not isinstance(p, CowPlot):
                 raise ValueError("All plots must be CowPlots")
         self.params = {
-            'labels': numpy.array(labels) if hasattr(labels, '__iter__') else labels,
+            'labels': numpy.array(labels) if (hasattr(labels, '__iter__') and not isinstance(labels, str)) else labels,
             'scale': scale,
             'rel_widths': rel_widths,
             'rel_heights': rel_heights,
@@ -2273,7 +2273,7 @@ class CombinedPlots:
         svgs = [p._repr_svg_(width=self.width / self.ncol / 150 * 72, height=self.height / nrow / 150 * 72) for p in self.plots]
         tfs = [tempfile.NamedTemporaryFile(suffix='.svg') for x in svgs]
         for of, svg in zip(tfs, svgs):
-            of.write(svg[0])
+            of.write(svg[0].encode('utf-8'))
             of.flush()
         doc = svg_stack.Document()
         layout1 = svg_stack.VBoxLayout()
