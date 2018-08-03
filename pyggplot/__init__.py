@@ -1499,7 +1499,7 @@ class Plot(_PlotBase):
                         "darkturquoise", "green1", "yellow4", "yellow3",
                         "darkorange4", "brown"]
 
-    def scale_color_many_categories(self, offset, **kwargs):
+    def scale_color_many_categories(self, offset=0, **kwargs):
         self.scale_color_manual(
             (self._many_cat_colors + self._many_cat_colors)[offset:offset + len(self._many_cat_colors)], **kwargs)
 
