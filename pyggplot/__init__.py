@@ -1167,8 +1167,10 @@ class Plot(_PlotBase):
         self._other_adds.append(robjects.r('theme')(**{"legend.key": robjects.r('element_blank()')}))
         return self
 
-    def scale_fill_many_categories(self):
-        self.scale_fill_manual(self._many_cat_colors)
+    def scale_fill_many_categories(self, offset=0):
+
+        self.scale_fill_manual(
+            (self._many_cat_colors + self._many_cat_colors)[offset:offset + len(self._many_cat_colors)])
         return self
 
     def scale_fill_manual(self, list_of_colors, guide=None, name=None):
@@ -1497,8 +1499,9 @@ class Plot(_PlotBase):
                         "darkturquoise", "green1", "yellow4", "yellow3",
                         "darkorange4", "brown"]
 
-    def scale_color_many_categories(self, **kwargs):
-        self.scale_color_manual(self._many_cat_colors, **kwargs)
+    def scale_color_many_categories(self, offset, **kwargs):
+        self.scale_color_manual(
+            (self._many_cat_colors + self._many_cat_colors)[offset:offset + len(self._many_cat_colors)], **kwargs)
 
     def scale_fill_grey(self, guide=None):
         kwargs = {}
