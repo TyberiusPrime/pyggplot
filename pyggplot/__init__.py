@@ -986,7 +986,7 @@ class Plot(_PlotBase):
     def scale_size_area(self, max_size=6, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
         return self.scale_continuous('scale_size_area', breaks, minor_breaks, trans, limits,  labels, expand, name, other_params=OrderedDict({'max_size': max_size}))
 
-    def scale_discrete(self, scale_name, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None, position=None):
+    def scale_discrete(self, scale_name, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None, position=None, guide=None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -1021,6 +1021,8 @@ class Plot(_PlotBase):
             other_params['name'] = name
         if not position is None:
             other_params['position'] = position
+        if guide is not None:
+            other_params['guide'] = guide
 
         if not breaks is None and not labels is None:
             if len(breaks) != len(labels):
