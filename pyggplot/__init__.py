@@ -27,7 +27,6 @@
 # THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 """A wrapper around ggplot2 ( http://had.co.nz/ggplot2/ )
 
 Takes a pandas.DataFrame object, then add layers with the various add_xyz
@@ -165,7 +164,7 @@ class _PlotBase(object):
     def render_notebook(self, width=800, height=600):
         from IPython.core.display import Image
         tf = tempfile.NamedTemporaryFile(suffix='.png')
-        self.render(tf.name, width=width/72., height=height/72., dpi=72)
+        self.render(tf.name, width=width / 72., height=height / 72., dpi=72)
         return Image(tf.name)
 
     def _repr_png_(self, width=None, height=None):
@@ -174,9 +173,11 @@ class _PlotBase(object):
             width = self.ipython_plot_width
             height = self.ipython_plot_height
         try:
-            handle, name = tempfile.mkstemp(suffix=".png")  # mac os for some reason would not read back again from a named tempfile.
+            handle, name = tempfile.mkstemp(
+                suffix=".png"
+            )  # mac os for some reason would not read back again from a named tempfile.
             os.close(handle)
-            self.render(name, width=width/72., height=height/72., dpi=72)
+            self.render(name, width=width / 72., height=height / 72., dpi=72)
             tf = open(name, "rb")
             result = tf.read()
             tf.close()
@@ -190,16 +191,19 @@ class _PlotBase(object):
             width = self.ipython_plot_width / 150. * 72
             height = self.ipython_plot_height / 150. * 72
         try:
-            handle, name = tempfile.mkstemp(suffix=".svg")  # mac os for some reason would not read back again from a named tempfile.
+            handle, name = tempfile.mkstemp(
+                suffix=".svg"
+            )  # mac os for some reason would not read back again from a named tempfile.
             os.close(handle)
-            self.render(name, width=width/72., height=height/72., dpi=72)
+            self.render(name, width=width / 72., height=height / 72., dpi=72)
             tf = open(name, "r")
             result = tf.read()
             tf.close()
             # newer jupyters need the height attribute
             # otherwise the iframe is only one line high and
             # the figure tiny
-            result = result.replace("viewBox=", 'height=\'%i\' viewBox=' % (height))
+            result = result.replace("viewBox=",
+                                    'height=\'%i\' viewBox=' % (height))
             return result, {"isolated": True}
         finally:
             os.unlink(name)
@@ -212,7 +216,9 @@ class _PlotBase(object):
 
         """
         if value is not None:
-            if isinstance(value, tuple):  # this  allows renaming columns when plotting - why is this here? Is this actually useful
+            if isinstance(
+                    value, tuple
+            ):  # this  allows renaming columns when plotting - why is this here? Is this actually useful
                 new_name = value[1]
                 value = value[0]
                 self.to_rename[value] = new_name
@@ -220,7 +226,8 @@ class _PlotBase(object):
                 self.aes_collection[name] = value
             else:
                 if value == '..level..':
-                    self.aes_collection[name] = '..level..'  # robjects.r('expression(..level..)')
+                    self.aes_collection[
+                        name] = '..level..'  # robjects.r('expression(..level..)')
                 else:
                     self.other_collection[name] = value
 
@@ -229,7 +236,8 @@ class _PlotBase(object):
         self.aes_collection = {}
         self.other_collection = {}
         if data is not None:
-            self.other_collection['data'] = convert_dataframe_to_r(self._prep_dataframe(data))
+            self.other_collection['data'] = convert_dataframe_to_r(
+                self._prep_dataframe(data))
 
     def _build_aesthetic(self, params):
         """Transform a python list of aesthetics to the R aes() object"""
@@ -247,7 +255,8 @@ class _PlotBase(object):
                 new_name = 'dat_%s' % self.old_names.index(aes_column)
                 aes_params.append('%s=%s' % (aes_name, new_name))
                 if aes_column in self.to_rename:
-                    self._fix_axis_label(aes_name, new_name, self.to_rename[aes_column])
+                    self._fix_axis_label(aes_name, new_name,
+                                         self.to_rename[aes_column])
                 else:
                     self._fix_axis_label(aes_name, new_name, aes_column)
             else:  # a fixeud value
@@ -266,7 +275,7 @@ def _geoms():
         ('bar', 'geom_bar', ['x', 'y'], ['color', 'group', 'fill', 'position', 'stat', 'order', 'alpha', 'weight', 'width'], {'position': 'dodge', 'stat': 'identity'}, ''),
         ('bin2d', 'geom_bin2d', ['xmin', 'xmax', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'linetype', 'size', 'weight'], {}, ''),
         ('blank', 'geom_blank', [], [], {}, ''),
-        (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'notch', 
+        (('box_plot', 'boxplot'), 'geom_boxplot', ['x', 'y'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'notch',
                                                                'position', 'outlier.color', 'outlier.shape', 'width', ], {}, 'a box plot with the default stat (10/25/50/75/90 percentile)'),
         (('box_plot2', 'boxplot2'), 'geom_boxplot', ['x', 'lower', 'middle', 'upper', 'ymin', 'ymax'], ['alpha', 'color', 'fill', 'group', 'linetype', 'shape', 'size', 'weight', 'stat'],
          {'stat': 'identity'}, ' box plot where you define everything manually'),
@@ -327,7 +336,6 @@ def _geoms():
 
 
 class Plot(_PlotBase):
-
     def __init__(self, dataframe, *ignored):
         """Create a new ggplot2 object from DataFrame"""
         load_r()
@@ -363,20 +371,25 @@ class Plot(_PlotBase):
 
     def _build_plot(self):
         if self._expected_y_scale is not None:
-            if (
-                    (self._expected_y_scale == 'log' and not self._log_y_scale) or
-                    (self._expected_y_scale == 'normal' and self._log_y_scale)
-            ):
-                raise ValueError("Log/non log Y scale mismatch between add_alternating_background and scale_y")
+            if ((self._expected_y_scale == 'log' and not self._log_y_scale) or
+                (self._expected_y_scale == 'normal' and self._log_y_scale)):
+                raise ValueError(
+                    "Log/non log Y scale mismatch between add_alternating_background and scale_y"
+                )
         plot = self.r['ggplot'](convert_dataframe_to_r(self.dataframe))
         for obj in self._other_adds:
             plot = self.r['add'](plot, obj)
         for name, value in self.lab_rename.items():
-            plot = self.r['add'](
-                plot, robjects.r('labs(%s = "%s")' % (name, value)))
+            plot = self.r['add'](plot,
+                                 robjects.r('labs(%s = "%s")' % (name, value)))
         return plot
 
-    def render(self, output_filename, width=8, height=6, dpi=300, din_size=None):
+    def render(self,
+               output_filename,
+               width=8,
+               height=6,
+               dpi=300,
+               din_size=None):
         """Save the plot to a file.
         If you set @din_size to A4, it will overwrite width and height with a portrait orientend A4 sheet of paper
 
@@ -386,11 +399,20 @@ class Plot(_PlotBase):
             height = 11.692
 
         plot = self._build_plot()
-        output_filename = output_filename.replace('%', '%%')  # R tries some kind of integer substitution on these, so we need to double the %
+        output_filename = output_filename.replace(
+            '%', '%%'
+        )  # R tries some kind of integer substitution on these, so we need to double the %
         kwargs = {}
         if output_filename.endswith('.png'):
             kwargs['type'] = 'cairo'
-        self.r['ggsave'](filename=output_filename, plot=plot, width=width, height=height, dpi=dpi, limitsize=self.limitsize, **kwargs)
+        self.r['ggsave'](
+            filename=output_filename,
+            plot=plot,
+            width=width,
+            height=height,
+            dpi=dpi,
+            limitsize=self.limitsize,
+            **kwargs)
 
     def _prep_dataframe(self, df):
         """prepare the dataframe by renaming all the columns
@@ -408,7 +430,8 @@ class Plot(_PlotBase):
             if not name in self.old_names:
                 new_names.append(name)
         self.old_names.extend(new_names)
-        rename = dict([(name, 'dat_%s' % self.old_names.index(name)) for name in df.columns])
+        rename = dict([(name, 'dat_%s' % self.old_names.index(name))
+                       for name in df.columns])
         df = df.rename(columns=rename)
         return df
 
@@ -418,7 +441,8 @@ class Plot(_PlotBase):
         for column in pdf.columns_ordered:
             o = pdf.gcv(column)
             if 'pydataframe.factors.Factor' in str(type(o)):
-                d[column] = pandas.Series(pandas.Categorical(o.as_levels(), categories=o.levels))
+                d[column] = pandas.Series(
+                    pandas.Categorical(o.as_levels(), categories=o.levels))
             else:
                 d[column] = o
         return pandas.DataFrame(d)
@@ -433,7 +457,8 @@ class Plot(_PlotBase):
                 new_name = 'dat_%s' % self.old_names.index(aes_column)
                 aes_params.append('%s=%s' % (aes_name, new_name))
                 if aes_column in self.to_rename:
-                    self._fix_axis_label(aes_name, new_name, self.to_rename[aes_column])
+                    self._fix_axis_label(aes_name, new_name,
+                                         self.to_rename[aes_column])
                 else:
                     self._fix_axis_label(aes_name, new_name, aes_column)
             else:  # a fixeud value
@@ -458,11 +483,12 @@ class Plot(_PlotBase):
             which_legend = 'size'
         elif aes_name == 'linetype':
             which_legend = 'linetype'
-        
+
         if which_legend:
             self.lab_rename[which_legend] = real_name
 
-    def _add(self, geom_name, required_mappings, optional_mappings, defaults, args, kwargs, target):
+    def _add(self, geom_name, required_mappings, optional_mappings, defaults,
+             args, kwargs, target):
         """The generic method to add a geom to the ggplot.
         You need to call add_xyz (see _add_geom_methods for a list, with each variable mapping
         being one argument) with the respectivly required parameters (see ggplot documentation).
@@ -471,7 +497,9 @@ class Plot(_PlotBase):
         """
         mappings = {}
         all_defined_mappings = required_mappings + optional_mappings
-        for a, b in zip(all_defined_mappings, args):  # so that you could in theory also pass the optional_mappings by position...required_mappings
+        for a, b in zip(
+                all_defined_mappings, args
+        ):  # so that you could in theory also pass the optional_mappings by position...required_mappings
             mappings[a] = b
         mappings.update(kwargs)
 
@@ -482,24 +510,32 @@ class Plot(_PlotBase):
             data = None
         for mapping in mappings:
             if mapping not in required_mappings and mapping not in optional_mappings:
-                raise ValueError("%s does not take parameter %s" % (geom_name, mapping))
+                raise ValueError(
+                    "%s does not take parameter %s" % (geom_name, mapping))
         for mapping in required_mappings:
             if mapping not in mappings:
                 if mapping in defaults:
-                    if hasattr(defaults[mapping], '__call__', ):
+                    if hasattr(
+                            defaults[mapping],
+                            '__call__',
+                    ):
                         mappings[mapping] = defaults[mapping](mappings)
                     else:
                         mappings[mapping] = defaults[mapping]
                 elif mapping in self.previous_mappings:
                     mappings[mapping] = self.previous_mappings[mapping]
                 else:
-                    raise ValueError("Missing required mapping in %s: %s" % (geom_name, mapping))
+                    raise ValueError("Missing required mapping in %s: %s" %
+                                     (geom_name, mapping))
             else:
                 self.previous_mappings[mapping] = mappings[mapping]
         for mapping in optional_mappings:
             if mapping not in mappings:
                 if mapping in defaults:
-                    if hasattr(defaults[mapping], '__call__', ):
+                    if hasattr(
+                            defaults[mapping],
+                            '__call__',
+                    ):
                         mappings[mapping] = defaults[mapping](mappings)
                     else:
                         mappings[mapping] = defaults[mapping]
@@ -517,7 +553,9 @@ class Plot(_PlotBase):
         if geom_name.startswith('annotation'):
             target.append(robjects.r(geom_name)(**self.other_collection))
         else:
-            target.append(robjects.r(geom_name)(self._build_aesthetic(self.aes_collection), **self.other_collection))
+            target.append(
+                robjects.r(geom_name)(self._build_aesthetic(
+                    self.aes_collection), **self.other_collection))
         return self
 
     def _add_geom_methods(self):
@@ -529,19 +567,26 @@ class Plot(_PlotBase):
         # python method name (add_ + name), geom (R) name, required attributes, optional attributes, default attribute values
         for x in methods:
             if len(x) != 6:
-                raise ValueError("Wrong number of arguments: %s" % (x,))
+                raise ValueError("Wrong number of arguments: %s" % (x, ))
 
         for (names, geom, required, optional, defaults, doc_str) in methods:
-            def define(geom, required, optional, defaults):  # we need to capture the variables...
+
+            def define(geom, required, optional,
+                       defaults):  # we need to capture the variables...
                 def do_add(*args, **kwargs):
-                    return self._add(geom, required, optional, defaults, args, kwargs, self._other_adds)
+                    return self._add(geom, required, optional, defaults, args,
+                                     kwargs, self._other_adds)
+
                 do_add.__doc__ = doc_str
                 return do_add
+
             f = define(geom, required, optional, defaults)
             if isinstance(names, str):
                 names = [names]
             for name in names:
-                if not hasattr(self, 'add_' + name):  # so we can still overwrite them by defining functions by hand
+                if not hasattr(
+                        self, 'add_' + name
+                ):  # so we can still overwrite them by defining functions by hand
                     setattr(self, 'add_' + name, f)  # legacy names, basically
             if not hasattr(self, geom):
                 setattr(self, geom, f)
@@ -566,14 +611,33 @@ class Plot(_PlotBase):
             position_jitter_params['height'] = 0
         else:
             raise ValueError("invalid jitter_y value")
-        kwargs['position'] = robjects.r('position_jitter')(**position_jitter_params)
-        self._add('geom_jitter', ['x', 'y'], ['color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y', 'position'], {}, args=[x, y], kwargs=kwargs, target=self._other_adds)
+        kwargs['position'] = robjects.r('position_jitter')(
+            **position_jitter_params)
+        self._add(
+            'geom_jitter', ['x', 'y'], [
+                'color', 'group', 'shape', 'size', 'alpha', 'stat', 'fun.y',
+                'position'
+            ], {},
+            args=[x, y],
+            kwargs=kwargs,
+            target=self._other_adds)
         # self._other_adds.append(
         #robjects.r('geom_jitter')(self._build_aesthetic(aes_params), **other_params)
         # )
         return self
 
-    def add_histogram(self, x_column, y_column="..count..", color=None, group=None, fill=None, position="dodge", add_text=False, bin_width=None, alpha=None, size=None, data=None):
+    def add_histogram(self,
+                      x_column,
+                      y_column="..count..",
+                      color=None,
+                      group=None,
+                      fill=None,
+                      position="dodge",
+                      add_text=False,
+                      bin_width=None,
+                      alpha=None,
+                      size=None,
+                      data=None):
         aes_params = {'x': x_column}
         other_params = {}
         stat_params = {}
@@ -600,7 +664,8 @@ class Plot(_PlotBase):
         if size:
             other_params['size'] = size
         if data is not None:
-            other_params['data'] = convert_dataframe_to_r(self._prep_dataframe(data))
+            other_params['data'] = convert_dataframe_to_r(
+                self._prep_dataframe(data))
         aes_params['y'] = y_column
         if stat_params:
             # other_params.update(stat_params)
@@ -608,18 +673,22 @@ class Plot(_PlotBase):
             # print 'a', other_params
             self._other_adds.append(
                 robjects.r('geom_bar')(self._build_aesthetic(aes_params),
-                                       **other_params)
-            )
+                                       **other_params))
         else:
             other_params['position'] = position
             # print 'b', other_params
             self._other_adds.append(
-                robjects.r('geom_histogram')(self._build_aesthetic(aes_params), **other_params)
-            )
+                robjects.r('geom_histogram')(self._build_aesthetic(aes_params),
+                                             **other_params))
         if add_text:
             self._other_adds.append(
                 robjects.r('geom_text')(
-                    self._build_aesthetic({'x': x_column, 'y': '..count..', 'label': '..count..'}), stat='bin'))
+                    self._build_aesthetic({
+                        'x': x_column,
+                        'y': '..count..',
+                        'label': '..count..'
+                    }),
+                    stat='bin'))
         return self
 
     def add_mean(self, x_column, y_column, color='red', width=1):
@@ -627,13 +696,18 @@ class Plot(_PlotBase):
         x_column = 'dat_%s' % self.old_names.index(x_column)
         y_column = 'dat_%s' % self.old_names.index(y_column)
         data = self.dataframe.groupby(x_column)[y_column].mean().reset_index()
-        self.add_error_bars(x_column, y_column, y_column, width=width, color=color, data=data)
+        self.add_error_bars(
+            x_column, y_column, y_column, width=width, color=color, data=data)
         return self
 
     def geom_histogram(self, *args, **kwargs):
         self.add_histogram(*args, **kwargs)
 
-    def add_cummulative(self, x_column, ascending=True, percent=False, percentile=1.0):
+    def add_cummulative(self,
+                        x_column,
+                        ascending=True,
+                        percent=False,
+                        percentile=1.0):
         """Add a line showing cumulative % of data <= x.
         if you specify a percentile, all data at the extreme range is dropped
 
@@ -644,7 +718,8 @@ class Plot(_PlotBase):
         try:
             column_name = 'dat_%s' % self.old_names.index(x_column)
         except ValueError:
-            raise ValueError("Could not find column %s, available: %s" % (x_column, self.old_names))
+            raise ValueError("Could not find column %s, available: %s" %
+                             (x_column, self.old_names))
         column_data = self.dataframe[column_name].copy()  # explicit copy!
         column_data = column_data[~numpy.isnan(column_data)]
         column_data = numpy.sort(column_data)
@@ -680,41 +755,68 @@ class Plot(_PlotBase):
             else:
                 current -= (len(list(group)))
             # y_values.append(current)
-        data = pandas.DataFrame({x_column: x_values, ("%" if percent else '#') + ' <=': y_values})
+        data = pandas.DataFrame({
+            x_column: x_values,
+            ("%" if percent else '#') + ' <=': y_values
+        })
         if percentile > 0:
             self.scale_y_continuous(limits=[0, real_total])
         self.add_line(x_column, ("%" if percent else '#') + ' <=', data=data)
         if percentile != 1.0:
-            self.set_title('showing only %.2f percentile, extreme was %.2f' % (percentile, maximum))
+            self.set_title('showing only %.2f percentile, extreme was %.2f' %
+                           (percentile, maximum))
         return self
 
-    def add_heatmap(self, x_column, y_column, fill, low="red", mid=None, high="blue", midpoint=0, guide_legend=None, scale_args=None):
+    def add_heatmap(self,
+                    x_column,
+                    y_column,
+                    fill,
+                    low="red",
+                    mid=None,
+                    high="blue",
+                    midpoint=0,
+                    guide_legend=None,
+                    scale_args=None):
         aes_params = {'x': x_column, 'y': y_column}
         aes_params['x'] = x_column
         aes_params['y'] = y_column
         aes_params['fill'] = fill
         self._other_adds.append(
-            robjects.r('geom_tile')(self._build_aesthetic(aes_params), stat="identity")
-        )
+            robjects.r('geom_tile')(
+                self._build_aesthetic(aes_params), stat="identity"))
         if scale_args is None:
             scale_args = {}
         if guide_legend:
             scale_args['guide'] = guide_legend
         if mid is None:
             self._other_adds.append(
-                robjects.r('scale_fill_gradient')(low=low, high=high, **scale_args)
-            )
+                robjects.r('scale_fill_gradient')(
+                    low=low, high=high, **scale_args))
         else:
-            self._other_adds.append(robjects.r('scale_fill_gradient2')(low=low, mid=mid, high=high, midpoint=midpoint, **scale_args))
+            self._other_adds.append(
+                robjects.r('scale_fill_gradient2')(
+                    low=low,
+                    mid=mid,
+                    high=high,
+                    midpoint=midpoint,
+                    **scale_args))
         return self
 
     def add_distribution(self, value_column, x_name='Default'):
         self.old_names.append('distribution_x')
-        self.dataframe['dat_%i' % self.old_names.index('distribution_x')] = [x_name] * len(self.dataframe)
-        return self.add_box_plot('distribution_x',  value_column)
+        self.dataframe['dat_%i' % self.old_names.index('distribution_x')] = [
+            x_name
+        ] * len(self.dataframe)
+        return self.add_box_plot('distribution_x', value_column)
 
-    def add_alternating_background(self, x_column, fill_1="#EEEEEE", fill_2="#FFFFFF", vertical=False, alpha=0.5,
-                                   log_y_scale=False, facet_column=None):
+    def add_alternating_background(self,
+                                   x_column,
+                                   fill_1="#EEEEEE",
+                                   fill_2="#FFFFFF",
+                                   vertical=False,
+                                   alpha=0.5,
+                                   log_y_scale=False,
+                                   facet_column=None):
         """Add an alternating background to a categorial (x-axis) plot.
         """
         try:
@@ -738,11 +840,16 @@ class Plot(_PlotBase):
         for facet_value, facet_df in sub_frames:
             no_of_x_values = len(facet_df[new_name].unique())
             df_rect = pandas.DataFrame({
-                'xmin': numpy.array(range(no_of_x_values)) - .5 + 1,
-                'xmax': numpy.array(range(no_of_x_values)) + .5 + 1,
-                'ymin': -numpy.inf if not log_y_scale else 0,
-                'ymax': numpy.inf,
-                'fill': ([fill_1, fill_2] * (no_of_x_values // 2 + 1))[:no_of_x_values]
+                'xmin':
+                numpy.array(range(no_of_x_values)) - .5 + 1,
+                'xmax':
+                numpy.array(range(no_of_x_values)) + .5 + 1,
+                'ymin':
+                -numpy.inf if not log_y_scale else 0,
+                'ymax':
+                numpy.inf,
+                'fill':
+                ([fill_1, fill_2] * (no_of_x_values // 2 + 1))[:no_of_x_values]
             })
             if facet_value is not False:
                 df_rect.insert(0, facet_column, facet_value)
@@ -750,26 +857,62 @@ class Plot(_PlotBase):
             right = df_rect[df_rect.fill == fill_2]
             if not vertical:
                 if len(left):
-                    self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_1, data=left, alpha=alpha)
+                    self.add_rect(
+                        'xmin',
+                        'xmax',
+                        'ymin',
+                        'ymax',
+                        fill=fill_1,
+                        data=left,
+                        alpha=alpha)
                 if len(right):
-                    self.add_rect('xmin', 'xmax', 'ymin', 'ymax', fill=fill_2, data=right, alpha=alpha)
+                    self.add_rect(
+                        'xmin',
+                        'xmax',
+                        'ymin',
+                        'ymax',
+                        fill=fill_2,
+                        data=right,
+                        alpha=alpha)
             else:
                 if len(left):
-                    self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_1, data=left, alpha=alpha)
+                    self.add_rect(
+                        'ymin',
+                        'ymax',
+                        'xmin',
+                        'xmax',
+                        fill=fill_1,
+                        data=left,
+                        alpha=alpha)
                 if len(right):
-                    self.add_rect('ymin', 'ymax', 'xmin', 'xmax', fill=fill_2, data=right, alpha=alpha)
+                    self.add_rect(
+                        'ymin',
+                        'ymax',
+                        'xmin',
+                        'xmax',
+                        fill=fill_2,
+                        data=right,
+                        alpha=alpha)
         return self
 
     def set_title(self, title, size=None):
         if size is not None:
-            self._other_adds.append(ro.r("theme")(**{"plot.title": ro.r("element_text")(size=size)}))
+            self._other_adds.append(
+                ro.r("theme")(**{
+                    "plot.title": ro.r("element_text")(size=size)
+                }))
         self._other_adds.append(robjects.r('ggtitle')(title))
         return self
 
     def title(self, title, size=None):
         return self.set_title(title, size=size)
 
-    def facet(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
+    def facet(self,
+              column_one,
+              column_two=None,
+              fixed_x=True,
+              fixed_y=True,
+              ncol=None):
         facet_wrap = robjects.r['facet_wrap']
         if fixed_x and not fixed_y:
             scale = 'free_y'
@@ -790,14 +933,19 @@ class Plot(_PlotBase):
             params = self._translate_params({"": column_one})[0]
             facet_specification = params.replace('=', '~')
             #facet_specification = '~ %s' % (column_one, )
-        params = {
-            'scale': scale}
+        params = {'scale': scale}
         if ncol:
             params['ncol'] = ncol
-        self._other_adds.append(facet_wrap(robjects.r(facet_specification), **params))
+        self._other_adds.append(
+            facet_wrap(robjects.r(facet_specification), **params))
         return self
 
-    def facet_grid(self, rows=None, columns=None, fixed_x=True, fixed_y=True, ncol=None):
+    def facet_grid(self,
+                   rows=None,
+                   columns=None,
+                   fixed_x=True,
+                   fixed_y=True,
+                   ncol=None):
         if fixed_x and not fixed_y:
             scale = 'free_y'
         elif not fixed_x and fixed_y:
@@ -819,11 +967,12 @@ class Plot(_PlotBase):
             params = self._translate_params({"": rows})[0]
             facet_specification = params.replace('=', '') + ' ~ .'
             #facet_specification = '~ %s' % (column_one, )
-        params = {
-            'scales': scale}
+        params = {'scales': scale}
         if ncol:
             params['ncol'] = ncol
-        self._other_adds.append(robjects.r('facet_grid')(robjects.r(facet_specification), **params))
+        self._other_adds.append(
+            robjects.r('facet_grid')(robjects.r(facet_specification),
+                                     **params))
         return self
 
     def greyscale(self):
@@ -918,27 +1067,55 @@ class Plot(_PlotBase):
         if angle is not None:
             element_args['angle'] = angle
         element = robjects.r('element_text')(**element_args)
-        self._other_adds.append(
-            robjects.r('theme')(**{name: element}))
+        self._other_adds.append(robjects.r('theme')(**{name: element}))
         return self
 
     def scale_x_log_10(self):
         self.scale_x_continuous(trans='log10')
         return self
 
-    def scale_x_continuous(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, formatter=None, name=None):
-        return self.scale_continuous('scale_x_continuous', breaks, minor_breaks, trans, limits, labels, expand, name)
+    def scale_x_continuous(self,
+                           breaks=None,
+                           minor_breaks=None,
+                           trans=None,
+                           limits=None,
+                           labels=None,
+                           expand=None,
+                           formatter=None,
+                           name=None):
+        return self.scale_continuous('scale_x_continuous', breaks,
+                                     minor_breaks, trans, limits, labels,
+                                     expand, name)
 
-    def scale_y_continuous(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
+    def scale_y_continuous(self,
+                           breaks=None,
+                           minor_breaks=None,
+                           trans=None,
+                           limits=None,
+                           labels=None,
+                           expand=None,
+                           name=None):
         if trans and 'log' in trans:
             self._log_y_scale = True
-        return self.scale_continuous('scale_y_continuous', breaks, minor_breaks, trans, limits,  labels, expand, name)
+        return self.scale_continuous('scale_y_continuous', breaks,
+                                     minor_breaks, trans, limits, labels,
+                                     expand, name)
 
-    def scale_continuous(self, scale='scale_x_continuous', breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None, other_params=None):
+    def scale_continuous(self,
+                         scale='scale_x_continuous',
+                         breaks=None,
+                         minor_breaks=None,
+                         trans=None,
+                         limits=None,
+                         labels=None,
+                         expand=None,
+                         name=None,
+                         other_params=None):
         if other_params is None:
             other_params = OrderedDict()
         if not breaks is None:
-            if isinstance(breaks, str) and breaks in ('date', 'log', 'pretty', 'trans'):
+            if isinstance(breaks, str) and breaks in ('date', 'log', 'pretty',
+                                                      'trans'):
                 other_params['breaks'] = robjects.r('%s_breaks' % breaks)()
                 breaks = None
             else:
@@ -953,23 +1130,33 @@ class Plot(_PlotBase):
         if not limits is None:
             other_params['limits'] = numpy.array(limits)
         if not labels is None:
-            if labels in ('comma', 'dollar', 'percent', 'scientific', 'date', 'parse', 'format', ):
+            if labels in (
+                    'comma',
+                    'dollar',
+                    'percent',
+                    'scientific',
+                    'date',
+                    'parse',
+                    'format',
+            ):
                 other_params['labels'] = robjects.r("%s_format" % labels)()
                 labels = None
             # elif labels.startswith('math_format') or labels.startswith('trans_format'):
-                #other_params['labels'] = robjects.r(labels)
-                #labels = None
+            #other_params['labels'] = robjects.r(labels)
+            #labels = None
             elif hasattr(labels, '__iter__'):
                 other_params['labels'] = numpy.array(labels)
             elif isinstance(labels, rpy2.robjects.SignatureTranslatedFunction):
                 other_params['labels'] = labels
             elif hasattr(labels, '__call__'):
+
                 def label_callback(x, labels=labels):
                     temp = labels(x)
                     res = rpy2.robjects.r('c')()
                     for x in temp:
                         res = rpy2.robjects.r('c')(res, x)
                     return res
+
                 other_params['labels'] = rinterface.rternalize(label_callback)
                 labels = None
             elif isinstance(labels, rpy2.robjects.vectors.Vector):
@@ -986,15 +1173,42 @@ class Plot(_PlotBase):
         if not name is None:
             other_params['name'] = name
 
-        self._other_adds.append(
-            robjects.r(scale)(**other_params)
-        )
+        self._other_adds.append(robjects.r(scale)(**other_params))
         return self
 
-    def scale_size_area(self, max_size=6, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
-        return self.scale_continuous('scale_size_area', breaks, minor_breaks, trans, limits,  labels, expand, name, other_params=OrderedDict({'max_size': max_size}))
+    def scale_size_area(self,
+                        max_size=6,
+                        breaks=None,
+                        minor_breaks=None,
+                        trans=None,
+                        limits=None,
+                        labels=None,
+                        expand=None,
+                        name=None):
+        return self.scale_continuous(
+            'scale_size_area',
+            breaks,
+            minor_breaks,
+            trans,
+            limits,
+            labels,
+            expand,
+            name,
+            other_params=OrderedDict({
+                'max_size': max_size
+            }))
 
-    def scale_discrete(self, scale_name, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None, position=None, guide=None):
+    def scale_discrete(self,
+                       scale_name,
+                       breaks=None,
+                       minor_breaks=None,
+                       trans=None,
+                       limits=None,
+                       labels=None,
+                       expand=None,
+                       name=None,
+                       position=None,
+                       guide=None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -1005,20 +1219,30 @@ class Plot(_PlotBase):
         if not limits is None:
             other_params['limits'] = numpy.array(limits)
         if not labels is None:
-            if labels in ('comma', 'dollar', 'percent', 'scientific', 'date', 'parse', 'format', ):
+            if labels in (
+                    'comma',
+                    'dollar',
+                    'percent',
+                    'scientific',
+                    'date',
+                    'parse',
+                    'format',
+            ):
                 other_params['labels'] = robjects.r("%s_format" % labels)()
                 labels = None
             # elif labels.startswith('math_format') or labels.startswith('trans_format'):
-                #other_params['labels'] = robjects.r(labels)
-                #labels = None
+            #other_params['labels'] = robjects.r(labels)
+            #labels = None
             elif hasattr(labels, '__iter__'):
                 other_params['labels'] = numpy.array(labels)
             elif isinstance(labels, rpy2.robjects.SignatureTranslatedFunction):
                 other_params['labels'] = labels
             elif hasattr(labels, '__call__'):
+
                 def label_callback(x):
                     res = labels(x)
                     return rpy2.robjects.r('c')(numpy.array(res))
+
                 other_params['labels'] = rinterface.rternalize(label_callback)
             else:
                 other_params['labels'] = robjects.r(labels)
@@ -1036,18 +1260,43 @@ class Plot(_PlotBase):
             if len(breaks) != len(labels):
                 raise ValueError("len(breaks) != len(labels)")
 
-        self._other_adds.append(
-            robjects.r(scale_name)(**other_params)
-        )
+        self._other_adds.append(robjects.r(scale_name)(**other_params))
         return self
 
-    def scale_x_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None, position=None):
-        return self.scale_discrete('scale_x_discrete', breaks, minor_breaks, trans, limits, labels, expand, name, position)
+    def scale_x_discrete(self,
+                         breaks=None,
+                         minor_breaks=None,
+                         trans=None,
+                         limits=None,
+                         labels=None,
+                         expand=None,
+                         name=None,
+                         position=None):
+        return self.scale_discrete('scale_x_discrete', breaks, minor_breaks,
+                                   trans, limits, labels, expand, name,
+                                   position)
 
-    def scale_y_discrete(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None, position=None):
-        return self.scale_discrete('scale_y_discrete', breaks, minor_breaks, trans, limits, labels, expand, name, position)
+    def scale_y_discrete(self,
+                         breaks=None,
+                         minor_breaks=None,
+                         trans=None,
+                         limits=None,
+                         labels=None,
+                         expand=None,
+                         name=None,
+                         position=None):
+        return self.scale_discrete('scale_y_discrete', breaks, minor_breaks,
+                                   trans, limits, labels, expand, name,
+                                   position)
 
-    def scale_x_reverse(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
+    def scale_x_reverse(self,
+                        breaks=None,
+                        minor_breaks=None,
+                        trans=None,
+                        limits=None,
+                        labels=None,
+                        expand=None,
+                        name=None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -1071,7 +1320,14 @@ class Plot(_PlotBase):
         self._other_adds.append(robjects.r('scale_x_reverse')(**other_params))
         return self
 
-    def scale_y_reverse(self, breaks=None, minor_breaks=None, trans=None, limits=None, labels=None, expand=None, name=None):
+    def scale_y_reverse(self,
+                        breaks=None,
+                        minor_breaks=None,
+                        trans=None,
+                        limits=None,
+                        labels=None,
+                        expand=None,
+                        name=None):
         other_params = {}
         if not breaks is None:
             other_params['breaks'] = numpy.array(breaks)
@@ -1095,7 +1351,12 @@ class Plot(_PlotBase):
         self._other_adds.append(robjects.r('scale_y_reverse')(**other_params))
         return self
 
-    def turn_x_axis_labels(self, angle=90, hjust=1,  vjust=0.5, size=None, color=None):
+    def turn_x_axis_labels(self,
+                           angle=90,
+                           hjust=1,
+                           vjust=0.5,
+                           size=None,
+                           color=None):
         axis_text_x_args = {
             'angle': angle,
             'hjust': hjust,
@@ -1106,13 +1367,16 @@ class Plot(_PlotBase):
         for key, value in list(axis_text_x_args.items()):
             if value is None:
                 del axis_text_x_args[key]
-        kargs = {
-            'axis.text.x': robjects.r('element_text')(**axis_text_x_args)
-        }
+        kargs = {'axis.text.x': robjects.r('element_text')(**axis_text_x_args)}
         self._other_adds.append(robjects.r('theme')(**kargs))
         return self
 
-    def turn_y_axis_labels(self, angle=75, hjust=1, size=8, vjust=0, color=None):
+    def turn_y_axis_labels(self,
+                           angle=75,
+                           hjust=1,
+                           size=8,
+                           vjust=0,
+                           color=None):
         axis_text_y_args = {
             'angle': angle,
             'hjust': hjust,
@@ -1123,66 +1387,101 @@ class Plot(_PlotBase):
         for key, value in axis_text_y_args.items():
             if value is None:
                 del axis_text_y_args[key]
-        kargs = {
-            'axis.text.y': robjects.r('element_text')(**axis_text_y_args)
-        }
+        kargs = {'axis.text.y': robjects.r('element_text')(**axis_text_y_args)}
         self._other_adds.append(robjects.r('theme')(**kargs))
         return self
 
     def hide_background(self):
-        self._other_adds.append(robjects.r('theme')(**{'panel.background': robjects.r('element_blank()')}))
+        self._other_adds.append(
+            robjects.r('theme')(
+                **{
+                    'panel.background': robjects.r('element_blank()')
+                }))
         return self
 
     def hide_background_keep_frame(self):
-        self._other_adds.append(robjects.r('theme')(**{'panel.background': robjects.r("element_rect(colour='black', size=1, fill=NA)"),
-                                                       "panel.grid.major": robjects.r("element_blank()"),
-                                                       "panel.grid.minor": robjects.r("element_blank()")}))
+        self._other_adds.append(
+            robjects.r('theme')(**{
+                'panel.background':
+                robjects.r("element_rect(colour='black', size=1, fill=NA)"),
+                "panel.grid.major":
+                robjects.r("element_blank()"),
+                "panel.grid.minor":
+                robjects.r("element_blank()")
+            }))
 
     def hide_y_axis_labels(self):
-        self._other_adds.append(robjects.r('theme')(**{"axis.text.y": robjects.r('element_blank()')}))
+        self._other_adds.append(
+            robjects.r('theme')(**{
+                "axis.text.y": robjects.r('element_blank()')
+            }))
         return self
 
     def hide_x_axis_labels(self):
-        self._other_adds.append(robjects.r('theme')(**{"axis.text.x": robjects.r('element_blank()')}))
+        self._other_adds.append(
+            robjects.r('theme')(**{
+                "axis.text.x": robjects.r('element_blank()')
+            }))
         return self
 
     def hide_axis_ticks(self):
-        self._other_adds.append(robjects.r('theme')(**{"axis.ticks": robjects.r('element_blank()')}))
+        self._other_adds.append(
+            robjects.r('theme')(**{
+                "axis.ticks": robjects.r('element_blank()')
+            }))
         return self
 
     def hide_axis_ticks_x(self):
-        self._other_adds.append(robjects.r('theme')(**{"axis.ticks.x": robjects.r('element_blank()')}))
+        self._other_adds.append(
+            robjects.r('theme')(**{
+                "axis.ticks.x": robjects.r('element_blank()')
+            }))
         return self
 
     def hide_axis_ticks_y(self):
-        self._other_adds.append(robjects.r('theme')(**{"axis.ticks.y": robjects.r('element_blank()')}))
+        self._other_adds.append(
+            robjects.r('theme')(**{
+                "axis.ticks.y": robjects.r('element_blank()')
+            }))
         return self
 
     def hide_y_axis_title(self):
-        self._other_adds.append(robjects.r('theme')(**{"axis.title.y": robjects.r('element_blank()')}))
+        self._other_adds.append(
+            robjects.r('theme')(**{
+                "axis.title.y": robjects.r('element_blank()')
+            }))
         return self
 
     def hide_x_axis_title(self):
-        self._other_adds.append(robjects.r('theme')(**{"axis.title.x": robjects.r('element_blank()')}))
+        self._other_adds.append(
+            robjects.r('theme')(**{
+                "axis.title.x": robjects.r('element_blank()')
+            }))
         return self
 
     def hide_facet_labels(self):
-        self._other_adds.append(robjects.r('theme')(**{
-            'strip.background': robjects.r('element_blank()'),
-            'strip.text.x': robjects.r('element_blank()'),
-        }))
+        self._other_adds.append(
+            robjects.r('theme')(
+                **{
+                    'strip.background': robjects.r('element_blank()'),
+                    'strip.text.x': robjects.r('element_blank()'),
+                }))
         return self
 
     def hide_legend_key(self):
-        self._other_adds.append(robjects.r('theme')(**{"legend.key": robjects.r('element_blank()')}))
+        self._other_adds.append(
+            robjects.r('theme')(**{
+                "legend.key": robjects.r('element_blank()')
+            }))
         return self
 
     def scale_fill_many_categories(self, offset=0, name=None):
 
         self.scale_fill_manual(
-            (self._many_cat_colors + self._many_cat_colors, name=Name)[offset:offset + len(self._many_cat_colors)])
+            self._many_cat_colors + self._many_cat_colors,
+            name=Name)[offset:offset + len(self._many_cat_colors)]
         return self
-   
+
     def scale_fill_manual(self, list_of_colors, guide=None, name=None):
         kwargs = {}
         if guide is not None:
@@ -1202,10 +1501,22 @@ class Plot(_PlotBase):
             other_params['palette'] = palette
         if guide is not None:
             other_params['guide'] = guide
-        self._other_adds.append(robjects.r('scale_fill_brewer')(palette=palette, **{'type': typ}))
+        self._other_adds.append(
+            robjects.r('scale_fill_brewer')(palette=palette, **{
+                'type': typ
+            }))
         return self
 
-    def scale_fill_hue(self, h=None, l=None, c=None, limits=None, breaks=None, labels=None, h_start=None, direction=None, guide=None):
+    def scale_fill_hue(self,
+                       h=None,
+                       l=None,
+                       c=None,
+                       limits=None,
+                       breaks=None,
+                       labels=None,
+                       h_start=None,
+                       direction=None,
+                       guide=None):
         other_params = {}
         if not h is None:
             other_params['h'] = h
@@ -1228,12 +1539,26 @@ class Plot(_PlotBase):
         self._other_adds.append(robjects.r('scale_fill_hue')(**other_params))
         return self
 
-    def scale_fill_gradient(self, low, high, mid=None, midpoint=None, name=None, space='rgb', breaks=None, labels=None, limits=None, trans=None, guide=None, na_value='grey50'):
+    def scale_fill_gradient(self,
+                            low,
+                            high,
+                            mid=None,
+                            midpoint=None,
+                            name=None,
+                            space='rgb',
+                            breaks=None,
+                            labels=None,
+                            limits=None,
+                            trans=None,
+                            guide=None,
+                            na_value='grey50'):
         other_params = {}
         other_params['low'] = low
         other_params['high'] = high
         if midpoint is not None and mid is None:
-            raise ValueError("If you pass in a midpoint, you also need to set a value for mid")
+            raise ValueError(
+                "If you pass in a midpoint, you also need to set a value for mid"
+            )
         if mid is not None:
             other_params['mid'] = mid
         if midpoint is not None:
@@ -1254,20 +1579,25 @@ class Plot(_PlotBase):
             other_params['na.value'] = na_value
 
         if mid is not None:
-            self._other_adds.append(robjects.r('scale_fill_gradient2')(**other_params))
+            self._other_adds.append(
+                robjects.r('scale_fill_gradient2')(**other_params))
         else:
-            self._other_adds.append(robjects.r('scale_fill_gradient')(**other_params))
+            self._other_adds.append(
+                robjects.r('scale_fill_gradient')(**other_params))
         return self
 
     def scale_fill_gradientn(self, colors, name=None, *args):
         other_params = {}
         if name is not None:
             other_params['name'] = name
-        self._other_adds.append(robjects.r('scale_fill_gradientn')(colours=colors, **other_params))
+        self._other_adds.append(
+            robjects.r('scale_fill_gradientn')(colours=colors, **other_params))
         return self
 
     def scale_fill_rainbow(self, number_of_steps=7):
-        self._other_adds.append(robjects.r('scale_fill_gradientn')(colours=robjects.r('rainbow')(number_of_steps)))
+        self._other_adds.append(
+            robjects.r('scale_fill_gradientn')(
+                colours=robjects.r('rainbow')(number_of_steps)))
         return self
 
     def coord_flip(self):
@@ -1275,21 +1605,24 @@ class Plot(_PlotBase):
         return self
 
     def coord_polar(self, theta="x", start=0, direction=1):
-        self._other_adds.append(robjects.r('coord_polar')(
-            theta=theta,
-            start=start,
-            direction=direction,
-            # expand=expand
-        ))
+        self._other_adds.append(
+            robjects.r('coord_polar')(
+                theta=theta,
+                start=start,
+                direction=direction,
+                # expand=expand
+            ))
         return self
 
     def legend_position(self, value):
         if not isinstance(value, tuple) and not isinstance(value, str):
             raise ValueError("Legend position must be a tuple or a string")
         if type(value) is tuple:
-            self._other_adds.append(robjects.r('theme(legend.position = c(%f,%f))' % value))
+            self._other_adds.append(
+                robjects.r('theme(legend.position = c(%f,%f))' % value))
         else:
-            self._other_adds.append(robjects.r('theme(legend.position = "%s")' % value))
+            self._other_adds.append(
+                robjects.r('theme(legend.position = "%s")' % value))
         return self
 
     def hide_legend(self):
@@ -1299,25 +1632,26 @@ class Plot(_PlotBase):
     def guide_legend(self, **kwargs):
         r_args = {}
         for arg_name in [
-            "title",
-            "title_position",
-            "title_theme",
-            "title_hjust",
-            "title_vjust",
-            "label",
-            "label_position",
-            "label_theme",
-            "label_hjust",
-            "label_vjust",
-            "keywidth",
-            "keyheight",
-            "direction",
-            "default_unit",
-            "override_aes",
-            "nrow",
-            "ncol",
-            "byrow",
-                "reverse", ]:
+                "title",
+                "title_position",
+                "title_theme",
+                "title_hjust",
+                "title_vjust",
+                "label",
+                "label_position",
+                "label_theme",
+                "label_hjust",
+                "label_vjust",
+                "keywidth",
+                "keyheight",
+                "direction",
+                "default_unit",
+                "override_aes",
+                "nrow",
+                "ncol",
+                "byrow",
+                "reverse",
+        ]:
             if arg_name in kwargs and kwargs[arg_name] is not None:
                 r_args[arg_name.replace('_', '.')] = kwargs[arg_name]
         return robjects.r('guide_legend')(**kwargs)
@@ -1325,69 +1659,68 @@ class Plot(_PlotBase):
     def guide_colourbar(self, **kwargs):
         r_args = {}
         for arg_name in [
-            "title",
-            "title_position",
-            "title_theme",
-            "title_hjust",
-            "title_vjust",
-            "label",
-            "label_position",
-            "label_theme",
-            "label_hjust",
-            "label_vjust",
-            "keywidth",
-            "keyheight",
-            "direction",
-            "default_unit",
-            "override_aes",
-            "nrow",
-            "ncol",
-            "byrow",
-            "reverse",
-            'nbin'
+                "title", "title_position", "title_theme", "title_hjust",
+                "title_vjust", "label", "label_position", "label_theme",
+                "label_hjust", "label_vjust", "keywidth", "keyheight",
+                "direction", "default_unit", "override_aes", "nrow", "ncol",
+                "byrow", "reverse", 'nbin'
         ]:
             if arg_name in kwargs and kwargs[arg_name] is not None:
                 r_args[arg_name.replace('_', '.')] = kwargs[arg_name]
         return robjects.r('guide_colourbar')(**kwargs)
 
     def hide_panel_border(self):
-        self._other_adds.append(robjects.r('theme(panel.border=element_rect(fill=NA, colour=NA))'))
+        self._other_adds.append(
+            robjects.r('theme(panel.border=element_rect(fill=NA, colour=NA))'))
         return self
 
     def hide_strip_background(self):
-        self._other_adds.append(robjects.r('theme(strip.background=element_rect(fill=NA, colour=NA))'))
+        self._other_adds.append(
+            robjects.r(
+                'theme(strip.background=element_rect(fill=NA, colour=NA))'))
         return self
 
     def set_axis_color(self, color=None):
         if color is None:
-            self._other_adds.append(robjects.r('theme(axis.line = theme_segment())'))
+            self._other_adds.append(
+                robjects.r('theme(axis.line = theme_segment())'))
         else:
-            self._other_adds.append(robjects.r('theme(axis.line = theme_segment(colour = "%s"))' % color))
+            self._other_adds.append(
+                robjects.r(
+                    'theme(axis.line = theme_segment(colour = "%s"))' % color))
         return self
 
     def hide_grid(self):
-        self._other_adds.append(robjects.r('theme(panel.grid.major = element_blank())'))
-        self._other_adds.append(robjects.r('theme(panel.grid.minor = element_blank())'))
+        self._other_adds.append(
+            robjects.r('theme(panel.grid.major = element_blank())'))
+        self._other_adds.append(
+            robjects.r('theme(panel.grid.minor = element_blank())'))
         return self
 
     def hide_grid_minor(self):
         #self._other_adds.append(robjects.r('theme(panel.grid.major = theme_line(colour = NA))'))
-     #       self._other_adds.append(robjects.r('theme(panel.grid.minor = theme_line(colour = NA))'))
-        self._other_adds.append(robjects.r('theme(panel.grid.minor = element_blank())'))
+        #       self._other_adds.append(robjects.r('theme(panel.grid.minor = theme_line(colour = NA))'))
+        self._other_adds.append(
+            robjects.r('theme(panel.grid.minor = element_blank())'))
         return self
 
     def smaller_margins(self):
-        self._other_adds.append(robjects.r('theme(panel.margin = unit(0.0, "lines"))'))
-        self._other_adds.append(robjects.r('theme(axis.ticks.margin = unit(0.0, "cm"))'))
+        self._other_adds.append(
+            robjects.r('theme(panel.margin = unit(0.0, "lines"))'))
+        self._other_adds.append(
+            robjects.r('theme(axis.ticks.margin = unit(0.0, "cm"))'))
         self.plot_margin(0, 0, 0, 0)
         return self
 
     def plot_margin(self, top, left, bottom, right):
-        self._other_adds.append(robjects.r('theme(plot.margin = unit(c(%i,%i,%i,%i), "lines"))' % (top, left, bottom, right)))
+        self._other_adds.append(
+            robjects.r('theme(plot.margin = unit(c(%i,%i,%i,%i), "lines"))' %
+                       (top, left, bottom, right)))
         return self
 
     def scale_shape_manual(self, values):
-        self._other_adds.append(robjects.r('scale_shape_manual')(values=values))
+        self._other_adds.append(
+            robjects.r('scale_shape_manual')(values=values))
         return self
 
     def scale_shape_identity(self):
@@ -1398,7 +1731,8 @@ class Plot(_PlotBase):
         kwargs = {}
         if name is not None:
             kwargs['name'] = name
-        self._other_adds.append(robjects.r('scale_shape')(solid=solid, **kwargs))
+        self._other_adds.append(
+            robjects.r('scale_shape')(solid=solid, **kwargs))
         return self
 
     def scale_linetype_manual(self, values, guide=None, name=None):
@@ -1407,7 +1741,9 @@ class Plot(_PlotBase):
             kwargs['guide'] = guide
         if name is not None:
             kwargs['name'] = name
-        self._other_adds.append(robjects.r('scale_linetype_manual')(values=numpy.array(values), **kwargs))
+        self._other_adds.append(
+            robjects.r('scale_linetype_manual')(
+                values=numpy.array(values), **kwargs))
         return self
 
     def scale_colour_manual(self, values, guide=None, name=None):
@@ -1416,7 +1752,9 @@ class Plot(_PlotBase):
             kwargs['guide'] = guide
         if name is not None:
             kwargs['name'] = name
-        self._other_adds.append(robjects.r('scale_colour_manual')(values=numpy.array(values), **kwargs))
+        self._other_adds.append(
+            robjects.r('scale_colour_manual')(
+                values=numpy.array(values), **kwargs))
         return self
 
     def scale_colour_manual_labels(self, vals, labels, guide=None, name=None):
@@ -1425,9 +1763,12 @@ class Plot(_PlotBase):
             kwargs['guide'] = guide
         if name is not None:
             kwargs['name'] = name
-        self._other_adds.append(robjects.r("""
+        self._other_adds.append(
+            robjects.r("""
             scale_colour_manual
-            """)(values=numpy.array(vals), labels=numpy.array(labels), **kwargs))
+            """)(
+                values=numpy.array(vals), labels=numpy.array(labels),
+                **kwargs))
         return self
 
     def scale_color_manual(self, *args, **kwargs):
@@ -1455,7 +1796,8 @@ class Plot(_PlotBase):
             other_params['palette'] = palette
         if guide is not None:
             other_params['guide'] = guide
-        self._other_adds.append(robjects.r('scale_colour_brewer')(**other_params))
+        self._other_adds.append(
+            robjects.r('scale_colour_brewer')(**other_params))
         return self
 
     def scale_colour_grey(self, guide=None):
@@ -1465,12 +1807,25 @@ class Plot(_PlotBase):
         self._other_adds.append(robjects.r('scale_colour_grey')(**kwargs))
         return self
 
-    def scale_color_gradient(self, low, high, mid=None, midpoint=None, name=None, space='rgb', breaks=None, labels=None, limits=None, trans=None, guide=None):
+    def scale_color_gradient(self,
+                             low,
+                             high,
+                             mid=None,
+                             midpoint=None,
+                             name=None,
+                             space='rgb',
+                             breaks=None,
+                             labels=None,
+                             limits=None,
+                             trans=None,
+                             guide=None):
         other_params = {}
         other_params['low'] = low
         other_params['high'] = high
         if midpoint is not None and mid is None:
-            raise ValueError("If you pass in a midpoint, you also need to set a value for mid")
+            raise ValueError(
+                "If you pass in a midpoint, you also need to set a value for mid"
+            )
         if mid is not None:
             other_params['mid'] = mid
         if midpoint is not None:
@@ -1489,30 +1844,46 @@ class Plot(_PlotBase):
             other_params['guide'] = guide
 
         if mid is not None:
-            self._other_adds.append(robjects.r('scale_colour_gradient2')(**other_params))
+            self._other_adds.append(
+                robjects.r('scale_colour_gradient2')(**other_params))
         else:
-            self._other_adds.append(robjects.r('scale_colour_gradient')(**other_params))
+            self._other_adds.append(
+                robjects.r('scale_colour_gradient')(**other_params))
         return self
 
-    _many_cat_colors = ["dodgerblue2", "#E31A1C",  # red
-                        "green4",
-                        "#6A3D9A",  # purple
-                        "#FF7F00",  # orange
-                        "grey30", "gold1",
-                        "skyblue2", "#FB9A99",  # lt pink
-                        "palegreen2",
-                        # "#CAB2D6", # lt purple
-                        "#0000FF",
-                        "#FDBF6F",  # lt orange
-                        "gray70",
-                        "khaki2",
-                        "maroon", "orchid1", "deeppink1", "blue1", "steelblue4",
-                        "darkturquoise", "green1", "yellow4", "yellow3",
-                        "darkorange4", "brown"]
+    _many_cat_colors = [
+        "dodgerblue2",
+        "#E31A1C",  # red
+        "green4",
+        "#6A3D9A",  # purple
+        "#FF7F00",  # orange
+        "grey30",
+        "gold1",
+        "skyblue2",
+        "#FB9A99",  # lt pink
+        "palegreen2",
+        # "#CAB2D6", # lt purple
+        "#0000FF",
+        "#FDBF6F",  # lt orange
+        "gray70",
+        "khaki2",
+        "maroon",
+        "orchid1",
+        "deeppink1",
+        "blue1",
+        "steelblue4",
+        "darkturquoise",
+        "green1",
+        "yellow4",
+        "yellow3",
+        "darkorange4",
+        "brown"
+    ]
 
     def scale_color_many_categories(self, offset=0, **kwargs):
-        self.scale_color_manual(
-            (self._many_cat_colors + self._many_cat_colors)[offset:offset + len(self._many_cat_colors)], **kwargs)
+        self.scale_color_manual((self._many_cat_colors + self._many_cat_colors
+                                 )[offset:offset + len(self._many_cat_colors)],
+                                **kwargs)
 
     def scale_fill_grey(self, guide=None):
         kwargs = {}
@@ -1535,13 +1906,14 @@ class Plot(_PlotBase):
         writer.save()
 
     def set_y_axis_title_size(self, size, angle=90):
-        self._other_adds.append(robjects.r('theme')(
-            **{
-                'axis.title.y': ro.r('element_text')(size=size, angle=angle)}))
+        self._other_adds.append(
+            robjects.r('theme')(**{
+                'axis.title.y':
+                ro.r('element_text')(size=size, angle=angle)
+            }))
 
 
 class _CowBase(_PlotBase):
-
     def _add_draw_methods(self):
         """add add_Draw methods for all geoms in ggplot.
         All geoms have required & optional attributes and take an optional data parameter with another
@@ -1552,27 +1924,50 @@ class _CowBase(_PlotBase):
         methods = _geoms()
         for x in methods:
             if len(x) != 6:
-                raise ValueError("Wrong number of arguments: %s" % (x,))
+                raise ValueError("Wrong number of arguments: %s" % (x, ))
         targets = [
             ('draw_', self._draw_after_plot),
         ]
         if hasattr(self, '_draw_before_plot'):
             targets.append(('draw_before_', self._draw_before_plot))
         for prefix, target in targets:
-            for (names, geom, required, optional, defaults, doc_str) in methods:
-                def define(geom, required, optional, defaults, target):  # we need to capture the variables...
+            for (names, geom, required, optional, defaults,
+                 doc_str) in methods:
+
+                def define(geom, required, optional, defaults,
+                           target):  # we need to capture the variables...
                     def do_add(*args, **kwargs):
-                        return self._add(geom, required, optional, defaults, args, kwargs, target=target)
+                        return self._add(
+                            geom,
+                            required,
+                            optional,
+                            defaults,
+                            args,
+                            kwargs,
+                            target=target)
+
                     do_add.__doc__ = doc_str
                     return do_add
+
                 f = define(geom, required, optional, defaults, target)
                 if isinstance(names, str):
                     names = [names]
                 for name in names:
-                    if not hasattr(self, prefix + name):  # so we can still overwrite them by defining functions by hand
-                        setattr(self, prefix + name, f)  # legacy names, basically
+                    if not hasattr(
+                            self, prefix + name
+                    ):  # so we can still overwrite them by defining functions by hand
+                        setattr(self, prefix + name,
+                                f)  # legacy names, basically
 
-    def draw_plot_label(self, label, x=0, y=1, hjust=-0.5, vjust=1.5, size=16, fontface='bold', **kwargs):
+    def draw_plot_label(self,
+                        label,
+                        x=0,
+                        y=1,
+                        hjust=-0.5,
+                        vjust=1.5,
+                        size=16,
+                        fontface='bold',
+                        **kwargs):
         params = {}
         params['label'] = label
         params['x'] = x
@@ -1582,12 +1977,17 @@ class _CowBase(_PlotBase):
         params['size'] = size
         params['fontface'] = fontface
         params.update(kwargs)
-        self._draw_after_plot.append(
-            self.r['draw_plot_label'](**params))
+        self._draw_after_plot.append(self.r['draw_plot_label'](**params))
         return self
 
-    def draw_figure_label(self, label, position='top.left', size=16, fontface='bold', **kwargs):
-        allowed_positions = ("top.left", "top", "top.right", "bottom.left", "bottom", "bottom.right")
+    def draw_figure_label(self,
+                          label,
+                          position='top.left',
+                          size=16,
+                          fontface='bold',
+                          **kwargs):
+        allowed_positions = ("top.left", "top", "top.right", "bottom.left",
+                             "bottom", "bottom.right")
         if position not in allowed_positions:
             raise ValueError("Allowed positions: %s" % allowed_positions)
         params = {}
@@ -1596,12 +1996,11 @@ class _CowBase(_PlotBase):
         params['size'] = size
         params['fontface'] = fontface
         params.update(kwargs)
-        self._draw_after_plot.append(
-            self.r['draw_figure_label'](**params))
+        self._draw_after_plot.append(self.r['draw_figure_label'](**params))
         return self
 
-    def _draw_label(self, target, label, x, y, hjust, vjust,
-                    fontfamily, fontface, color, size, angle, lineheight, alpha):
+    def _draw_label(self, target, label, x, y, hjust, vjust, fontfamily,
+                    fontface, color, size, angle, lineheight, alpha):
         """Draw a label"""
         params = {
             'label': label,
@@ -1620,24 +2019,55 @@ class _CowBase(_PlotBase):
         target.append(robjects.r('draw_label')(**params))
         return self
 
-    def draw_label(self, label, x=0.5, y=0.5, hjust=0.5, vjust=0.5,
-                   fontfamily="", fontface="plain", color="black", size=14,
-                   angle=0, lineheight=0.9, alpha=1):
-        return self._draw_label(self._draw_after_plot, label, x, y, hjust, vjust, fontfamily, fontface, color, size, angle, lineheight, alpha)
+    def draw_label(self,
+                   label,
+                   x=0.5,
+                   y=0.5,
+                   hjust=0.5,
+                   vjust=0.5,
+                   fontfamily="",
+                   fontface="plain",
+                   color="black",
+                   size=14,
+                   angle=0,
+                   lineheight=0.9,
+                   alpha=1):
+        return self._draw_label(self._draw_after_plot, label, x, y, hjust,
+                                vjust, fontfamily, fontface, color, size,
+                                angle, lineheight, alpha)
 
-    def draw_before_label(self, label, x=0.5, y=0.5, hjust=0.5, vjust=0.5,
-                          fontfamily="", fontface="plain", color="black", size=14,
-                          angle=0, lineheight=0.9, alpha=1):
-        return self._draw_label(self._draw_before_plot, label, x, y, hjust, vjust, fontfamily, fontface, color, size, angle, lineheight, alpha)
+    def draw_before_label(self,
+                          label,
+                          x=0.5,
+                          y=0.5,
+                          hjust=0.5,
+                          vjust=0.5,
+                          fontfamily="",
+                          fontface="plain",
+                          color="black",
+                          size=14,
+                          angle=0,
+                          lineheight=0.9,
+                          alpha=1):
+        return self._draw_label(self._draw_before_plot, label, x, y, hjust,
+                                vjust, fontfamily, fontface, color, size,
+                                angle, lineheight, alpha)
 
     def render(self, output_filename, width=None, height=None, dpi=None):
         """Save the plot to a file"""
         plot = self.build_ggplot()
-        output_filename = output_filename.replace('%', '%%')  # R tries some kind of integer substitution on these, so we need to double the %
+        output_filename = output_filename.replace(
+            '%', '%%'
+        )  # R tries some kind of integer substitution on these, so we need to double the %
         kwargs = {}
         if output_filename.endswith('.png'):
             kwargs['type'] = 'cairo'
-        self.r['save_plot'](filename=output_filename, plot=plot, limitsize=self.limitsize, base_aspect_ratio=self.base_aspect_ratio, **kwargs)
+        self.r['save_plot'](
+            filename=output_filename,
+            plot=plot,
+            limitsize=self.limitsize,
+            base_aspect_ratio=self.base_aspect_ratio,
+            **kwargs)
 
 
 class GGDraw(_CowBase):
@@ -1669,12 +2099,14 @@ class GGDraw(_CowBase):
         d = self.r['ggdraw']()
         for x in self._draw_after_plot:
             if isinstance(x, tuple):
-                d = self.r['add'](d, self.r['draw_plot'](x[0].build_ggplot(), x[1], x[2], x[3], x[4]))
+                d = self.r['add'](d, self.r['draw_plot'](
+                    x[0].build_ggplot(), x[1], x[2], x[3], x[4]))
             else:
                 d = self.r['add'](d, x)
         return d
 
-    def _add(self, geom_name, required_mappings, optional_mappings, defaults, args, kwargs, target):
+    def _add(self, geom_name, required_mappings, optional_mappings, defaults,
+             args, kwargs, target):
         """The generic method to add a geom to the ggplot.
         You need to call add_xyz (see _add_geom_methods for a list, with each variable mapping
         being one argument) with the respectivly required parameters (see ggplot documentation).
@@ -1683,7 +2115,9 @@ class GGDraw(_CowBase):
         """
         mappings = {}
         all_defined_mappings = required_mappings + optional_mappings
-        for a, b in zip(all_defined_mappings, args):  # so that you could in theory also pass the optional_mappings by position...required_mappings
+        for a, b in zip(
+                all_defined_mappings, args
+        ):  # so that you could in theory also pass the optional_mappings by position...required_mappings
             mappings[a] = b
         mappings.update(kwargs)
 
@@ -1694,20 +2128,28 @@ class GGDraw(_CowBase):
             data = None
         for mapping in mappings:
             if mapping not in required_mappings and mapping not in optional_mappings:
-                raise ValueError("%s does not take parameter %s" % (geom_name, mapping))
+                raise ValueError(
+                    "%s does not take parameter %s" % (geom_name, mapping))
         for mapping in required_mappings:
             if mapping not in mappings:
                 if mapping in defaults:
-                    if hasattr(defaults[mapping], '__call__', ):
+                    if hasattr(
+                            defaults[mapping],
+                            '__call__',
+                    ):
                         mappings[mapping] = defaults[mapping](mappings)
                     else:
                         mappings[mapping] = defaults[mapping]
                 else:
-                    raise ValueError("Missing required mapping in %s: %s" % (geom_name, mapping))
+                    raise ValueError("Missing required mapping in %s: %s" %
+                                     (geom_name, mapping))
         for mapping in optional_mappings:
             if mapping not in mappings:
                 if mapping in defaults:
-                    if hasattr(defaults[mapping], '__call__', ):
+                    if hasattr(
+                            defaults[mapping],
+                            '__call__',
+                    ):
                         mappings[mapping] = defaults[mapping](mappings)
                     else:
                         mappings[mapping] = defaults[mapping]
@@ -1725,7 +2167,9 @@ class GGDraw(_CowBase):
         if geom_name.startswith('annotation'):
             target.append(robjects.r(geom_name)(**self.other_collection))
         else:
-            target.append(robjects.r(geom_name)(self._build_aesthetic(self.aes_collection), **self.other_collection))
+            target.append(
+                robjects.r(geom_name)(self._build_aesthetic(
+                    self.aes_collection), **self.other_collection))
         return self
 
 
@@ -1750,8 +2194,8 @@ class CowPlot(_CowBase, Plot):
         for obj in self._other_adds:
             plot = self.r['add'](plot, obj)
         for name, value in self.lab_rename.items():
-            plot = self.r['add'](
-                plot, robjects.r('labs(%s = "%s")' % (name, value)))
+            plot = self.r['add'](plot,
+                                 robjects.r('labs(%s = "%s")' % (name, value)))
         if self._draw_before_plot or self._draw_after_plot:
             d = self.r['ggdraw']()
             for obj in self._draw_before_plot:
@@ -1775,22 +2219,30 @@ class CowPlot(_CowBase, Plot):
     def switch_axis_position(self, axis='y', keep='none'):
         allowed_axis = ('y', 'x', 'xy')
         if axis not in allowed_axis:
-            raise ValueError("Allowed axis values are %s" % (allowed_axis,))
+            raise ValueError("Allowed axis values are %s" % (allowed_axis, ))
         allowed_keep = ('none', 'x', 'y', 'xy', 'yx')
         if keep not in allowed_keep:
-            raise ValueError("Allowed keep values are %s" % (allowed_keep,))
-        self._other_adds.append(robjects.r('switch_axis_position')(
-            axis=axis, keep=keep))
+            raise ValueError("Allowed keep values are %s" % (allowed_keep, ))
+        self._other_adds.append(
+            robjects.r('switch_axis_position')(axis=axis, keep=keep))
         return self
 
-    def background_grid(self, major='xy', minor='none', size_major=0.2, size_minor=0.5, color_major='grey90', color_minor='grey98'):
+    def background_grid(self,
+                        major='xy',
+                        minor='none',
+                        size_major=0.2,
+                        size_minor=0.5,
+                        color_major='grey90',
+                        color_minor='grey98'):
         """Reestablish a background grid"""
         valid_major = ("xy", "x", "y", "only_minor", "none")
         if major not in valid_major:
-            raise ValueError("@major must be one of %s was %s" % valid_major, major)
+            raise ValueError("@major must be one of %s was %s" % valid_major,
+                             major)
         valid_minor = ("xy", "x", "y", "none")
         if minor not in valid_minor:
-            raise ValueError("@minor must be one of %s was %s" % valid_minor, minor)
+            raise ValueError("@minor must be one of %s was %s" % valid_minor,
+                             minor)
         kwargs = {
             'major': major,
             'minor': minor,
@@ -1804,32 +2256,53 @@ class CowPlot(_CowBase, Plot):
 
 
 class plot_grid(_PlotBase):
-
-    def __init__(self, plots, labels='auto', align='none',
-                 nrow=None, ncol=None,
-                 scale=1, rel_widths=1, rel_heights=1,
-                 label_size=14,
-                 hjust=-0.5, vjust=1.5,
-                 ):
+    def __init__(
+            self,
+            plots,
+            labels='auto',
+            align='none',
+            nrow=None,
+            ncol=None,
+            scale=1,
+            rel_widths=1,
+            rel_heights=1,
+            label_size=14,
+            hjust=-0.5,
+            vjust=1.5,
+    ):
         valid_aligns = 'none', 'h', 'v', 'hv'
         if align not in valid_aligns:
-            raise ValueError("Invalid align value %s - must be one of %s" % (align, valid_aligns))
-        if labels and not isinstance(labels, list) and not labels in ('AUTO', 'auto'):
-            raise ValueError("Labels must be either a list of strings, None, or 'AUTO' / 'auto' for ABC or abcd")
+            raise ValueError("Invalid align value %s - must be one of %s" %
+                             (align, valid_aligns))
+        if labels and not isinstance(labels, list) and not labels in ('AUTO',
+                                                                      'auto'):
+            raise ValueError(
+                "Labels must be either a list of strings, None, or 'AUTO' / 'auto' for ABC or abcd"
+            )
         if isinstance(labels, list) and len(labels) != len(plots):
             raise ValueError("Labels must be the same lengths as plots")
         for p in plots:
             if not isinstance(p, CowPlot):
                 raise ValueError("All plots must be CowPlots")
         self.params = {
-            'labels': numpy.array(labels) if (hasattr(labels, '__iter__') and not isinstance(labels, str)) else labels,
-            'scale': scale,
-            'rel_widths': rel_widths,
-            'rel_heights': rel_heights,
-            'label_size': label_size,
-            'hjust': hjust,
-            'vjust': vjust,
-            'align': align,
+            'labels':
+            numpy.array(labels)
+            if (hasattr(labels, '__iter__') and not isinstance(labels, str))
+            else labels,
+            'scale':
+            scale,
+            'rel_widths':
+            rel_widths,
+            'rel_heights':
+            rel_heights,
+            'label_size':
+            label_size,
+            'hjust':
+            hjust,
+            'vjust':
+            vjust,
+            'align':
+            align,
         }
         if nrow and ncol:
             self.params['nrow'] = nrow
@@ -1862,11 +2335,18 @@ class plot_grid(_PlotBase):
     def render(self, output_filename, width=None, height=None, dpi=None):
         """Save the plot to a file"""
         plot = self.build_ggplot()
-        output_filename = output_filename.replace('%', '%%')  # R tries some kind of integer substitution on these, so we need to double the %
+        output_filename = output_filename.replace(
+            '%', '%%'
+        )  # R tries some kind of integer substitution on these, so we need to double the %
         kwargs = {}
         if output_filename.endswith('.png'):
             kwargs['type'] = 'cairo'
-        self.r['save_plot'](filename=output_filename, plot=plot, ncol=self.params['ncol'], nrow=self.params['ncol'], **kwargs)
+        self.r['save_plot'](
+            filename=output_filename,
+            plot=plot,
+            ncol=self.params['ncol'],
+            nrow=self.params['ncol'],
+            **kwargs)
 
 
 class MultiPagePlot(Plot):
@@ -1876,7 +2356,15 @@ class MultiPagePlot(Plot):
 
     """
 
-    def __init__(self, dataframe, facet_variable_x, facet_variable_y=None, n_cols_per_page=3, n_rows_per_page=5, fixed_x=False, fixed_y=True, facet_style='wrap'):
+    def __init__(self,
+                 dataframe,
+                 facet_variable_x,
+                 facet_variable_y=None,
+                 n_cols_per_page=3,
+                 n_rows_per_page=5,
+                 fixed_x=False,
+                 fixed_y=True,
+                 facet_style='wrap'):
         if 'pydataframe.dataframe.DataFrame' in str(type(dataframe)):
             dataframe = self._convert_pydataframe(dataframe)
 
@@ -1884,18 +2372,25 @@ class MultiPagePlot(Plot):
         self.facet_variable_x = facet_variable_x
         self.facet_variable_y = facet_variable_y
         if facet_variable_x not in dataframe.columns:
-            raise ValueError("facet_variable_x %s not in dataframe.columns_ordered" % facet_variable_x)
+            raise ValueError(
+                "facet_variable_x %s not in dataframe.columns_ordered" %
+                facet_variable_x)
         if facet_variable_y and facet_variable_y not in dataframe.columns:
-            raise ValueError("facet_variable_y %s not in dataframe.columns_ordered" % facet_variable_y)
+            raise ValueError(
+                "facet_variable_y %s not in dataframe.columns_ordered" %
+                facet_variable_y)
         if facet_style not in ('wrap', 'grid'):
             raise ValueError("facet_style must be one of wrap, grid")
         self.facet_style = facet_style
         self.fixed_x = fixed_x
         self.fixed_y = fixed_y
         self.n_cols_per_page = n_cols_per_page
-        no_of_x_variables = len(self.dataframe['dat_%s' % self.old_names.index(self.facet_variable_x)].unique())
+        no_of_x_variables = len(self.dataframe['dat_%s' % self.old_names.index(
+            self.facet_variable_x)].unique())
         if self.facet_variable_y:
-            no_of_y_variables = len(self.dataframe['dat_%s' % self.old_names.index(self.facet_variable_y)].unique())
+            no_of_y_variables = len(
+                self.dataframe['dat_%s' % self.old_names.index(
+                    self.facet_variable_y)].unique())
             no_of_plots = no_of_x_variables * no_of_y_variables
         else:
             no_of_plots = no_of_x_variables
@@ -1911,8 +2406,11 @@ class MultiPagePlot(Plot):
             # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
             args = [iter(iterable)] * n
             return izip_longest(fillvalue=fillvalue, *args)
+
         if self.facet_variable_y:
-            raise NotImplemented("The splitting into two variable sub_dfs is not implemented yet")
+            raise NotImplemented(
+                "The splitting into two variable sub_dfs is not implemented yet"
+            )
         else:
             x_column = 'dat_%s' % self.old_names.index(self.facet_variable_x)
             x_values = self.dataframe[x_column].unique()
@@ -1946,9 +2444,17 @@ class MultiPagePlot(Plot):
         else:
             scale = 'fixed'
         if self.facet_style == 'grid':
-            self._other_adds.append(robjects.r('facet_grid')(robjects.r(facet_specification), scale=scale, ncol=self.n_cols_per_page))
+            self._other_adds.append(
+                robjects.r('facet_grid')(
+                    robjects.r(facet_specification),
+                    scale=scale,
+                    ncol=self.n_cols_per_page))
         elif self.facet_style == 'wrap':
-            self._other_adds.append(robjects.r('facet_wrap')(robjects.r(facet_specification), scale=scale, ncol=self.n_cols_per_page))
+            self._other_adds.append(
+                robjects.r('facet_wrap')(
+                    robjects.r(facet_specification),
+                    scale=scale,
+                    ncol=self.n_cols_per_page))
 
         robjects.r('pdf')(output_filename, width=8.26, height=11.69)
         page_no = 0
@@ -1958,20 +2464,46 @@ class MultiPagePlot(Plot):
             for obj in self._other_adds:
                 plot = self.r['add'](plot, obj)
             for name, value in self.lab_rename.items():
-                plot = self.r['add'](
-                    plot, robjects.r('labs(%s = "%s")' % (name, value)))
+                plot = self.r['add'](plot,
+                                     robjects.r(
+                                         'labs(%s = "%s")' % (name, value)))
             robjects.r('print')(plot)
         robjects.r('dev.off')()
 
-    def facet_grid(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
+    def facet_grid(self,
+                   column_one,
+                   column_two=None,
+                   fixed_x=True,
+                   fixed_y=True,
+                   ncol=None):
         raise ValueError("MultiPagePlots specify faceting on construction")
 
-    def facet(self, column_one, column_two=None, fixed_x=True, fixed_y=True, ncol=None):
+    def facet(self,
+              column_one,
+              column_two=None,
+              fixed_x=True,
+              fixed_y=True,
+              ncol=None):
         raise ValueError("MultiPagePlots specify faceting on construction")
 
 
-def plot_heatmap(output_filename, data, infinity_replacement_value=10, low='blue', high='red', mid='white', nan_color='grey', hide_genes=True, array_cluster_method='cosine',
-                 x_label='Condition', y_label='Gene', colors=None, hide_tree=False, exclude_those_with_too_many_nans_in_y_clustering=False, width=None, row_order=False, column_order=False):
+def plot_heatmap(output_filename,
+                 data,
+                 infinity_replacement_value=10,
+                 low='blue',
+                 high='red',
+                 mid='white',
+                 nan_color='grey',
+                 hide_genes=True,
+                 array_cluster_method='cosine',
+                 x_label='Condition',
+                 y_label='Gene',
+                 colors=None,
+                 hide_tree=False,
+                 exclude_those_with_too_many_nans_in_y_clustering=False,
+                 width=None,
+                 row_order=False,
+                 column_order=False):
     """This code plots a heatmap + dendrogram.
     (unlike add_heatmap, which just does the squares on an existing plot)
     @data is a df of {'gene':, 'condition':, 'expression_change'}
@@ -2003,24 +2535,29 @@ def plot_heatmap(output_filename, data, infinity_replacement_value=10, low='blue
     load_r()
     valid_array_cluster = 'hamming_on_0', 'cosine'
     if not array_cluster_method in valid_array_cluster:
-        raise ValueError("only accepts array_cluster_method methods %s" % valid_array_cluster)
+        raise ValueError("only accepts array_cluster_method methods %s" %
+                         valid_array_cluster)
     df = data
     if colors == None:
         colors = ['grey' for x in range(len(data))]
 
     # R's scale NaNs everything on any of these values...
     # df[numpy.isnan(df.get_column_view('expression_change')), 'expression_change'] = 0 #we do this part in R now.
-    df[numpy.isposinf(df.get_column_view('expression_change')), 'expression_change'] = infinity_replacement_value
-    df[numpy.isneginf(df.get_column_view('expression_change')), 'expression_change'] = -1 * infinity_replacement_value
+    df[numpy.isposinf(df.get_column_view('expression_change')),
+       'expression_change'] = infinity_replacement_value
+    df[numpy.isneginf(df.get_column_view('expression_change')),
+       'expression_change'] = -1 * infinity_replacement_value
 
-    if len(df.get_column_unique('condition')) < 2 or len(df.get_column_unique('gene')) < 2:
+    if len(df.get_column_unique('condition')) < 2 or len(
+            df.get_column_unique('gene')) < 2:
         op = open(output_filename, 'wb')
         op.write("not enough dimensions\n")
         op.close()
         return
     file_extension = output_filename[-3:].lower()
     if not (file_extension == 'pdf' or file_extension == 'png'):
-        raise ValueError('File extension must be .pdf or .png, outfile was '+output_filename)
+        raise ValueError('File extension must be .pdf or .png, outfile was ' +
+                         output_filename)
     robjects.r("""
     normvec<-function(x)
     {
@@ -2241,7 +2778,11 @@ def plot_heatmap(output_filename, data, infinity_replacement_value=10, low='blue
     if not width:
         width = len(df.get_column_unique('condition')) * 0.4 + 5
     height = len(df.get_column_unique('gene')) * 0.15 + 3
-    robjects.r('do_tha_funky_heatmap')(output_filename, df, low, mid, high, nan_color, hide_genes, width, height, array_cluster_method, keep_column_order, keep_row_order, colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering, row_order, column_order)
+    robjects.r('do_tha_funky_heatmap')(
+        output_filename, df, low, mid, high, nan_color, hide_genes, width,
+        height, array_cluster_method, keep_column_order, keep_row_order,
+        colors, hide_tree, exclude_those_with_too_many_nans_in_y_clustering,
+        row_order, column_order)
 
 
 def EmptyPlot(text_to_display='No data'):
@@ -2284,14 +2825,18 @@ class CombinedPlots:
         if len(self.plots) < self.ncol:
             self.ncol = len(self.plots)
         nrow = math.ceil(len(self.plots) / float(self.ncol))
-        svgs = [p._repr_svg_(width=self.width / self.ncol / 150 * 72, height=self.height / nrow / 150 * 72) for p in self.plots]
+        svgs = [
+            p._repr_svg_(
+                width=self.width / self.ncol / 150 * 72,
+                height=self.height / nrow / 150 * 72) for p in self.plots
+        ]
         tfs = [tempfile.NamedTemporaryFile(suffix='.svg') for x in svgs]
         for of, svg in zip(tfs, svgs):
             of.write(svg[0].encode('utf-8'))
             of.flush()
         doc = svg_stack.Document()
         layout1 = svg_stack.VBoxLayout()
-        rows = [tfs[i:i+self.ncol] for i in range(0, len(tfs), self.ncol)]
+        rows = [tfs[i:i + self.ncol] for i in range(0, len(tfs), self.ncol)]
         ii = 0
         for row in rows:
             ii += 1
@@ -2394,10 +2939,8 @@ def multiplot(list_of_plots, cols):
 
 def r_plot_to_png(callback, width=600, height=600, dpi=72):
     from rpy2.robjects.lib import grdevices
-    with grdevices.render_to_bytesio(grdevices.png,
-                                     width=width,
-                                     height=height,
-                                     res=dpi) as b:
+    with grdevices.render_to_bytesio(
+            grdevices.png, width=width, height=height, res=dpi) as b:
         result = callback()
     return b.getvalue()
 
@@ -2425,18 +2968,20 @@ try:
     import rpy2.robjects.numpy2ri
     rpy2.robjects.numpy2ri.activate()
 
-
     def numpy2ri_vector(o):
         """Convert a numpy 1d array to an R vector.
 
         Unlike the original conversion which converts into a list, apperantly."""
         if len(o.shape) != 1:
-            raise ValueError("Dataframe.numpy2ri_vector can only convert 1d arrays")
+            raise ValueError(
+                "Dataframe.numpy2ri_vector can only convert 1d arrays")
         # if isinstance(o, Factor):
-            #res = ro.r['factor'](o.as_levels(), levels=o.levels, ordered=True)
+        #res = ro.r['factor'](o.as_levels(), levels=o.levels, ordered=True)
         elif isinstance(o, numpy.ndarray):
             if not o.dtype.isnative:
-                raise ValueError("Cannot pass numpy arrays with non-native byte orders at the moment.")
+                raise ValueError(
+                    "Cannot pass numpy arrays with non-native byte orders at the moment."
+                )
 
             # The possible kind codes are listed at
             #   http://numpy.scipy.org/array_interface.shtml
@@ -2456,7 +3001,8 @@ try:
             if o.dtype.kind in kinds:
                 # "F" means "use column-major order"
                 #            vec = rinterface.SexpVector(o.ravel("F"), kinds[o.dtype.kind])
-                vec = rinterface.SexpVector(numpy.ravel(o, "F"), kinds[o.dtype.kind])
+                vec = rinterface.SexpVector(
+                    numpy.ravel(o, "F"), kinds[o.dtype.kind])
                 res = vec
             # R does not support unsigned types:
             elif o.dtype.kind == "u":
@@ -2469,35 +3015,39 @@ try:
                 all_bool = True
                 all_r_object = True
                 for value in o:
-                    if (
-                            isinstance(value, six.string_types) and
-                            not type(value) is numpy.string_ and
-                            not (type(value) is numpy.ma.core.MaskedArray and value.mask == True) and
-                            not (type(value) is numpy.ma.core.MaskedConstant and value.mask == True)
-
-                    ):
+                    if (isinstance(value, six.string_types)
+                            and not type(value) is numpy.string_
+                            and not (type(value) is numpy.ma.core.MaskedArray
+                                     and value.mask == True) and
+                            not (type(value) is numpy.ma.core.MaskedConstant
+                                 and value.mask == True)):
                         all_str = False
                         break
                     if not (type(value) is bool or type(value) is numpy.bool_):
                         all_bool = False
-                    if not (type(value) is robjects.robject.RObject or type(value) is rpy2.robjects.vectors.Vector):
+                    if not (type(value) is robjects.robject.RObject
+                            or type(value) is rpy2.robjects.vectors.Vector):
                         all_r_object = False
                 if (not all_str) and (not all_bool) and (not all_r_object):
-                    raise ValueError("numpy2ri_vector currently does not handle object vectors: %s %s" % (value, type(value)))
+                    raise ValueError(
+                        "numpy2ri_vector currently does not handle object vectors: %s %s"
+                        % (value, type(value)))
                 else:
                     # since we keep strings as objects
                     # we have to jump some hoops here
-                    vec = rinterface.SexpVector(numpy.ravel(o, "F"), kinds['S'])
+                    vec = rinterface.SexpVector(
+                        numpy.ravel(o, "F"), kinds['S'])
                     return vec
                     #res = ro.conversion.py2ri(list(o))
             # Record arrays map onto R data frames:
             elif o.dtype.kind == "V":
-                raise ValueError("numpy2ri_vector currently does not handle record arrays")
+                raise ValueError(
+                    "numpy2ri_vector currently does not handle record arrays")
             # It should be impossible to get here:
             else:
                 raise ValueError("Unknown numpy array type.")
         else:
-            raise(ValueError("Unknown input to numpy2ri_vector."))
+            raise (ValueError("Unknown input to numpy2ri_vector."))
         return res
 
     # I can't figuer out how to do colnames(x) = value without a helper function
@@ -2520,19 +3070,28 @@ try:
             for column_name in o.columns:
                 try:
                     names.append(str(column_name))
-                    if str(o[column_name].dtype) == 'category':  # There has to be a more elegant way to specify this...
-                        col = ro.r('factor')(list(numpy.array(o[column_name])), list(o[column_name].cat.categories), ordered=True)
+                    if str(
+                            o[column_name].dtype
+                    ) == 'category':  # There has to be a more elegant way to specify this...
+                        col = ro.r('factor')(
+                            list(numpy.array(o[column_name])),
+                            list(o[column_name].cat.categories),
+                            ordered=True)
 
                     else:
                         col = numpy.array(o[column_name])
                         col = numpy2ri_vector(col)
                     parameters.append(col)
                 except ValueError as e:
-                    raise ValueError(str(e) + ' Offending column: %s, dtype: %s, content: %s' % (column_name, col.dtype, col[:10]))
+                    raise ValueError(
+                        str(e) +
+                        ' Offending column: %s, dtype: %s, content: %s' %
+                        (column_name, col.dtype, col[:10]))
             # kw_params['row.names'] = numpy2ri_vector(numpy.array(o.index))
             try:
                 if keep_index:
-                    kw_params['row.names'] = numpy.array(o.index)  # turn the index into rownames names
+                    kw_params['row.names'] = numpy.array(
+                        o.index)  # turn the index into rownames names
                 res = dfConstructor(*parameters, **kw_params)
                 res = ro.r('set_colnames')(res, names)
             except TypeError:
@@ -2546,6 +3105,5 @@ try:
 
 except ImportError:  # guess we don't have rpy
     pass
-
 
 all = [Plot, plot_heatmap, multiplot, MultiPagePlot]
