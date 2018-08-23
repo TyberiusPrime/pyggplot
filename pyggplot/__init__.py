@@ -1177,19 +1177,20 @@ class Plot(_PlotBase):
         self._other_adds.append(robjects.r('theme')(**{"legend.key": robjects.r('element_blank()')}))
         return self
 
-    def scale_fill_many_categories(self, offset=0):
+    def scale_fill_many_categories(self, offset=0, name=None):
 
         self.scale_fill_manual(
-            (self._many_cat_colors + self._many_cat_colors)[offset:offset + len(self._many_cat_colors)])
+            (self._many_cat_colors + self._many_cat_colors, name=Name)[offset:offset + len(self._many_cat_colors)])
         return self
-
+   
     def scale_fill_manual(self, list_of_colors, guide=None, name=None):
         kwargs = {}
         if guide is not None:
             kwargs['guide'] = guide
         if name is not None:
             kwargs['name'] = name
-        kwargs['values'] = numpy.array(list_of_colors)
+        kwargs['values'] = numpy2ri_vector(numpy.array(list_of_colors))
+
         self._other_adds.append(robjects.r('scale_fill_manual')(**kwargs))
         return self
 
@@ -2423,6 +2424,7 @@ try:
     import rpy2.rinterface as rinterface
     import rpy2.robjects.numpy2ri
     rpy2.robjects.numpy2ri.activate()
+
 
     def numpy2ri_vector(o):
         """Convert a numpy 1d array to an R vector.
