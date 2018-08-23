@@ -607,6 +607,14 @@ class Plot(_PlotBase):
                     self._build_aesthetic({'x': x_column, 'y': '..count..', 'label': '..count..'}), stat='bin'))
         return self
 
+    def add_mean(self, x_column, y_column, color='red', width=1):
+        """Add a bar significing the mean to boxplots"""
+        x_column = 'dat_%s' % self.old_names.index(x_column)
+        y_column = 'dat_%s' % self.old_names.index(y_column)
+        data = self.dataframe.groupby(x_column)[y_column].mean().reset_index()
+        self.add_error_bars(x_column, y_column, y_column, width=width, color=color, data=data)
+        return self
+
     def geom_histogram(self, *args, **kwargs):
         self.add_histogram(*args, **kwargs)
 
