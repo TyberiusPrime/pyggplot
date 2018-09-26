@@ -15,6 +15,13 @@ except ImportError:
 import plotnine as p9
 from plotnine import stats
 
+class Expression:
+    def __init__(self, expr_str):
+        self.expr_str = expr_str
+
+class Scalar:
+    def __init__(self, scalar_str):
+        self.scalar_str = scalar_str
 
 class Plot:
     def __init__(self, dataframe):
@@ -159,9 +166,17 @@ class Plot:
                     "We only accept xmin,xmax,ymin,ymax by position, all other args need to be named"
                 )
 
+
         for a, b in kwargs.items():
             if a in all_defined_mappings:
-                if (  #isinstance(b, str) and
+                # if it is an expression, keep it that way
+                # if it's a single value, treat it as a scalar
+                # except if it looks like an expression (ie. has ()
+                if isinstance(b, Expression):
+                    b = b.expr_str
+                elif isinstance(b, Scalar):
+                    b = [b.scalar_str]
+                elif (  
                     ((data is not None and b not in data.columns) or
                      (data is None and b not in self.dataframe.columns))
                         and not '(' in str(
@@ -500,3 +515,6 @@ class Plot:
         self.scale_color_manual((self._many_cat_colors + self._many_cat_colors
                                  )[offset:offset + len(self._many_cat_colors)])
         return self
+
+
+save_as_pdf_pages = p9.save_as_pdf_pages
