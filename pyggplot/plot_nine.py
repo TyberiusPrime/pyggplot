@@ -16,13 +16,16 @@ except ImportError:
 import plotnine as p9
 from plotnine import stats
 
+
 class Expression:
     def __init__(self, expr_str):
         self.expr_str = expr_str
 
+
 class Scalar:
     def __init__(self, scalar_str):
         self.scalar_str = scalar_str
+
 
 class Plot:
     def __init__(self, dataframe):
@@ -33,6 +36,14 @@ class Plot:
         self._add_geoms()
         self._add_scales_and_cords_and_facets_and_themes()
         self._add_positions_and_stats()
+
+    def __add__(self, other):
+        if hasattr(other, '__radd__'): 
+            # let's assume that it's a plotnine object that knows how to radd it
+            # self to our plot
+            self.plot = self.plot + other
+        return self
+
 
     def _prep_dataframe(self, df):
         """prepare the dataframe by making sure it's a pandas dataframe,
@@ -167,7 +178,6 @@ class Plot:
                     "We only accept xmin,xmax,ymin,ymax by position, all other args need to be named"
                 )
 
-
         for a, b in kwargs.items():
             if a in all_defined_mappings:
                 # if it is an expression, keep it that way
@@ -177,12 +187,11 @@ class Plot:
                     b = b.expr_str
                 elif isinstance(b, Scalar):
                     b = [b.scalar_str]
-                elif (  
-                    ((data is not None and b not in data.columns) or
-                     (data is None and b not in self.dataframe.columns))
-                        and not '(' in str(
-                            b)  # so a true scalar, not a calculated expression
-                ):
+                elif (((data is not None and b not in data.columns) or
+                       (data is None and b not in self.dataframe.columns))
+                      and not '(' in str(
+                          b)  # so a true scalar, not a calculated expression
+                      ):
                     b = [b]  # which will tell it to treat it as a scalar!
                 mapping[a] = b
         #mapping.update({x: kwargs[x] for x in kwargs if x in all_defined_mappings})
@@ -224,18 +233,18 @@ class Plot:
             if name.startswith('scale_') or name.startswith(
                     'coord_') or name.startswith('facet') or name.startswith(
                         'theme'):
-                scale = getattr(p9, name)
-
-                def define(scale):
-                    def add_(*args, **kwargs):
-                        self.plot += scale(*args, **kwargs)
-                        return self
-
-                    add_.__doc__ = scale.__doc__
-                    return add_
-
                 method_name = name
                 if not hasattr(self, method_name):
+                    scale = getattr(p9, name)
+
+                    def define(scale):
+                        def add_(*args, **kwargs):
+                            self.plot += scale(*args, **kwargs)
+                            return self
+
+                        add_.__doc__ = scale.__doc__
+                        return add_
+
                     setattr(self, method_name, define(scale))
 
     def _add_positions_and_stats(self):
@@ -253,6 +262,8 @@ class Plot:
 
     def facet(self, *args, **kwargs):
         """Compability to old calling style"""
+        if 'free_y' in kwargs['scales']:
+            self.plot += p9.theme(subplots_adjust={'wspace':0.2})
         return self.facet_wrap(*args, **kwargs)
 
     def add_jitter(self, x, y, jitter_x=True, jitter_y=True, **kwargs):
@@ -516,6 +527,18 @@ class Plot:
         self.scale_color_manual((self._many_cat_colors + self._many_cat_colors
                                  )[offset:offset + len(self._many_cat_colors)])
         return self
+
+    def render(self,
+               output_filename,
+               width=8,
+               height=6,
+               dpi=300,
+               din_size=None):
+        if din_size == 'A4':
+            width = 8.267
+            height = 11.692
+        self.plot += p9.theme(dpi=dpi)
+        self.plot.save(output_filename, width, height, verbose=False)
 
 
 save_as_pdf_pages = p9.save_as_pdf_pages
