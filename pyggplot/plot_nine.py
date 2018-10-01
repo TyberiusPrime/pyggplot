@@ -538,7 +538,7 @@ class Plot:
             width = 8.267
             height = 11.692
         self.plot += p9.theme(dpi=dpi)
-        self.plot.save(output_filename, width, height, verbose=False)
+        self.plot.save(filename=output_filename, width=width, height=height, verbose=False)
 
 
 save_as_pdf_pages = p9.save_as_pdf_pages
