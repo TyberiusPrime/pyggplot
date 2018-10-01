@@ -6,6 +6,7 @@ import itertools
 try:
     import exptools
     exptools.load_software('palettable')
+    exptools.load_software('descartes')
     exptools.load_software('mizani')
     exptools.load_software('patsy')
     exptools.load_software('plotnine')
