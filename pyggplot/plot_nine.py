@@ -146,6 +146,7 @@ class Plot:
                 p9.stats, 'stat_' + stat
                 if not stat.startswith('stat_') else stat)
         mapping = {}
+        out_kwargs = {}
         all_defined_mappings = list(
             stat.REQUIRED_AES) + list(geom_class.REQUIRED_AES) + list(
                 geom_class.DEFAULT_AES)  # + list(geom_class.DEFAULT_PARAMS)
@@ -183,20 +184,27 @@ class Plot:
                 # if it is an expression, keep it that way
                 # if it's a single value, treat it as a scalar
                 # except if it looks like an expression (ie. has ()
+                is_kwarg = False
                 if isinstance(b, Expression):
                     b = b.expr_str
+                    is_kwarg = True
                 elif isinstance(b, Scalar):
-                    b = [b.scalar_str]
+                    b = b.scalar_str
+                    is_kwarg = True
                 elif (((data is not None and b not in data.columns) or
                        (data is None and b not in self.dataframe.columns))
                       and not '(' in str(
                           b)  # so a true scalar, not a calculated expression
                       ):
-                    b = [b]  # which will tell it to treat it as a scalar!
-                mapping[a] = b
+                    b = b  # which will tell it to treat it as a scalar!
+                    is_kwarg = True
+                if not is_kwarg:
+                    mapping[a] = b
+                else:
+                    out_kwargs[a] = b
+
         #mapping.update({x: kwargs[x] for x in kwargs if x in all_defined_mappings})
 
-        out_kwargs = {}
         out_kwargs['data'] = data
         for a in geom_class.DEFAULT_PARAMS:
             if a in kwargs:
