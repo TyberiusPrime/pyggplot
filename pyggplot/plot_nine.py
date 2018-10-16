@@ -133,6 +133,7 @@ class Plot:
         You may optionally pass in an argument called data, which will replace the plot-global dataframe
         for this particular geom
         """
+
         if 'data' in kwargs:
             data = self._prep_dataframe(kwargs['data'])
         else:
@@ -149,7 +150,7 @@ class Plot:
         out_kwargs = {}
         all_defined_mappings = list(
             stat.REQUIRED_AES) + list(geom_class.REQUIRED_AES) + list(
-                geom_class.DEFAULT_AES)  # + list(geom_class.DEFAULT_PARAMS)
+                geom_class.DEFAULT_AES)  + ['group'] # + list(geom_class.DEFAULT_PARAMS)
         if 'x' in geom_class.REQUIRED_AES:
             if len(args) > 0:
                 kwargs['x'] = args[0]
@@ -497,6 +498,9 @@ class Plot:
         self._change_theme('strip_background', p9.element_blank())
         return self._change_theme('strip_text_x', p9.element_blank())
 
+    def hide_legend_key(self):
+        raise ValueError("plotnine doesn't do 'hide_legend' - pass show_legend=False to the geoms instead")
+        
     _many_cat_colors = [
         "#1C86EE",
         "#E31A1C",  # red
