@@ -3,6 +3,7 @@ import tempfile
 import pandas as pd
 import numpy as np
 import itertools
+from .base import _PlotBase
 try:
     import exptools
     exptools.load_software('palettable')
@@ -13,6 +14,8 @@ try:
 
 except ImportError:
     pass
+import matplotlib
+matplotlib.use('agg')
 import plotnine as p9
 from plotnine import stats
 
@@ -27,7 +30,7 @@ class Scalar:
         self.scalar_str = scalar_str
 
 
-class Plot:
+class Plot(_PlotBase):
     def __init__(self, dataframe):
         self.dataframe = self._prep_dataframe(dataframe)
         self.ipython_plot_width = 600

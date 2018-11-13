@@ -64,6 +64,7 @@ not when adding the layer.
 
 """
 try:
+    from .base import _PlotBase
     import rpy2
     import rpy2.robjects as robjects
     import rpy2.rinterface as rinterface
@@ -160,7 +161,7 @@ ipython_plot_width = 480
 ipython_plot_height = 480
 
 
-class _PlotBase(object):
+class _RPlotBase(_PlotBase):
     def render_notebook(self, width=800, height=600):
         from IPython.core.display import Image
         tf = tempfile.NamedTemporaryFile(suffix='.png')
@@ -335,7 +336,7 @@ def _geoms():
     )
 
 
-class Plot(_PlotBase):
+class Plot(_RPlotBase):
     def __init__(self, dataframe, *ignored):
         """Create a new ggplot2 object from DataFrame"""
         load_r()
@@ -1913,7 +1914,7 @@ class Plot(_PlotBase):
             }))
 
 
-class _CowBase(_PlotBase):
+class _CowBase(_RPlotBase):
     def _add_draw_methods(self):
         """add add_Draw methods for all geoms in ggplot.
         All geoms have required & optional attributes and take an optional data parameter with another
@@ -2255,7 +2256,7 @@ class CowPlot(_CowBase, Plot):
         return self
 
 
-class plot_grid(_PlotBase):
+class plot_grid(_RPlotBase):
     def __init__(
             self,
             plots,
