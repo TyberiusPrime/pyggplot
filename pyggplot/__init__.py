@@ -61,7 +61,8 @@ Also, the error appears when rendering (or printing in ipython notebook),
 not when adding the layer.
 """
 from .plot_r import Plot, plot_heatmap, multiplot, MultiPagePlot, convert_dataframe_to_r
+from .base import _PlotBase
 from . import plot_nine
 
-all = [Plot, plot_heatmap, multiplot, MultiPagePlot, convert_dataframe_to_r
+all = [Plot, plot_heatmap, multiplot, MultiPagePlot, convert_dataframe_to_r, _PlotBase
 ]
