@@ -11,7 +11,7 @@ if os.path.exists('README.md'):
 
 setup(
     name='pyggplot',
-    version='24',
+    version='25',
     packages=['pyggplot',],
     license='BSD',
     url='https://github.com/TyberiusPrime/pyggplot',

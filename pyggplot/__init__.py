@@ -63,6 +63,6 @@ not when adding the layer.
 #from .plot_r import Plot, plot_heatmap, multiplot, MultiPagePlot, convert_dataframe_to_r
 from .base import _PlotBase
 #from . import plot_nine
-from plot_nine import Plot, Expression, Scalar
+from .plot_nine import Plot, Expression, Scalar
 
 all = [Plot, Expression, Scalar]
