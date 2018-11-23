@@ -11,7 +11,7 @@ if os.path.exists('README.md'):
 
 setup(
     name='pyggplot',
-    version='23',
+    version='24',
     packages=['pyggplot',],
     license='BSD',
     url='https://github.com/TyberiusPrime/pyggplot',
@@ -23,7 +23,7 @@ setup(
     include_package_data=True,    
     install_requires=[
         'pandas>=0.15',
-        'rpy2',
+        'plotnine',
         'ordereddict',
         ],
     classifiers=['Development Status :: 3 - Alpha',

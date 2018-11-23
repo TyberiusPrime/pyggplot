@@ -60,9 +60,9 @@ without actually quite pointing at what is strictly the offending value.
 Also, the error appears when rendering (or printing in ipython notebook),
 not when adding the layer.
 """
-from .plot_r import Plot, plot_heatmap, multiplot, MultiPagePlot, convert_dataframe_to_r
+#from .plot_r import Plot, plot_heatmap, multiplot, MultiPagePlot, convert_dataframe_to_r
 from .base import _PlotBase
-from . import plot_nine
+#from . import plot_nine
+from plot_nine import Plot, Expression, Scalar
 
-all = [Plot, plot_heatmap, multiplot, MultiPagePlot, convert_dataframe_to_r, _PlotBase
-]
+all = [Plot, Expression, Scalar]
