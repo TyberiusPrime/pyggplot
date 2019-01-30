@@ -4,16 +4,16 @@ import pandas as pd
 import numpy as np
 import itertools
 from .base import _PlotBase
-try:
-    import exptools
-    exptools.load_software('palettable')
-    exptools.load_software('descartes')
-    exptools.load_software('mizani')
-    exptools.load_software('patsy')
-    exptools.load_software('plotnine')
+#try:
+    #import exptools
+    #exptools.load_software('palettable')
+    #exptools.load_software('descartes')
+    #exptools.load_software('mizani')
+    #exptools.load_software('patsy')
+    #exptools.load_software('plotnine')
 
-except ImportError:
-    pass
+#except ImportError:
+    #pass
 import matplotlib
 matplotlib.use('agg')
 import plotnine as p9
@@ -533,14 +533,14 @@ class Plot(_PlotBase):
         "#A52A2A"
     ]
 
-    def scale_fill_many_categories(self, offset=0):
+    def scale_fill_many_categories(self, offset=0, **kwargs):
         self.scale_fill_manual((self._many_cat_colors + self._many_cat_colors
-                                )[offset:offset + len(self._many_cat_colors)])
+                                )[offset:offset + len(self._many_cat_colors)], **kwargs)
         return self
 
-    def scale_color_many_categories(self, offset=0):
+    def scale_color_many_categories(self, offset=0, **kwargs):
         self.scale_color_manual((self._many_cat_colors + self._many_cat_colors
-                                 )[offset:offset + len(self._many_cat_colors)])
+                                 )[offset:offset + len(self._many_cat_colors)], **kwargs)
         return self
 
     def render(self,

@@ -70,8 +70,8 @@ try:
     import rpy2.rinterface as rinterface
     RNULL = robjects.NULL
     try:
-        import exptools
-        exptools.load_software('ggplot2')
+        #import exptools
+        #exptools.load_software('ggplot2')
         # exptools.load_software('cowplot') # ggplot2 contains cowplot
         import ggplot2
         #import cowplot
