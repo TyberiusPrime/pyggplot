@@ -68,6 +68,12 @@ try:
     import rpy2
     import rpy2.robjects as robjects
     import rpy2.rinterface as rinterface
+    try: 
+        RRuntimeError = rinterface.RRuntimeError
+    except AttributeError:
+        import rpy2.rinterface_lib.embedded
+        RRuntimeError = rpy2.rinterface_lib.embedded.RRuntimeError
+
     RNULL = robjects.NULL
     try:
         #import exptools
@@ -77,7 +83,7 @@ try:
         #import cowplot
         ggplot2.load_r()
         # cowplot.load_r()
-    except (ImportError, rpy2.rinterface.RRuntimeError):
+    except (ImportError, RRuntimeError):
         # raise
         pass
 except ImportError:
