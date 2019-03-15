@@ -2992,33 +2992,18 @@ try:
 
             # The possible kind codes are listed at
             #   http://numpy.scipy.org/array_interface.shtml
-            try:
-                kinds = {
-                    # "t" -> not really supported by numpy
-                    "b": rinterface.LGLSXP,
-                    "i": rinterface.INTSXP,
-                    # "u" -> special-cased below
-                    "f": rinterface.REALSXP,
-                    "c": rinterface.CPLXSXP,
-                    # "O" -> special-cased below
-                    "S": rinterface.STRSXP,
-                    "U": rinterface.STRSXP,
-                    # "V" -> special-cased below
-                }
-            except AttributeError:
-                kinds = {
-                    # "t" -> not really supported by numpy
-                    "b": rinterface.RTYPES.LGLSXP,
-                    "i": rinterface.RTYPES.INTSXP,
-                    # "u" -> special-cased below
-                    "f": rinterface.RTYPES.REALSXP,
-                    "c": rinterface.RTYPES.CPLXSXP,
-                    # "O" -> special-cased below
-                    "S": rinterface.RTYPES.STRSXP,
-                    "U": rinterface.RTYPES.STRSXP,
-                    # "V" -> special-cased below
-                }
-                 
+            kinds = {
+                # "t" -> not really supported by numpy
+                "b": rinterface.LGLSXP,
+                "i": rinterface.INTSXP,
+                # "u" -> special-cased below
+                "f": rinterface.REALSXP,
+                "c": rinterface.CPLXSXP,
+                # "O" -> special-cased below
+                "S": rinterface.STRSXP,
+                "U": rinterface.STRSXP,
+                # "V" -> special-cased below
+            }
             # Most types map onto R arrays:
             if o.dtype.kind in kinds:
                 # "F" means "use column-major order"
@@ -3102,7 +3087,7 @@ try:
 
                     else:
                         col = numpy.array(o[column_name])
-                        #col = numpy2ri_vector(col)
+                        col = numpy2ri_vector(col)
                     parameters.append(col)
                 except ValueError as e:
                     raise ValueError(
